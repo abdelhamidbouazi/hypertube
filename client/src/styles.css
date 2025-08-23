@@ -1,0 +1,46 @@
+@import 'ng-zorro-antd/ng-zorro-antd.min.css';
+@import 'tailwindcss';
+
+/* HyperTybe Color Palette */
+:root {
+  /* Primary grayscale palette */
+  --color-primary-darkest: #595959;
+  --color-primary-dark: #7f7f7f;
+  --color-primary-medium: #a5a5a5;
+  --color-primary-light: #cccccc;
+  --color-primary-lightest: #f2f2f2;
+
+  /* Semantic colors */
+  --color-text-primary: var(--color-primary-darkest);
+  --color-text-secondary: var(--color-primary-dark);
+  --color-text-muted: var(--color-primary-medium);
+
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: var(--color-primary-lightest);
+  --color-bg-muted: var(--color-primary-light);
+
+  --color-border-primary: var(--color-primary-light);
+  --color-border-secondary: var(--color-primary-medium);
+
+  --color-btn-primary-bg: var(--color-primary-darkest);
+  --color-btn-primary-hover: var(--color-primary-dark);
+  --color-btn-primary-focus: var(--color-primary-dark);
+
+  --color-btn-secondary-bg: transparent;
+  --color-btn-secondary-border: var(--color-primary-light);
+  --color-btn-secondary-text: var(--color-primary-darkest);
+  --color-btn-secondary-hover: var(--color-primary-lightest);
+
+  --color-input-bg: var(--color-primary-lightest);
+  --color-input-focus: var(--color-bg-primary);
+  --color-input-border: var(--color-primary-light);
+  --color-input-placeholder: var(--color-primary-medium);
+}
+
+/* Global font settings */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
