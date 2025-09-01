@@ -1,0 +1,126 @@
+<div class="w-md mx-auto bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+  <h1 class="text-3xl font-bold text-center text-[#595959] mb-8">Welcome Back</h1>
+
+  <form (ngSubmit)="submit()" class="space-y-6">
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-[#7f7f7f]">Username</label>
+      <div class="relative">
+        <mat-icon
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
+          style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+          >person</mat-icon
+        >
+        <input
+          [(ngModel)]="username"
+          name="username"
+          placeholder="Enter your username"
+          class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+          required
+        />
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-[#7f7f7f]">Password</label>
+      <div class="relative">
+        <mat-icon
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#7f7f7f] flex items-center justify-center"
+          style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+          >lock</mat-icon
+        >
+        <input
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Enter your password"
+          type="password"
+          class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+          required
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      class="w-full flex bg-[#595959] gap-3 text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer items-center justify-center"
+    >
+      <span class="text-white"> Sign In </span>
+      <!-- <mat-icon style="color: white">login</mat-icon> -->
+    </button>
+  </form>
+  <!-- <form (ngSubmit)="submit()" class="space-y-6">
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-[#7f7f7f]">Username</label>
+      <mat-icon style="color: #7f7f7f">person</mat-icon>
+      <input
+        [(ngModel)]="username"
+        name="username"
+        placeholder="Enter your username"
+        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+        required
+      />
+    </div>
+
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-[#7f7f7f]">Password</label>
+      <mat-icon style="color: #7f7f7f">password</mat-icon>
+      <input
+        [(ngModel)]="password"
+        name="password"
+        placeholder="Enter your password"
+        type="password"
+        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+        required
+      />
+    </div>
+
+    <button
+      type="submit"
+      class="w-full bg-[#595959] text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer"
+    >
+      <span class="text-white"> Sign In </span>
+    </button>
+  </form> -->
+
+  <div class="mt-8">
+    <div class="relative">
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-[#cccccc]"></div>
+      </div>
+      <div class="relative flex justify-center text-sm">
+        <span class="px-4 bg-white text-[#a5a5a5] font-medium">Or continue with</span>
+      </div>
+    </div>
+
+    <div class="mt-6 space-y-4 gap-3 flex flex-col">
+      <button
+        (click)="oauth('42')"
+        class="w-full border-2 border-[#cccccc] text-[#595959] py-3 px-4 rounded-xl hover:bg-[#f2f2f2] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium flex items-center justify-center space-x-2 cursor-pointer"
+      >
+        <span>Continue with</span>
+        <img src="/icons/42Logo.png" alt="42 Logo" class="w-5 h-5" />
+      </button>
+
+      <button
+        (click)="oauth('google')"
+        class="w-full border-2 border-[#cccccc] text-[#595959] py-3 px-4 rounded-xl hover:bg-[#f2f2f2] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium flex items-center justify-center space-x-2 cursor-pointer"
+      >
+        <span>Continue with</span>
+        <img src="/icons/googleLogo.png" alt="google Logo" class="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center space-y-2">
+    <p class="text-sm text-[#a5a5a5]">
+      Don't have an account?
+      <a routerLink="/register" class="text-[#595959] ml-1">
+        <span class="text-[#595959] hover:text-[#7f7f7f] font-medium"> Create account </span>
+      </a>
+    </p>
+    <p class="text-sm">
+      <a routerLink="/forgot-password">
+        <span class="text-[#7f7f7f] hover:text-[#595959]"> Forgot your password? </span>
+      </a>
+    </p>
+  </div>
+</div>

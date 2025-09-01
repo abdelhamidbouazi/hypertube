@@ -1,0 +1,11 @@
+{
+  "routes": {
+    "/": {},
+    "/browse": {},
+    "/forgot-password": {},
+    "/login": {},
+    "/oauth/callback": {},
+    "/register": {},
+    "/reset-password": {}
+  }
+}
