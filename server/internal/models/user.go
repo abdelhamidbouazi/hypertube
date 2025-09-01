@@ -11,6 +11,6 @@ type User struct {
 	Tokens     pq.StringArray `gorm:"type:text[]" json:"-"`
 	FirstName  string
 	LastName   string
-	Email      string `gorm:"uniqueIndex"`
+	Email      string `gorm:"uniqueIndex" json:"-"`
 	Password   string `json:"-"`
 }
