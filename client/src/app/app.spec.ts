@@ -20,6 +20,10 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
+<<<<<<< HEAD
     expect(compiled.querySelector('h1')?.textContent).toContain('Hello, hypertybe-learning');
+=======
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, client');
+>>>>>>> 669195e367f919c154b0c3d6f114408079d8fd77
   });
 });
