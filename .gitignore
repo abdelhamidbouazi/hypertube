@@ -32,3 +32,6 @@ go.work.sum
 # .vscode/
 
 tmp/
+client/.angular
+client/dist
+client/node_modules
