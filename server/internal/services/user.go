@@ -24,16 +24,17 @@ func GetUsers() ([]*models.User, error) {
 }
 
 type CreateUserType struct {
-	Name     string `validate:"required,min=4"`
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,min=8,containsany=!@#?*"`
+	FirstName	string `validate:"required,min=4"`
+	Email    	string `validate:"required,email"`
+	Password	string `validate:"required,min=8,containsany=!@#?*"`
 }
 
 func CreateUser(newUser CreateUserType) error {
 	db := PostgresDB()
 	var user models.User
 	user.Email = newUser.Email
-	user.Name = newUser.Name
+	user.FirstName = newUser.FirstName
+	user.LastName = newUser.LastName
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 8)
 	if err != nil {
 		return err
