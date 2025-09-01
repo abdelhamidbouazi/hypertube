@@ -27,6 +27,10 @@ func LoadServer() {
 	services.Logger.Debug("Loading Server")
 
 	Server = echo.New()
+	Server.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowOrigins: services.Conf.CORS.Origins,
+	}))
 	Server.Use(middleware.Logger())
 	config := echojwt.Config{
 		SigningKey: []byte(services.Conf.JWT.SigningKey),
