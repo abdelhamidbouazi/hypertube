@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 
-<<<<<<< HEAD
 import { HomePage } from '@/pages/home/home.page';
 import { LoginPage } from '@/pages/login/login.page';
 import { RegisterPage } from '@/pages/register/register.page';
@@ -22,6 +21,3 @@ export const routes: Routes = [
   // Protected
   { path: 'browse', component: BrowsePage, canActivate: [authGuard] },
 ];
-=======
-export const routes: Routes = [];
->>>>>>> 669195e367f919c154b0c3d6f114408079d8fd77

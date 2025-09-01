@@ -9,7 +9,8 @@ import (
 type User struct {
 	gorm.Model `json:"-"`
 	Tokens     pq.StringArray `gorm:"type:text[]" json:"-"`
-	Name       string
-	Email      string `gorm:"uniqueIndex"`
+	FirstName  string
+	LastName   string
+	Email      string `gorm:"uniqueIndex" json:"-"`
 	Password   string `json:"-"`
 }
