@@ -3,17 +3,18 @@
 
   <form (ngSubmit)="submit()" class="space-y-6">
     <div class="space-y-2">
-      <label class="text-sm font-medium text-[#7f7f7f]">Username</label>
+      <label class="text-sm font-medium text-[#7f7f7f]">Email</label>
       <div class="relative">
         <mat-icon
           class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
           style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
-          >person</mat-icon
+          >email</mat-icon
         >
         <input
-          [(ngModel)]="username"
-          name="username"
-          placeholder="Enter your username"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="Enter your email"
+          type="email"
           class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
           required
         />
@@ -47,39 +48,6 @@
       <!-- <mat-icon style="color: white">login</mat-icon> -->
     </button>
   </form>
-  <!-- <form (ngSubmit)="submit()" class="space-y-6">
-    <div class="space-y-2">
-      <label class="text-sm font-medium text-[#7f7f7f]">Username</label>
-      <mat-icon style="color: #7f7f7f">person</mat-icon>
-      <input
-        [(ngModel)]="username"
-        name="username"
-        placeholder="Enter your username"
-        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-        required
-      />
-    </div>
-
-    <div class="space-y-2">
-      <label class="text-sm font-medium text-[#7f7f7f]">Password</label>
-      <mat-icon style="color: #7f7f7f">password</mat-icon>
-      <input
-        [(ngModel)]="password"
-        name="password"
-        placeholder="Enter your password"
-        type="password"
-        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-        required
-      />
-    </div>
-
-    <button
-      type="submit"
-      class="w-full bg-[#595959] text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer"
-    >
-      <span class="text-white"> Sign In </span>
-    </button>
-  </form> -->
 
   <div class="mt-8">
     <div class="relative">

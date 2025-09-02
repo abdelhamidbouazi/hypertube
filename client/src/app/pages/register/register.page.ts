@@ -14,14 +14,12 @@ import { AuthService } from '@/auth/services/auth.service';
 export class RegisterPage {
   private auth = inject(AuthService);
   email = '';
-  username = '';
   firstName = '';
   lastName = '';
   password = '';
   submit() {
     this.auth.register({
       email: this.email,
-      username: this.username,
       firstName: this.firstName,
       lastName: this.lastName,
       password: this.password,

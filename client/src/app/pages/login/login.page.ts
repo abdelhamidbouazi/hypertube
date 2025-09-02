@@ -14,11 +14,11 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class LoginPage {
   private auth = inject(AuthService);
-  username = '';
-  password = '';
+  email = 'example@example.org';
+  password = '!!!!!!!!!!!';
 
   submit() {
-    this.auth.login({ username: this.username, password: this.password });
+    this.auth.login({ email: this.email, password: this.password });
   }
   oauth(provider: '42' | 'google' | 'github') {
     this.auth.startOAuth(provider);

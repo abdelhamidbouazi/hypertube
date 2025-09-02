@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 type User = {
   id: string;
   email: string;
-  username: string;
   firstName: string;
   lastName: string;
 };
@@ -13,6 +12,13 @@ type User = {
 type AuthResponse = {
   token: string; // JWT
   user: User;
+};
+
+type BackendAuthResponse = {
+  AccessToken: string;
+  ExpiresIn: number;
+  RefreshToken: string;
+  TokenType: string;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -42,32 +48,37 @@ export class AuthService {
     return this.tokenSig();
   }
 
-  async login(credentials: { username: string; password: string }) {
-    const res = await this.http.post<AuthResponse>('/api/auth/login', credentials).toPromise();
-    this.setAuth(res!);
+  async login(credentials: { email: string; password: string }) {
+    const res = await this.http
+      .post<BackendAuthResponse>('http://localhost:8080/auth/login', credentials)
+      .toPromise();
+    this.setAuthFromResponse(res!);
   }
 
   async register(payload: {
     email: string;
-    username: string;
     firstName: string;
     lastName: string;
     password: string;
   }) {
-    const res = await this.http.post<AuthResponse>('/api/auth/register', payload).toPromise();
-    this.setAuth(res!);
+    const res = await this.http
+      .post<BackendAuthResponse>('http://localhost:8080/auth/register', payload)
+      .toPromise();
+    this.setAuthFromResponse(res!);
   }
 
   async requestPasswordReset(email: string) {
-    await this.http.post('/api/auth/forgot-password', { email }).toPromise();
+    await this.http.post('http://localhost:8080/auth/forgot-password', { email }).toPromise();
   }
 
   async resetPassword(token: string, newPassword: string) {
-    await this.http.post('/api/auth/reset-password', { token, password: newPassword }).toPromise();
+    await this.http
+      .post('http://localhost:8080/auth/reset-password', { token, password: newPassword })
+      .toPromise();
   }
 
   async loadMe() {
-    const me = await this.http.get<User>('/api/auth/me').toPromise();
+    const me = await this.http.get<User>('http://localhost:8080/auth/me').toPromise();
     if (me) {
       this.userSig.set(me);
       if (typeof window !== 'undefined') {
@@ -88,7 +99,7 @@ export class AuthService {
 
   startOAuth(provider: '42' | 'google' | 'github') {
     if (typeof window !== 'undefined') {
-      window.location.href = `/api/auth/${provider}`;
+      window.location.href = `http://localhost:8080/auth/${provider}`;
     }
   }
 
@@ -110,5 +121,14 @@ export class AuthService {
       localStorage.setItem('auth_user', JSON.stringify(res.user));
     }
     this.router.navigate(['/browse']);
+  }
+
+  private setAuthFromResponse(res: BackendAuthResponse) {
+    this.tokenSig.set(res.AccessToken);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', res.AccessToken);
+      localStorage.setItem('refresh_token', res.RefreshToken);
+    }
+    this.loadMe().then(() => this.router.navigate(['/browse']));
   }
 }
