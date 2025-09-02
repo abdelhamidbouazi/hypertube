@@ -56,7 +56,7 @@ func LoadConfig(config string) {
 		log.Fatal(err)
 	}
 
-	Conf.CORS.Origins = viper.GetStringSlice("CORS_ORIGINS")
+	Conf.CORS.Origins = strings.Split(viper.GetString("CORS_ORIGINS"), ",")
 
 	expAt, err := utils.ParseDuration(Conf.JWT.AccessTkExpiresAtRaw)
 	if err != nil {
