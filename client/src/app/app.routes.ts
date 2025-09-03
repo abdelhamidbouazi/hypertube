@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from '@/pages/forgot-password/forgot-password.page
 import { ResetPasswordPage } from '@/pages/reset-password/reset-password.page';
 import { OAuthCallbackPage } from '@/pages/oauth-callback/oauth-callback.page';
 import { BrowsePage } from '@/pages/browse/browse.page';
+import { DiscoverPage } from '@/pages/discover/discover.page';
 import { guestGuard } from '@/auth/guards/guest.guard';
 import { authGuard } from '@/auth/guards/auth.guard';
 
@@ -19,4 +20,5 @@ export const routes: Routes = [
   { path: 'oauth/callback', component: OAuthCallbackPage, canActivate: [guestGuard] },
 
   { path: 'browse', component: BrowsePage, canActivate: [authGuard] },
+  { path: 'discover', component: DiscoverPage },
 ];
