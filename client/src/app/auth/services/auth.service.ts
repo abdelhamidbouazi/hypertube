@@ -65,16 +65,18 @@ export class AuthService {
 
   async register(payload: {
     email: string;
-    firstName: string;
-    lastName: string;
+    firstname: string;
+    lastname: string;
     password: string;
   }) {
     try {
+      console.log('Register payload:', payload);
       const response = await axios.post<BackendAuthResponse>(
         `${environment.apiUrl}/auth/register`,
         payload,
         { headers: { 'Content-Type': 'application/json' } }
       );
+      console.log('Registration response:', response.data);
       await this.setAuthFromResponse(response.data);
     } catch (err: unknown) {
       console.error('registration failed', err);

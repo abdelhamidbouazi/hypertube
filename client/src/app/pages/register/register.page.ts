@@ -26,6 +26,7 @@ export class RegisterPage {
   formError = '';
 
   readonly MIN_PASSWORD_LENGTH = 8;
+  readonly MIN_NAME_LENGTH = 4;
 
   validateEmail(): boolean {
     this.email = this.email.trim();
@@ -51,6 +52,11 @@ export class RegisterPage {
       return false;
     }
 
+    if (this.firstName.length < this.MIN_NAME_LENGTH) {
+      this.firstNameError = `First name must be at least ${this.MIN_NAME_LENGTH} characters long`;
+      return false;
+    }
+
     this.firstNameError = '';
     return true;
   }
@@ -59,6 +65,11 @@ export class RegisterPage {
     this.lastName = this.lastName.trim();
     if (!this.lastName) {
       this.lastNameError = 'Last name is required';
+      return false;
+    }
+
+    if (this.lastName.length < this.MIN_NAME_LENGTH) {
+      this.lastNameError = `Last name must be at least ${this.MIN_NAME_LENGTH} characters long`;
       return false;
     }
 
@@ -77,15 +88,15 @@ export class RegisterPage {
       return false;
     }
 
-    const hasUpperCase = /[A-Z]/.test(this.password);
-    const hasLowerCase = /[a-z]/.test(this.password);
-    const hasNumbers = /\d/.test(this.password);
+    // const hasUpperCase = /[A-Z]/.test(this.password);
+    // const hasLowerCase = /[a-z]/.test(this.password);
+    // const hasNumbers = /\d/.test(this.password);
     // const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(this.password);
 
-    if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
-      this.passwordError = 'Password must contain uppercase, lowercase letters and numbers';
-      return false;
-    }
+    // if (!(hasUpperCase && hasLowerCase && hasNumbers)) {
+    //   this.passwordError = 'Password must contain uppercase, lowercase letters and numbers';
+    //   return false;
+    // }
 
     this.passwordError = '';
     return true;
@@ -113,8 +124,8 @@ export class RegisterPage {
     try {
       await this.auth.register({
         email: this.email,
-        firstName: this.firstName,
-        lastName: this.lastName,
+        firstname: this.firstName,
+        lastname: this.lastName,
         password: this.password,
       });
     } catch (err) {

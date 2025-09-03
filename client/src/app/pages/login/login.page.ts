@@ -14,8 +14,8 @@ import { environment } from '~/environments/environment';
 })
 export class LoginPage {
   private auth = inject(AuthService);
-  email = 'example@example.org';
-  password = '!!!!!!!!!!!';
+  email = '';
+  password = '';
 
   isLoading = false;
   loadingProvider: 'local' | 'google' | '42' | null = null;
