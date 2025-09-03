@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import axios from 'axios';
+import { environment } from '~/environments/environment';
 
 type User = {
   id: string;
@@ -10,7 +11,7 @@ type User = {
 };
 
 type AuthResponse = {
-  token: string; // JWT
+  token: string;
   user: User;
 };
 
@@ -23,7 +24,6 @@ type BackendAuthResponse = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private http = inject(HttpClient);
   private router = inject(Router);
 
   private userSig = signal<User | null>(null);
@@ -33,7 +33,6 @@ export class AuthService {
   readonly isAuthenticated = computed(() => !!this.tokenSig());
 
   constructor() {
-    // Load from storage (browser-only)
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('auth_token');
       const userJson = localStorage.getItem('auth_user');
@@ -49,10 +48,19 @@ export class AuthService {
   }
 
   async login(credentials: { email: string; password: string }) {
-    const res = await this.http
-      .post<BackendAuthResponse>('http://localhost:8080/auth/login', credentials)
-      .toPromise();
-    this.setAuthFromResponse(res!);
+    try {
+      const response = await axios.post<BackendAuthResponse>(
+        `${environment.apiUrl}/auth/login`,
+        credentials,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      console.log('Login response:', response.data);
+      await this.setAuthFromResponse(response.data);
+    } catch (err: unknown) {
+      console.error('login failed', err);
+      throw err;
+    }
   }
 
   async register(payload: {
@@ -61,24 +69,54 @@ export class AuthService {
     lastName: string;
     password: string;
   }) {
-    const res = await this.http
-      .post<BackendAuthResponse>('http://localhost:8080/auth/register', payload)
-      .toPromise();
-    this.setAuthFromResponse(res!);
+    try {
+      const response = await axios.post<BackendAuthResponse>(
+        `${environment.apiUrl}/auth/register`,
+        payload,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      await this.setAuthFromResponse(response.data);
+    } catch (err: unknown) {
+      console.error('registration failed', err);
+      throw err;
+    }
   }
 
   async requestPasswordReset(email: string) {
-    await this.http.post('http://localhost:8080/auth/forgot-password', { email }).toPromise();
+    try {
+      await axios.post(
+        `${environment.apiUrl}/auth/forgot-password`,
+        { email },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (err: unknown) {
+      console.error('request password reset failed', err);
+      throw err;
+    }
   }
 
   async resetPassword(token: string, newPassword: string) {
-    await this.http
-      .post('http://localhost:8080/auth/reset-password', { token, password: newPassword })
-      .toPromise();
+    try {
+      await axios.post(
+        `${environment.apiUrl}/auth/reset-password`,
+        { token, password: newPassword },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (err: unknown) {
+      console.error('reset password failed', err);
+      throw err;
+    }
   }
 
   async loadMe() {
-    const me = await this.http.get<User>('http://localhost:8080/auth/me').toPromise();
+    const token =
+      this.tokenSig() ??
+      (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await axios.get<User>(`${environment.apiUrl}/auth/me`, { headers });
+    const me = response.data;
     if (me) {
       this.userSig.set(me);
       if (typeof window !== 'undefined') {
@@ -87,48 +125,53 @@ export class AuthService {
     }
   }
 
-  logout() {
-    this.userSig.set(null);
-    this.tokenSig.set(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-    }
-    this.router.navigate(['/login']);
-  }
+  // logout() {
+  //   this.userSig.set(null);
+  //   this.tokenSig.set(null);
+  //   if (typeof window !== 'undefined') {
+  //     localStorage.removeItem('auth_token');
+  //     localStorage.removeItem('auth_user');
+  //   }
+  //   this.router.navigate(['/login']);
+  // }
 
-  startOAuth(provider: '42' | 'google' | 'github') {
-    if (typeof window !== 'undefined') {
-      window.location.href = `http://localhost:8080/auth/${provider}`;
-    }
-  }
+  // startOAuth(provider: '42' | 'google' | 'github') {
+  //   if (typeof window !== 'undefined') {
+  //     window.location.href = `${environment.apiUrl}/auth/${provider}`;
+  //   }
+  // }
 
-  completeOAuth(token: string) {
-    // Backend should send back JWT via redirect to /oauth/callback?token=...
-    this.tokenSig.set(token);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', token);
-    }
-    // Fetch user
-    this.loadMe().then(() => this.router.navigate(['/browse']));
-  }
+  // completeOAuth(token: string) {
+  //   this.tokenSig.set(token);
+  //   if (typeof window !== 'undefined') {
+  //     localStorage.setItem('auth_token', token);
+  //   }
 
-  private setAuth(res: AuthResponse) {
-    this.tokenSig.set(res.token);
-    this.userSig.set(res.user);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', res.token);
-      localStorage.setItem('auth_user', JSON.stringify(res.user));
-    }
-    this.router.navigate(['/browse']);
-  }
+  //   this.loadMe().then(() => this.router.navigate(['/browse']));
+  // }
 
-  private setAuthFromResponse(res: BackendAuthResponse) {
+  // private setAuth(res: AuthResponse) {
+  //   this.tokenSig.set(res.token);
+  //   this.userSig.set(res.user);
+  //   if (typeof window !== 'undefined') {
+  //     localStorage.setItem('auth_token', res.token);
+  //     localStorage.setItem('auth_user', JSON.stringify(res.user));
+  //   }
+  //   this.router.navigate(['/browse']);
+  // }
+
+  private async setAuthFromResponse(res: BackendAuthResponse) {
     this.tokenSig.set(res.AccessToken);
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', res.AccessToken);
       localStorage.setItem('refresh_token', res.RefreshToken);
     }
-    this.loadMe().then(() => this.router.navigate(['/browse']));
+    try {
+      // await this.loadMe();
+      console.log('setAuthFromResponse: calling loadMe');
+    } catch (e) {
+      console.warn('loadMe failed', e);
+    }
+    this.router.navigate(['/browse']);
   }
 }

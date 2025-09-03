@@ -40,12 +40,47 @@
       </div>
     </div>
 
-    <button
+    <!-- <button
       type="submit"
       class="w-full flex bg-[#595959] gap-3 text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer items-center justify-center"
     >
       <span class="text-white"> Sign In </span>
-      <!-- <mat-icon style="color: white">login</mat-icon> -->
+    </button> -->
+
+    <button
+      type="submit"
+      [disabled]="isLoading"
+      class="w-full flex bg-[#595959] gap-3 text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer items-center justify-center"
+    >
+      <ng-container *ngIf="!(isLoading && loadingProvider === 'local'); else loadingLocal">
+        <span class="text-white"> Sign In </span>
+      </ng-container>
+
+      <ng-template #loadingLocal>
+        <span class="flex items-center gap-3">
+          <svg
+            class="animate-spin h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span class="text-white"> Sign In</span>
+        </span>
+      </ng-template>
     </button>
   </form>
 
@@ -62,18 +97,78 @@
     <div class="mt-6 space-y-4 gap-3 flex flex-col">
       <button
         (click)="oauth('42')"
+        [disabled]="isLoading"
         class="w-full border-2 border-[#cccccc] text-[#595959] py-3 px-4 rounded-xl hover:bg-[#f2f2f2] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium flex items-center justify-center space-x-2 cursor-pointer"
       >
-        <span>Continue with</span>
-        <img src="/icons/42Logo.png" alt="42 Logo" class="w-5 h-5" />
+        <ng-container *ngIf="!(isLoading && loadingProvider === '42'); else loading42">
+          <span>Continue with</span>
+          <img src="/icons/42Logo.png" alt="42 Logo" class="w-5 h-5" />
+        </ng-container>
+
+        <ng-template #loading42>
+          <span class="flex items-center gap-3">
+            <svg
+              class="animate-spin h-5 w-5 text-gray-700"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+            <span>Continue with</span>
+            <img src="/icons/42Logo.png" alt="42 Logo" class="w-5 h-5" />
+          </span>
+        </ng-template>
       </button>
 
       <button
         (click)="oauth('google')"
+        [disabled]="isLoading"
         class="w-full border-2 border-[#cccccc] text-[#595959] py-3 px-4 rounded-xl hover:bg-[#f2f2f2] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium flex items-center justify-center space-x-2 cursor-pointer"
       >
-        <span>Continue with</span>
-        <img src="/icons/googleLogo.png" alt="google Logo" class="w-4 h-4" />
+        <ng-container *ngIf="!(isLoading && loadingProvider === 'google'); else loadingGoogle">
+          <span>Continue with</span>
+          <img src="/icons/googleLogo.png" alt="google Logo" class="w-4 h-4" />
+        </ng-container>
+
+        <ng-template #loadingGoogle>
+          <span class="flex items-center gap-3">
+            <svg
+              class="animate-spin h-5 w-5 text-gray-700"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+            <span>Continue with</span>
+            <img src="/icons/googleLogo.png" alt="google Logo" class="w-4 h-4" />
+          </span>
+        </ng-template>
       </button>
     </div>
   </div>

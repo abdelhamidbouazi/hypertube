@@ -18,6 +18,5 @@ export const routes: Routes = [
   { path: 'reset-password', component: ResetPasswordPage, canActivate: [guestGuard] },
   { path: 'oauth/callback', component: OAuthCallbackPage, canActivate: [guestGuard] },
 
-  // Protected
   { path: 'browse', component: BrowsePage, canActivate: [authGuard] },
 ];
