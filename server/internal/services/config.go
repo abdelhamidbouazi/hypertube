@@ -31,6 +31,10 @@ type AppConfig struct {
 		AccessTkExpiresAt     time.Duration
 		RefreshTkExpiresAt    time.Duration
 	} `mapstructure:"JWT"`
+
+	CORS struct {
+		Origins []string `mapstructure:"ORIGINS"`
+	} `mapstructure:"CORS"`
 }
 
 func LoadConfig(config string) {
@@ -51,6 +55,8 @@ func LoadConfig(config string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	Conf.CORS.Origins = strings.Split(viper.GetString("CORS_ORIGINS"), ",")
 
 	expAt, err := utils.ParseDuration(Conf.JWT.AccessTkExpiresAtRaw)
 	if err != nil {

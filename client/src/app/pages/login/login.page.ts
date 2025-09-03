@@ -1,10 +1,10 @@
-// filepath: /src/app/pages/login/login.page.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@/auth/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
+import { environment } from '~/environments/environment';
 
 @Component({
   standalone: true,
@@ -14,13 +14,31 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class LoginPage {
   private auth = inject(AuthService);
-  username = '';
-  password = '';
+  email = 'example@example.org';
+  password = '!!!!!!!!!!!';
 
-  submit() {
-    this.auth.login({ username: this.username, password: this.password });
+  isLoading = false;
+  loadingProvider: 'local' | 'google' | '42' | null = null;
+
+  async submit() {
+    if (this.isLoading) return;
+    this.isLoading = true;
+    this.loadingProvider = 'local';
+    try {
+      await this.auth.login({ email: this.email, password: this.password });
+    } catch (err) {
+      console.error('login failed', err);
+    } finally {
+      this.isLoading = false;
+      this.loadingProvider = null;
+    }
   }
-  oauth(provider: '42' | 'google' | 'github') {
-    this.auth.startOAuth(provider);
+
+  oauth(provider: '42' | 'google') {
+    if (this.isLoading) return;
+    this.isLoading = true;
+    this.loadingProvider = provider;
+
+    // window.location.href = `${environment.apiUrl}/auth/${provider}`;
   }
 }
