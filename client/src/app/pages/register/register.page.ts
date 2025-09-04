@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '@/auth/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -13,6 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class RegisterPage {
   private auth = inject(AuthService);
+  private router = inject(Router);
+
   email = '';
   firstName = '';
   lastName = '';
@@ -127,6 +129,14 @@ export class RegisterPage {
         firstname: this.firstName,
         lastname: this.lastName,
         password: this.password,
+      });
+
+      this.router.navigate(['/login'], {
+        state: {
+          email: this.email,
+          password: this.password,
+          fromRegistration: true,
+        },
       });
     } catch (err) {
       console.error('register failed', err);

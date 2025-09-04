@@ -77,7 +77,7 @@ export class AuthService {
         { headers: { 'Content-Type': 'application/json' } }
       );
       console.log('Registration response:', response.data);
-      await this.setAuthFromResponse(response.data);
+      // await this.setAuthFromResponse(response.data);
     } catch (err: unknown) {
       console.error('registration failed', err);
       throw err;

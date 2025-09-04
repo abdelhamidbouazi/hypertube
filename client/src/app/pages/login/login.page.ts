@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@/auth/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
-import { environment } from '~/environments/environment';
 
 @Component({
   standalone: true,
@@ -14,11 +13,25 @@ import { environment } from '~/environments/environment';
 })
 export class LoginPage {
   private auth = inject(AuthService);
+
   email = '';
   password = '';
 
   isLoading = false;
   loadingProvider: 'local' | 'google' | '42' | null = null;
+
+  ngOnInit() {
+    if (typeof window !== 'undefined' && window.history) {
+      const state = history.state;
+
+      if (state && state.fromRegistration) {
+        this.email = state.email || '';
+        this.password = state.password || '';
+        console.log('Registration successful! Please login with your credentials.');
+        console.log('Pre-filled email:', this.email); // Debug log
+      }
+    }
+  }
 
   async submit() {
     if (this.isLoading) return;
