@@ -117,8 +117,15 @@ export class AuthService {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await axios.get<User>(`${environment.apiUrl}/auth/me`, { headers });
-    const me = response.data;
+    //TODO: get user from backend
+    // const response = await axios.get<User>(`${environment.apiUrl}/auth/me`, { headers });
+    // const me = response.data;
+    const me = {
+      id: '13',
+      email: 'h@h.com',
+      firstName: 'aassaa',
+      lastName: 'asassa',
+    };
     if (me) {
       this.userSig.set(me);
       if (typeof window !== 'undefined') {
@@ -127,21 +134,22 @@ export class AuthService {
     }
   }
 
-  // logout() {
-  //   this.userSig.set(null);
-  //   this.tokenSig.set(null);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.removeItem('auth_token');
-  //     localStorage.removeItem('auth_user');
-  //   }
-  //   this.router.navigate(['/login']);
-  // }
+  logout() {
+    //TODO: check what is the best solution for logout : is this enough or should we also inform the backend ?
+    this.userSig.set(null);
+    this.tokenSig.set(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    this.router.navigate(['/login']);
+  }
 
-  // startOAuth(provider: '42' | 'google' | 'github') {
-  //   if (typeof window !== 'undefined') {
-  //     window.location.href = `${environment.apiUrl}/auth/${provider}`;
-  //   }
-  // }
+  startOAuth(provider: '42' | 'google' | 'github') {
+    if (typeof window !== 'undefined') {
+      window.location.href = `${environment.apiUrl}/auth/${provider}`;
+    }
+  }
 
   // completeOAuth(token: string) {
   //   this.tokenSig.set(token);
@@ -169,7 +177,7 @@ export class AuthService {
       localStorage.setItem('refresh_token', res.RefreshToken);
     }
     try {
-      // await this.loadMe();
+      await this.loadMe();
       console.log('setAuthFromResponse: calling loadMe');
     } catch (e) {
       console.warn('loadMe failed', e);
