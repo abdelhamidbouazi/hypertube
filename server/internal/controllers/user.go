@@ -26,3 +26,7 @@ func GetUsers(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
+
+func GetMe(c echo.Context) error {
+	return c.JSON(http.StatusOK, c.Get("model"))
+}
