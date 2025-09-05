@@ -5,56 +5,129 @@
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
         <label class="text-sm font-medium text-[#7f7f7f]">First Name</label>
-        <input
-          [(ngModel)]="firstName"
-          name="firstName"
-          placeholder="Enter first name"
-          class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-          required
-        />
+        <div class="relative">
+          <mat-icon
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
+            style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+            >person</mat-icon
+          >
+          <input
+            [(ngModel)]="firstName"
+            name="firstName"
+            placeholder="Enter first name"
+            class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+            (input)="onFirstNameInput()"
+            (blur)="validateFirstName()"
+            required
+          />
+        </div>
+        <div *ngIf="firstNameError" class="text-red-500 text-xs mt-1">{{ firstNameError }}</div>
       </div>
 
       <div class="space-y-2">
         <label class="text-sm font-medium text-[#7f7f7f]">Last Name</label>
-        <input
-          [(ngModel)]="lastName"
-          name="lastName"
-          placeholder="Enter last name"
-          class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-          required
-        />
+        <div class="relative">
+          <mat-icon
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
+            style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+            >person</mat-icon
+          >
+          <input
+            [(ngModel)]="lastName"
+            name="lastName"
+            placeholder="Enter last name"
+            class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+            (input)="onLastNameInput()"
+            (blur)="validateLastName()"
+            required
+          />
+        </div>
+        <div *ngIf="lastNameError" class="text-red-500 text-xs mt-1">{{ lastNameError }}</div>
       </div>
     </div>
 
     <div class="space-y-2">
       <label class="text-sm font-medium text-[#7f7f7f]">Email Address</label>
-      <input
-        [(ngModel)]="email"
-        name="email"
-        placeholder="Enter your email"
-        type="email"
-        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-        required
-      />
+      <div class="relative">
+        <mat-icon
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
+          style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+          >email</mat-icon
+        >
+        <input
+          [(ngModel)]="email"
+          name="email"
+          placeholder="Enter your email"
+          type="email"
+          class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+          (input)="onEmailInput()"
+          (blur)="validateEmail()"
+          required
+        />
+      </div>
+      <div *ngIf="emailError" class="text-red-500 text-xs mt-1">{{ emailError }}</div>
     </div>
 
     <div class="space-y-2">
       <label class="text-sm font-medium text-[#7f7f7f]">Password</label>
-      <input
-        [(ngModel)]="password"
-        name="password"
-        placeholder="Create a password"
-        type="password"
-        class="w-full px-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
-        required
-      />
+      <div class="relative">
+        <mat-icon
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
+          style="font-size: 20px; width: 24px; height: 24px; color: #7f7f7f"
+          >lock</mat-icon
+        >
+        <input
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Create a password"
+          type="password"
+          class="w-full pl-12 pr-4 py-3 bg-[#f2f2f2] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:bg-white transition-all duration-200 placeholder-[#a5a5a5]"
+          (input)="onPasswordInput()"
+          (blur)="validatePassword()"
+          required
+        />
+      </div>
+      <div *ngIf="passwordError" class="text-red-500 text-xs mt-1">{{ passwordError }}</div>
+    </div>
+
+    <!-- General form error message -->
+    <div *ngIf="formError" class="text-red-500 text-sm text-center font-medium">
+      {{ formError }}
     </div>
 
     <button
       type="submit"
-      class="w-full bg-[#595959] text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer"
+      [disabled]="isLoading"
+      class="w-full flex bg-[#595959] gap-3 text-white py-3 px-4 rounded-xl hover:bg-[#7f7f7f] focus:outline-none focus:ring-2 focus:ring-[#7f7f7f] focus:ring-offset-2 transition-all duration-200 font-medium cursor-pointer items-center justify-center"
     >
-      <span class="text-white"> Create Account </span>
+      <ng-container *ngIf="!isLoading; else loadingTpl">
+        <span class="text-white"> Create Account </span>
+      </ng-container>
+      <ng-template #loadingTpl>
+        <span class="flex items-center gap-3">
+          <svg
+            class="animate-spin h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span class="text-white"> Create Account</span>
+        </span>
+      </ng-template>
     </button>
   </form>
 

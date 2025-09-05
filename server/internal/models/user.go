@@ -9,12 +9,6 @@ import (
 type User struct {
 	gorm.Model `json:"-"`
 	Tokens     pq.StringArray `gorm:"type:text[]" json:"-"`
-<<<<<<< Updated upstream
-	FirstName  string
-	LastName   string
-	Email      string `gorm:"uniqueIndex" json:"-"`
-	Password   string `json:"-"`
-=======
 	FirstName  string         `json:"firstname"`
 	LastName   string         `json:"lastname"`
 	Email      string         `json:"email"`
@@ -22,5 +16,4 @@ type User struct {
 	Avatar     string         `json:"avatar"`
 	Provider   string         `json:"-"`
 	ProviderId string         `json:"-"`
->>>>>>> Stashed changes
 }
