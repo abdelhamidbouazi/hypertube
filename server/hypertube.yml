@@ -10,3 +10,6 @@ JWT:
   SECRET_KEY: "dsa2n1n32j1k"
   ACCESS_TOKEN_EXPIRES_AT: "15m"
   REFRESH_TOKEN_EXPIRES_AT: "1y"
+OAUTH:
+  Google:
+    Redirect: "http://localhost:8080/oauth2/google/callback"
