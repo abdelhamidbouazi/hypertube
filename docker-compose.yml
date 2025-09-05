@@ -15,6 +15,9 @@ services:
       start_period: 80s
     ports:
       - 5432:5432
+    profiles:
+      - "default"
+      - "prod"
 
   server:
     depends_on:
@@ -31,6 +34,24 @@ services:
     environment:
       # HTTP_PORT: 8081
       CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
+    profiles:
+      - "default"
+
+  server-prod:
+    depends_on:
+      - postgres
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    networks:
+      - hypertube
+    environment:
+      CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
+    command: go run ./main.go
+    profiles:
+      - "prod"
 
 networks:
   hypertube:
