@@ -5,6 +5,7 @@ import (
 	"server/internal/middlewares"
 	"server/internal/routes"
 	"server/internal/services"
+	"server/internal/services/oauth2"
 	"strconv"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -15,9 +16,10 @@ import (
 var Server *echo.Echo
 
 func Init(config string) {
-	services.LoadValidator()
 	services.LoadConfig(config)
 	services.LoadDatabase()
+	oauth2.LoadConfig()
+	services.LoadValidator()
 	LoadServer()
 
 	// seeds.AddUsersSeeds()
@@ -39,6 +41,7 @@ func LoadServer() {
 	middlewares.SetupJWT(config)
 
 	routes.AddAuthRouter(Server.Group("/auth"))
+	routes.AddOAuthRouter(Server.Group("/oauth2"))
 	routes.AddUserRouter(Server.Group("/users"))
 }
 

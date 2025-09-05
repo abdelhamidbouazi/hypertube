@@ -3,6 +3,7 @@ package auth
 import (
 	"server/internal/models"
 	"server/internal/services"
+	"server/internal/services/users"
 	"slices"
 	"time"
 
@@ -12,10 +13,7 @@ import (
 
 type JwtCustomClaims struct {
 	jwt.RegisteredClaims
-	Email string `json:"email"`
-}
-
-func DeleteOldToken() {
+	ID uint `json:"id"`
 }
 
 func RevokeToken(user models.User, userToken string) (echo.Map, error) {
@@ -28,14 +26,14 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresIn),
 		},
-		user.Email,
+		user.ID,
 	}
 
 	rclaims := &JwtCustomClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(RefreshExpiresIn),
 		},
-		user.Email,
+		user.ID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -58,7 +56,7 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 
 	// store refresh token in database
 	user.Tokens = append(user.Tokens, refreshToken)
-	res := services.UpdateUser(user)
+	res := users.UpdateUser(user)
 
 	if res != nil {
 		return echo.Map{}, res
