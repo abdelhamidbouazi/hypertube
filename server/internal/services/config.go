@@ -40,6 +40,9 @@ type AppConfig struct {
 		Google struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"GOOGLE"`
+		FortyTwo struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"FORTYTWO"`
 	} `mapstructure:"OAUTH"`
 }
 

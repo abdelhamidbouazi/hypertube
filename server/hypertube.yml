@@ -13,3 +13,5 @@ JWT:
 OAUTH:
   Google:
     Redirect: "http://localhost:8080/oauth2/google/callback"
+  FortyTwo:
+    Redirect: "http://localhost:8080/oauth2/fortytwo/callback"
