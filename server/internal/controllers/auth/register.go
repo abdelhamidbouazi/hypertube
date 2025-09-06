@@ -25,6 +25,7 @@ func Register(c echo.Context) error {
 
 	var user users.CreateUserType
 	user.Provider = ""
+	user.Email = newUser.Email
 	user.FirstName = newUser.FirstName
 	user.LastName = newUser.LastName
 	user.Password = newUser.Password
