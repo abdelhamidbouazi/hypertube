@@ -35,6 +35,21 @@ type AppConfig struct {
 	CORS struct {
 		Origins []string `mapstructure:"ORIGINS"`
 	} `mapstructure:"CORS"`
+
+	SMTP struct {
+		Gmail struct {
+			Mail     string `mapstructure:"MAIL"`
+			Password string `mapstructure:"PASSWORD"`
+			Host     string `mapstructure:"HOST"`
+			Port     int    `mapstructure:"PORT"`
+		} `mapstructure:"GMAIL"`
+	} `mapstructure:"SMTP"`
+
+	UI struct {
+		Address                 string `mapstructure:"ADDRESS"`
+		ResetPasswordRoute      string `mapstructure:"RESET_PASSWORD_ROUTE"`
+		ResetPasswordTokenQuery string `mapstructure:"RESET_PASSWORD_TOKEN_QUERY"`
+	} `mapstructure:"UI"`
 }
 
 func LoadConfig(config string) {

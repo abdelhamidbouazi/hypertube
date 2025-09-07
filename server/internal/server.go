@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"fmt"
 	"net/http"
+	"server/internal/controllers"
 	"server/internal/middlewares"
 	"server/internal/routes"
 	"server/internal/services"
@@ -15,10 +17,14 @@ import (
 var Server *echo.Echo
 
 func Init(config string) {
-	services.LoadValidator()
 	services.LoadConfig(config)
+	services.LoadTemplateConfig()
+	services.LoadMailDialer()
+	services.LoadValidator()
 	services.LoadDatabase()
 	LoadServer()
+
+	fmt.Println("mail=", services.Conf.SMTP.Gmail.Mail, " password=", services.Conf.SMTP.Gmail.Password)
 
 	// seeds.AddUsersSeeds()
 }
@@ -38,6 +44,8 @@ func LoadServer() {
 
 	middlewares.SetupJWT(config)
 
+	Server.POST("/forgot-password", controllers.ForgotPassword)
+	Server.POST("/reset-password", controllers.ResetPassword)
 	routes.AddAuthRouter(Server.Group("/auth"))
 	routes.AddUserRouter(Server.Group("/users"))
 }
