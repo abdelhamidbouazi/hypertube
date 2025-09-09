@@ -22,7 +22,7 @@ export const routes: Routes = [
   { path: 'register', component: RegisterPage, canActivate: [initGuard, guestGuard] },
   { path: 'forgot-password', component: ForgotPasswordPage, canActivate: [initGuard, guestGuard] },
   { path: 'reset-password', component: ResetPasswordPage, canActivate: [initGuard, guestGuard] },
-  { path: 'oauth/callback', component: OAuthCallbackPage, canActivate: [initGuard, guestGuard] },
+  { path: 'oauth-callback', component: OAuthCallbackPage, canActivate: [initGuard, guestGuard] },
 
   // Protected routes
   { path: 'browse', component: BrowsePage, canActivate: [initGuard, authGuard] },

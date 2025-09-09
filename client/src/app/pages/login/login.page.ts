@@ -28,7 +28,7 @@ export class LoginPage {
         this.email = state.email || '';
         this.password = state.password || '';
         console.log('Registration successful! Please login with your credentials.');
-        console.log('Pre-filled email:', this.email); // Debug log
+        console.log('Pre-filled email:', this.email);
       }
     }
   }

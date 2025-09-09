@@ -151,25 +151,6 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  // completeOAuth(token: string) {
-  //   this.tokenSig.set(token);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.setItem('auth_token', token);
-  //   }
-
-  //   this.loadMe().then(() => this.router.navigate(['/browse']));
-  // }
-
-  // private setAuth(res: AuthResponse) {
-  //   this.tokenSig.set(res.token);
-  //   this.userSig.set(res.user);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.setItem('auth_token', res.token);
-  //     localStorage.setItem('auth_user', JSON.stringify(res.user));
-  //   }
-  //   this.router.navigate(['/browse']);
-  // }
-
   private async setAuthFromResponse(res: BackendAuthResponse) {
     this.tokenSig.set(res.AccessToken);
     if (typeof window !== 'undefined') {
@@ -183,5 +164,40 @@ export class AuthService {
       console.warn('loadMe failed', e);
     }
     this.router.navigate(['/browse']);
+  }
+
+  async completeOAuthFromCookies() {
+    try {
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const response: BackendAuthResponse = {
+        AccessToken: cookies['access_token'] || '',
+        RefreshToken: cookies['refresh_token'] || '',
+        TokenType: 'Bearer',
+        ExpiresIn: 0,
+      };
+
+      if (!response.AccessToken || !response.RefreshToken) {
+        throw new Error('OAuth tokens not found in cookies');
+      }
+
+      await this.setAuthFromResponse(response);
+
+      this.deleteCookie('access_token');
+      this.deleteCookie('refresh_token');
+
+      return true;
+    } catch (err) {
+      console.error('OAuth callback failed', err);
+      throw err;
+    }
+  }
+
+  private deleteCookie(name: string) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
   }
 }
