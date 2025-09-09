@@ -44,6 +44,11 @@ type AppConfig struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"FORTYTWO"`
 	} `mapstructure:"OAUTH"`
+
+	UI struct {
+		Address            string `mapstructure:"ADDRESS"`
+		OauthCallbackRoute string `mapstructure:"OAUTH_CALLBACK_ROUTE"`
+	} `mapstructure:"UI"`
 }
 
 func LoadConfig(config string) {
