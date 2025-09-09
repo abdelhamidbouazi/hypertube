@@ -10,15 +10,21 @@ import { BrowsePage } from '@/pages/browse/browse.page';
 import { DiscoverPage } from '@/pages/discover/discover.page';
 import { guestGuard } from '@/auth/guards/guest.guard';
 import { authGuard } from '@/auth/guards/auth.guard';
+import { initGuard } from '@/auth/guards/init/init.guard';
+import { LoadingComponent } from '@/components/loading/loading.component';
 
 export const routes: Routes = [
-  { path: '', component: HomePage, canActivate: [guestGuard] },
-  { path: 'login', component: LoginPage, canActivate: [guestGuard] },
-  { path: 'register', component: RegisterPage, canActivate: [guestGuard] },
-  { path: 'forgot-password', component: ForgotPasswordPage, canActivate: [guestGuard] },
-  { path: 'reset-password', component: ResetPasswordPage, canActivate: [guestGuard] },
-  { path: 'oauth/callback', component: OAuthCallbackPage, canActivate: [guestGuard] },
+  { path: 'loading', component: LoadingComponent },
 
-  { path: 'browse', component: BrowsePage, canActivate: [authGuard] },
+  // Guest routes
+  { path: '', component: HomePage, canActivate: [initGuard, guestGuard] },
+  { path: 'login', component: LoginPage, canActivate: [initGuard, guestGuard] },
+  { path: 'register', component: RegisterPage, canActivate: [initGuard, guestGuard] },
+  { path: 'forgot-password', component: ForgotPasswordPage, canActivate: [initGuard, guestGuard] },
+  { path: 'reset-password', component: ResetPasswordPage, canActivate: [initGuard, guestGuard] },
+  { path: 'oauth/callback', component: OAuthCallbackPage, canActivate: [initGuard, guestGuard] },
+
+  // Protected routes
+  { path: 'browse', component: BrowsePage, canActivate: [initGuard, authGuard] },
   { path: 'discover', component: DiscoverPage },
 ];

@@ -18,7 +18,7 @@ export class LoginPage {
   password = '';
 
   isLoading = false;
-  loadingProvider: 'local' | 'google' | '42' | null = null;
+  loadingProvider: 'local' | 'google' | 'fortytwo' | null = null;
 
   ngOnInit() {
     if (typeof window !== 'undefined' && window.history) {
@@ -47,11 +47,18 @@ export class LoginPage {
     }
   }
 
-  oauth(provider: '42' | 'google') {
+  oauth(provider: 'fortytwo' | 'google') {
     if (this.isLoading) return;
     this.isLoading = true;
     this.loadingProvider = provider;
-
-    // window.location.href = `${environment.apiUrl}/auth/${provider}`;
+    try {
+      setTimeout(() => {
+        this.auth.redirectToOAuth(provider);
+      }, 150);
+    } catch (err) {
+      console.error('oauth login failed', err);
+      this.isLoading = false;
+      this.loadingProvider = null;
+    }
   }
 }

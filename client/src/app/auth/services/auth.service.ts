@@ -28,9 +28,11 @@ export class AuthService {
 
   private userSig = signal<User | null>(null);
   private tokenSig = signal<string | null>(null);
+  private loadingSig = signal<boolean>(true);
 
   readonly user = computed(() => this.userSig());
   readonly isAuthenticated = computed(() => !!this.tokenSig());
+  readonly isLoading = computed(() => this.loadingSig());
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -40,6 +42,8 @@ export class AuthService {
         this.tokenSig.set(token);
         this.userSig.set(JSON.parse(userJson));
       }
+
+      this.loadingSig.set(false);
     }
   }
 
@@ -71,15 +75,24 @@ export class AuthService {
   }) {
     try {
       console.log('Register payload:', payload);
-      const response = await axios.post<BackendAuthResponse>(
-        `${environment.apiUrl}/auth/register`,
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      console.log('Registration response:', response.data);
-      // await this.setAuthFromResponse(response.data);
+      await axios.post<BackendAuthResponse>(`${environment.apiUrl}/auth/register`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
     } catch (err: unknown) {
       console.error('registration failed', err);
+      throw err;
+    }
+  }
+
+  redirectToOAuth(provider: 'fortytwo' | 'google') {
+    try {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${environment.apiUrl}/oauth2/${provider}`;
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err) {
+      console.error(`Redirect to ${provider} OAuth failed`, err);
       throw err;
     }
   }
@@ -117,15 +130,8 @@ export class AuthService {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    //TODO: get user from backend
-    // const response = await axios.get<User>(`${environment.apiUrl}/auth/me`, { headers });
-    // const me = response.data;
-    const me = {
-      id: '13',
-      email: 'h@h.com',
-      firstName: 'aassaa',
-      lastName: 'asassa',
-    };
+    const response = await axios.get<User>(`${environment.apiUrl}/users/me`, { headers });
+    const me = response.data;
     if (me) {
       this.userSig.set(me);
       if (typeof window !== 'undefined') {
@@ -143,12 +149,6 @@ export class AuthService {
       localStorage.removeItem('auth_user');
     }
     this.router.navigate(['/login']);
-  }
-
-  startOAuth(provider: '42' | 'google' | 'github') {
-    if (typeof window !== 'undefined') {
-      window.location.href = `${environment.apiUrl}/auth/${provider}`;
-    }
   }
 
   // completeOAuth(token: string) {
