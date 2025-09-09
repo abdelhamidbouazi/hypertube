@@ -137,16 +137,28 @@ func GoogleCallback(c echo.Context) error {
 	cookie := new(http.Cookie)
 	cookie.Name = "AccessToken"
 	cookie.Value = response["AccessToken"].(string)
+	cookie.Path = "/"
+	cookie.HttpOnly = false 
+	cookie.Secure = false   
+	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
 	cookie = new(http.Cookie)
 	cookie.Name = "AccessTokenExpiresIn"
 	cookie.Value = fmt.Sprintf("%d", response["ExpiresIn"].(int64))
+	cookie.Path = "/"
+	cookie.HttpOnly = false 
+	cookie.Secure = false   
+	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
 	cookie = new(http.Cookie)
 	cookie.Name = "RefreshToken"
 	cookie.Value = response["RefreshToken"].(string)
+	cookie.Path = "/"
+	cookie.HttpOnly = false 
+	cookie.Secure = false  
+	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
 	return c.Redirect(http.StatusFound, services.Conf.UI.Address+"/"+services.Conf.UI.OauthCallbackRoute)

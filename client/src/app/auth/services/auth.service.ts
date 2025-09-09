@@ -174,12 +174,15 @@ export class AuthService {
         return acc;
       }, {} as Record<string, string>);
 
+      console.log('Cookies string:', document.cookie);
+
       const response: BackendAuthResponse = {
-        AccessToken: cookies['access_token'] || '',
-        RefreshToken: cookies['refresh_token'] || '',
+        AccessToken: cookies['AccessToken'] || '',
+        RefreshToken: cookies['RefreshToken'] || '',
         TokenType: 'Bearer',
         ExpiresIn: 0,
       };
+      console.log('Cookies found: 00000000 0', response);
 
       if (!response.AccessToken || !response.RefreshToken) {
         throw new Error('OAuth tokens not found in cookies');
@@ -187,8 +190,8 @@ export class AuthService {
 
       await this.setAuthFromResponse(response);
 
-      this.deleteCookie('access_token');
-      this.deleteCookie('refresh_token');
+      this.deleteCookie('AccessToken');
+      this.deleteCookie('RefreshToken');
 
       return true;
     } catch (err) {
