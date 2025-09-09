@@ -63,9 +63,10 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 	}
 
 	return echo.Map{
-		"AccessToken":  accessToken,
-		"RefreshToken": refreshToken,
-		"TokenType":    "Bearer",
-		"ExpiresIn":    expiresIn.Unix(),
+		"AccessToken":           accessToken,
+		"RefreshToken":          refreshToken,
+		"TokenType":             "Bearer",
+		"ExpiresIn":             expiresIn.Unix(),
+		"RefreshTokenExpiresIn": RefreshExpiresIn.Unix(),
 	}, nil
 }

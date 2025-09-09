@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"server/internal/controllers/auth"
@@ -133,5 +134,20 @@ func GoogleCallback(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, response)
+	cookie := new(http.Cookie)
+	cookie.Name = "AccessToken"
+	cookie.Value = response["AccessToken"].(string)
+	c.SetCookie(cookie)
+
+	cookie = new(http.Cookie)
+	cookie.Name = "AccessTokenExpiresIn"
+	cookie.Value = fmt.Sprintf("%d", response["ExpiresIn"].(int64))
+	c.SetCookie(cookie)
+
+	cookie = new(http.Cookie)
+	cookie.Name = "RefreshToken"
+	cookie.Value = response["RefreshToken"].(string)
+	c.SetCookie(cookie)
+
+	return c.Redirect(http.StatusFound, services.Conf.UI.Address+"/"+services.Conf.UI.OauthCallbackRoute)
 }
