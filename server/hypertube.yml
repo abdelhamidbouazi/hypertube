@@ -18,3 +18,9 @@ ui:
   address: http://localhost:4200
   Reset_Password_Route: reset_password
   Reset_Password_Token_Query: token
+  oauth_callback_route: oauth-callback
+OAUTH:
+  Google:
+    Redirect: "http://localhost:8080/oauth2/google/callback"
+  FortyTwo:
+    Redirect: "http://localhost:8080/oauth2/fortytwo/callback"

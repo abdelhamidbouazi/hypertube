@@ -7,6 +7,7 @@ import (
 	"server/internal/middlewares"
 	"server/internal/routes"
 	"server/internal/services"
+	"server/internal/services/oauth2"
 	"strconv"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -22,6 +23,8 @@ func Init(config string) {
 	services.LoadMailDialer()
 	services.LoadValidator()
 	services.LoadDatabase()
+	oauth2.LoadConfig()
+	services.LoadValidator()
 	LoadServer()
 
 	fmt.Println("mail=", services.Conf.SMTP.Gmail.Mail, " password=", services.Conf.SMTP.Gmail.Password)
@@ -47,6 +50,7 @@ func LoadServer() {
 	Server.POST("/forgot-password", controllers.ForgotPassword)
 	Server.POST("/reset-password", controllers.ResetPassword)
 	routes.AddAuthRouter(Server.Group("/auth"))
+	routes.AddOAuthRouter(Server.Group("/oauth2"))
 	routes.AddUserRouter(Server.Group("/users"))
 }
 

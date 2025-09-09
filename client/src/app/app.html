@@ -30,5 +30,6 @@
 <main
   class="w-full min-h-screen flex justify-center items-center p-4 relative font-inter antialiased"
 >
-  <router-outlet />
+  <app-loading *ngIf="isLoading"></app-loading>
+  <router-outlet *ngIf="!isLoading" />
 </main>

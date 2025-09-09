@@ -1,7 +1,8 @@
 package middlewares
 
 import (
-	"server/internal/services"
+	"fmt"
+	"server/internal/services/users"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -26,8 +27,9 @@ func AttachUser(next echo.HandlerFunc) echo.HandlerFunc {
 		if data == nil {
 			return jwt.ErrTokenNotValidYet
 		}
-		email := data["email"].(string)
-		user, err := services.GetUserByEmail(email)
+		fmt.Println("HHRE=", data["id"])
+		id := data["id"].(float64)
+		user, err := users.GetUserById(id)
 		if err != nil {
 			return echo.ErrBadRequest
 		}

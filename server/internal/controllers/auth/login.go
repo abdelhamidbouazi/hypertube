@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"server/internal/services"
+	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -26,7 +27,7 @@ func Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := services.GetUserByEmail(newUser.Email)
+	user, err := users.GetUserByEmail(newUser.Email)
 	if err != nil {
 		return echo.ErrUnauthorized
 	}

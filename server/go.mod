@@ -12,11 +12,13 @@ require (
 	github.com/spf13/viper v1.20.1
 	golang.org/x/crypto v0.38.0
 	gopkg.in/mail.v2 v2.3.1
+	golang.org/x/oauth2 v0.25.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.2
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
