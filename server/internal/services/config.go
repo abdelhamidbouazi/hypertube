@@ -35,6 +35,20 @@ type AppConfig struct {
 	CORS struct {
 		Origins []string `mapstructure:"ORIGINS"`
 	} `mapstructure:"CORS"`
+
+	OAUTH struct {
+		Google struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"GOOGLE"`
+		FortyTwo struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"FORTYTWO"`
+	} `mapstructure:"OAUTH"`
+
+	UI struct {
+		Address            string `mapstructure:"ADDRESS"`
+		OauthCallbackRoute string `mapstructure:"OAUTH_CALLBACK_ROUTE"`
+	} `mapstructure:"UI"`
 }
 
 func LoadConfig(config string) {
@@ -56,6 +70,10 @@ func LoadConfig(config string) {
 		log.Fatal(err)
 	}
 
+	setupExtra()
+}
+
+func setupExtra() {
 	Conf.CORS.Origins = strings.Split(viper.GetString("CORS_ORIGINS"), ",")
 
 	expAt, err := utils.ParseDuration(Conf.JWT.AccessTkExpiresAtRaw)

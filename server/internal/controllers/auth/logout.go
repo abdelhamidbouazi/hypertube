@@ -3,7 +3,7 @@ package auth
 import (
 	"net/http"
 	"server/internal/models"
-	"server/internal/services"
+	"server/internal/services/users"
 	"slices"
 
 	"github.com/labstack/echo/v4"
@@ -20,7 +20,7 @@ func Logout(c echo.Context) error {
 		return cmp == token
 	})
 
-	err := services.UpdateUser(user)
+	err := users.UpdateUser(user)
 	if err != nil {
 		return echo.ErrInternalServerError
 	}

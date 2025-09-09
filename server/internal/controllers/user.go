@@ -1,18 +1,14 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
-	"server/internal/services"
+	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
 )
 
 func GetUsers(c echo.Context) error {
-	for i := range c.Request().Header {
-		fmt.Printf("%s", i)
-	}
-	users, err := services.GetUsers()
+	users, err := users.GetUsers()
 	if err != nil {
 		response := echo.Map{
 			"message": err.Error(),

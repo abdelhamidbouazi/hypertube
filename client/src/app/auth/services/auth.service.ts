@@ -28,9 +28,11 @@ export class AuthService {
 
   private userSig = signal<User | null>(null);
   private tokenSig = signal<string | null>(null);
+  private loadingSig = signal<boolean>(true);
 
   readonly user = computed(() => this.userSig());
   readonly isAuthenticated = computed(() => !!this.tokenSig());
+  readonly isLoading = computed(() => this.loadingSig());
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -40,6 +42,8 @@ export class AuthService {
         this.tokenSig.set(token);
         this.userSig.set(JSON.parse(userJson));
       }
+
+      this.loadingSig.set(false);
     }
   }
 
@@ -71,15 +75,24 @@ export class AuthService {
   }) {
     try {
       console.log('Register payload:', payload);
-      const response = await axios.post<BackendAuthResponse>(
-        `${environment.apiUrl}/auth/register`,
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      console.log('Registration response:', response.data);
-      // await this.setAuthFromResponse(response.data);
+      await axios.post<BackendAuthResponse>(`${environment.apiUrl}/auth/register`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
     } catch (err: unknown) {
       console.error('registration failed', err);
+      throw err;
+    }
+  }
+
+  redirectToOAuth(provider: 'fortytwo' | 'google') {
+    try {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${environment.apiUrl}/oauth2/${provider}`;
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err) {
+      console.error(`Redirect to ${provider} OAuth failed`, err);
       throw err;
     }
   }
@@ -117,7 +130,7 @@ export class AuthService {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await axios.get<User>(`${environment.apiUrl}/auth/me`, { headers });
+    const response = await axios.get<User>(`${environment.apiUrl}/users/me`, { headers });
     const me = response.data;
     if (me) {
       this.userSig.set(me);
@@ -127,40 +140,16 @@ export class AuthService {
     }
   }
 
-  // logout() {
-  //   this.userSig.set(null);
-  //   this.tokenSig.set(null);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.removeItem('auth_token');
-  //     localStorage.removeItem('auth_user');
-  //   }
-  //   this.router.navigate(['/login']);
-  // }
-
-  // startOAuth(provider: '42' | 'google' | 'github') {
-  //   if (typeof window !== 'undefined') {
-  //     window.location.href = `${environment.apiUrl}/auth/${provider}`;
-  //   }
-  // }
-
-  // completeOAuth(token: string) {
-  //   this.tokenSig.set(token);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.setItem('auth_token', token);
-  //   }
-
-  //   this.loadMe().then(() => this.router.navigate(['/browse']));
-  // }
-
-  // private setAuth(res: AuthResponse) {
-  //   this.tokenSig.set(res.token);
-  //   this.userSig.set(res.user);
-  //   if (typeof window !== 'undefined') {
-  //     localStorage.setItem('auth_token', res.token);
-  //     localStorage.setItem('auth_user', JSON.stringify(res.user));
-  //   }
-  //   this.router.navigate(['/browse']);
-  // }
+  logout() {
+    //TODO: check what is the best solution for logout : is this enough or should we also inform the backend ?
+    this.userSig.set(null);
+    this.tokenSig.set(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    this.router.navigate(['/login']);
+  }
 
   private async setAuthFromResponse(res: BackendAuthResponse) {
     this.tokenSig.set(res.AccessToken);
@@ -169,11 +158,49 @@ export class AuthService {
       localStorage.setItem('refresh_token', res.RefreshToken);
     }
     try {
-      // await this.loadMe();
+      await this.loadMe();
       console.log('setAuthFromResponse: calling loadMe');
     } catch (e) {
       console.warn('loadMe failed', e);
     }
     this.router.navigate(['/browse']);
+  }
+
+  async completeOAuthFromCookies() {
+    try {
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      console.log('Cookies string:', document.cookie);
+
+      const response: BackendAuthResponse = {
+        AccessToken: cookies['AccessToken'] || '',
+        RefreshToken: cookies['RefreshToken'] || '',
+        TokenType: 'Bearer',
+        ExpiresIn: 0,
+      };
+      console.log('Cookies found: 00000000 0', response);
+
+      if (!response.AccessToken || !response.RefreshToken) {
+        throw new Error('OAuth tokens not found in cookies');
+      }
+
+      await this.setAuthFromResponse(response);
+
+      this.deleteCookie('AccessToken');
+      this.deleteCookie('RefreshToken');
+
+      return true;
+    } catch (err) {
+      console.error('OAuth callback failed', err);
+      throw err;
+    }
+  }
+
+  private deleteCookie(name: string) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
   }
 }

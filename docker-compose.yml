@@ -28,9 +28,12 @@ services:
       - hypertube
     volumes:
       - ./server/:/app
+    env_file:
+      - .env
     environment:
       # HTTP_PORT: 8081
       CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
+      UI_ADDRESS: http://localhost:4200
 
 networks:
   hypertube:
