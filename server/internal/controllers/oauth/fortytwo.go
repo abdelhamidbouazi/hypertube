@@ -142,8 +142,8 @@ func FortyTwoCallback(c echo.Context) error {
 	cookie.Name = "AccessToken"
 	cookie.Value = response["AccessToken"].(string)
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false   
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
@@ -151,8 +151,8 @@ func FortyTwoCallback(c echo.Context) error {
 	cookie.Name = "AccessTokenExpiresIn"
 	cookie.Value = fmt.Sprintf("%d", response["ExpiresIn"].(int64))
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false   
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
@@ -160,8 +160,8 @@ func FortyTwoCallback(c echo.Context) error {
 	cookie.Name = "RefreshToken"
 	cookie.Value = response["RefreshToken"].(string)
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false  
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 

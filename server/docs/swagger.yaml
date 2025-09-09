@@ -1,0 +1,19 @@
+basePath: /
+host: http://localhost:8080
+info:
+  contact: {}
+  description: A comprehensive API for searching movies, streaming them instantly,
+    and managing users profiles
+  title: Hypertube API
+  version: 0.1.0
+paths: {}
+schemes:
+- http
+securityDefinitions:
+  JWT:
+    description: JWT security accessToken. Please add it in the format "Bearer {AccessToken}"
+      to authorize your requests.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
