@@ -40,7 +40,7 @@ func CountTokensByEmail(token string, email string) (int64, error) {
 		Token: token,
 	}
 
-	res := db.Find(&toFind)
+	res := db.Find(&models.ResetPassword{}, toFind)
 
 	return res.RowsAffected, res.Error
 }
