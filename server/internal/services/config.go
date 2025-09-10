@@ -36,6 +36,22 @@ type AppConfig struct {
 		Origins []string `mapstructure:"ORIGINS"`
 	} `mapstructure:"CORS"`
 
+	SMTP struct {
+		Gmail struct {
+			Mail     string `mapstructure:"MAIL"`
+			Password string `mapstructure:"PASSWORD"`
+			Host     string `mapstructure:"HOST"`
+			Port     int    `mapstructure:"PORT"`
+		} `mapstructure:"GMAIL"`
+	} `mapstructure:"SMTP"`
+
+	UI struct {
+		Address                 string `mapstructure:"ADDRESS"`
+		ResetPasswordRoute      string `mapstructure:"RESET_PASSWORD_ROUTE"`
+		ResetPasswordTokenQuery string `mapstructure:"RESET_PASSWORD_TOKEN_QUERY"`
+		OauthCallbackRoute      string `mapstructure:"OAUTH_CALLBACK_ROUTE"`
+	}
+
 	OAUTH struct {
 		Google struct {
 			Redirect string `mapstructure:"REDIRECT"`
@@ -44,11 +60,6 @@ type AppConfig struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"FORTYTWO"`
 	} `mapstructure:"OAUTH"`
-
-	UI struct {
-		Address            string `mapstructure:"ADDRESS"`
-		OauthCallbackRoute string `mapstructure:"OAUTH_CALLBACK_ROUTE"`
-	} `mapstructure:"UI"`
 }
 
 func LoadConfig(config string) {

@@ -10,11 +10,17 @@ JWT:
   SECRET_KEY: "dsa2n1n32j1k"
   ACCESS_TOKEN_EXPIRES_AT: "15m"
   REFRESH_TOKEN_EXPIRES_AT: "1y"
+SMTP:
+  Gmail:
+    Host: smtp.gmail.com
+    Port: 465
+ui:
+  address: http://localhost:4200
+  Reset_Password_Route: reset_password
+  Reset_Password_Token_Query: token
+  oauth_callback_route: oauth-callback
 OAUTH:
   Google:
     Redirect: "http://localhost:8080/oauth2/google/callback"
   FortyTwo:
     Redirect: "http://localhost:8080/oauth2/fortytwo/callback"
-ui:
-  address: http://localhost:4200
-  oauth_callback_route: oauth-callback
