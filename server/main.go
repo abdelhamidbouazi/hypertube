@@ -3,6 +3,7 @@ package main
 import (
 	_ "server/docs"
 	"server/internal"
+	"server/internal/services"
 )
 
 // Swagger
@@ -19,5 +20,6 @@ import (
 //	@description				JWT security accessToken. Please add it in the format "Bearer {AccessToken}" to authorize your requests.
 func main() {
 	internal.Init("hypertube.yml")
+	services.Logger.Info("Run all configurations!")
 	internal.StartServer()
 }

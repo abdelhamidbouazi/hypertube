@@ -44,4 +44,9 @@ func loadMigrations(db *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&models.ResetPassword{})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
