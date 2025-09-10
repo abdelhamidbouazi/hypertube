@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
 )
 
 type JwtCustomClaims struct {
@@ -16,9 +15,15 @@ type JwtCustomClaims struct {
 	ID uint `json:"id"`
 }
 
-func RevokeToken(user models.User, userToken string) (echo.Map, error) {
-	var ret echo.Map
+type RevokeTokenRes struct {
+	AccessToken           string
+	RefreshToken          string
+	TokenType             string
+	ExpiresIn             int64
+	RefreshTokenExpiresIn int64
+}
 
+func RevokeToken(user models.User, userToken string) (RevokeTokenRes, error) {
 	expiresIn := time.Now().Add(services.Conf.JWT.AccessTkExpiresAt)
 	RefreshExpiresIn := time.Now().Add(services.Conf.JWT.RefreshTkExpiresAt)
 
@@ -41,12 +46,12 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 
 	accessToken, err := token.SignedString([]byte(services.Conf.JWT.SigningKey))
 	if err != nil {
-		return ret, err
+		return RevokeTokenRes{}, err
 	}
 
 	refreshToken, err := rtoken.SignedString([]byte(services.Conf.JWT.SigningKey))
 	if err != nil {
-		return ret, err
+		return RevokeTokenRes{}, err
 	}
 
 	// remove old refresh token if exists
@@ -59,14 +64,14 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 	res := users.UpdateUser(user)
 
 	if res != nil {
-		return echo.Map{}, res
+		return RevokeTokenRes{}, res
 	}
 
-	return echo.Map{
-		"AccessToken":           accessToken,
-		"RefreshToken":          refreshToken,
-		"TokenType":             "Bearer",
-		"ExpiresIn":             expiresIn.Unix(),
-		"RefreshTokenExpiresIn": RefreshExpiresIn.Unix(),
+	return RevokeTokenRes{
+		accessToken,
+		refreshToken,
+		"Bearer",
+		expiresIn.Unix(),
+		RefreshExpiresIn.Unix(),
 	}, nil
 }

@@ -1,0 +1,7 @@
+all:
+
+swagger:
+	swag init -d .,internal
+	swag fmt
+	@echo "Swagger Loaded Successfully! docs are served in /swagger/index.html"
+	@echo "Make sure to reload the server if it's running!"

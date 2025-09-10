@@ -9,7 +9,7 @@ import (
 //
 //	@title						Hypertube API
 //	@version					0.1.0
-//	@description				A comprehensive API for searching movies, streaming them instantly, and managing users profiles
+//	@description				A comprehensive API for searching movies, streaming them instantly, and managing users profiles.
 //	@host						http://localhost:8080
 //	@BasePath					/
 //	@schemes					http

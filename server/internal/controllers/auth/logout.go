@@ -9,6 +9,16 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Logout godoc
+//
+//	@Summary		Logout
+//	@Description	Logout
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		plain
+//	@Param			refreshToken	header		string	true	"refresh token that was sent on login or refresh token"
+//	@Success		200				{string}	string	"success"
+//	@Router			/auth/logout [delete]
 func Logout(c echo.Context) error {
 	token := c.Request().Header.Get("RefreshToken")
 	user := c.Get("model").(models.User)
