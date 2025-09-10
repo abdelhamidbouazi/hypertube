@@ -4,7 +4,8 @@ import { HomePage } from '@/pages/home/home.page';
 import { LoginPage } from '@/pages/login/login.page';
 import { RegisterPage } from '@/pages/register/register.page';
 import { ForgotPasswordPage } from '@/pages/forgot-password/forgot-password.page';
-import { ResetPasswordPage } from '@/pages/reset-password/reset-password.page';
+import { ForgotPasswordSentPage } from '@/pages/forgot-password-sent/forgot-password-sent.page';
+import { ResetPasswordPage } from '@/pages/reset_password/reset_password.page';
 import { OAuthCallbackPage } from '@/pages/oauth-callback/oauth-callback.page';
 import { BrowsePage } from '@/pages/browse/browse.page';
 import { DiscoverPage } from '@/pages/discover/discover.page';
@@ -21,7 +22,12 @@ export const routes: Routes = [
   { path: 'login', component: LoginPage, canActivate: [initGuard, guestGuard] },
   { path: 'register', component: RegisterPage, canActivate: [initGuard, guestGuard] },
   { path: 'forgot-password', component: ForgotPasswordPage, canActivate: [initGuard, guestGuard] },
-  { path: 'reset-password', component: ResetPasswordPage, canActivate: [initGuard, guestGuard] },
+  {
+    path: 'forgot-password/sent',
+    component: ForgotPasswordSentPage,
+    canActivate: [initGuard, guestGuard],
+  },
+  { path: 'reset_password', component: ResetPasswordPage, canActivate: [initGuard, guestGuard] },
   { path: 'oauth-callback', component: OAuthCallbackPage, canActivate: [initGuard, guestGuard] },
 
   // Protected routes

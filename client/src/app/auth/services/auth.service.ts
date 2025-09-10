@@ -100,21 +100,30 @@ export class AuthService {
   async requestPasswordReset(email: string) {
     try {
       await axios.post(
-        `${environment.apiUrl}/auth/forgot-password`,
+        `${environment.apiUrl}/forgot-password`,
         { email },
         { headers: { 'Content-Type': 'application/json' } }
       );
     } catch (err: unknown) {
-      console.error('request password reset failed', err);
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        if (status === 400 || status === 404) {
+          return;
+        }
+        if (!status || status >= 500) {
+          throw err;
+        }
+        return;
+      }
       throw err;
     }
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(email: string, token: string, newPassword: string) {
     try {
       await axios.post(
-        `${environment.apiUrl}/auth/reset-password`,
-        { token, password: newPassword },
+        `${environment.apiUrl}/reset-password`,
+        { token, email, password: newPassword },
         { headers: { 'Content-Type': 'application/json' } }
       );
     } catch (err: unknown) {

@@ -19,6 +19,12 @@
   --color-bg-secondary: var(--color-primary-lightest);
   --color-bg-muted: var(--color-primary-light);
 
+  /* Toast notification colors */
+  --color-success: #4caf50;
+  --color-error: #f44336;
+  --color-warning: #ff9800;
+  --color-info: #2196f3;
+
   --color-border-primary: var(--color-primary-light);
   --color-border-secondary: var(--color-primary-medium);
 
@@ -52,4 +58,30 @@ body {
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* Toast notification styles */
+.success-toast {
+  background-color: var(--color-success) !important;
+  color: white !important;
+}
+
+.error-toast {
+  background-color: var(--color-error) !important;
+  color: white !important;
+}
+
+.warning-toast {
+  background-color: var(--color-warning) !important;
+  color: white !important;
+}
+
+.info-toast {
+  background-color: var(--color-info) !important;
+  color: white !important;
+}
+
+.mat-mdc-snack-bar-actions .mat-mdc-button-base {
+  color: white !important;
+  font-weight: bold;
 }
