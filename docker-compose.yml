@@ -28,6 +28,7 @@ services:
       - hypertube
     volumes:
       - ./server/:/app
+      - ./downloads:/app/downloads
     env_file:
       - .env
     environment:
@@ -37,7 +38,7 @@ services:
       MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
       DOWNLOADS_DIRECTORY: "/app/downloads"
       STREAMING_DOWNLOAD_DIR: "/app/downloads"
-      STREAMING_TMDB_API_KEY: "72b05171afec3bc193323f47ee8368b8"
+      STREAMING_TMDB_API_KEY: "${TMDB_API_KEY}"
 
 networks:
   hypertube:

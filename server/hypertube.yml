@@ -2,7 +2,7 @@ DB:
   NAME: example
   USER: user
   PASS: password
-  HOST: localhost
+  HOST: postgres
   PORT: 5432
 HTTP:
   PORT: 8080
@@ -16,12 +16,14 @@ SMTP:
     Port: 465
 MOVIE_APIS:
   TMDB:
-    API_KEY: "72b05171afec3bc193323f47ee8368b8"
+    API_KEY: ""
+  OMDB:
+    API_KEY: ""
 DOWNLOADS:
   DIRECTORY: "/home/ayuup/downloads"
 STREAMING:
-  DOWNLOAD_DIR: "/home/ayuup/downloads"
-  TMDB_API_KEY: "72b05171afec3bc193323f47ee8368b8"
+  DOWNLOAD_DIR: "/app/downloads"
+  TMDB_API_KEY: ""
 ui:
   address: http://localhost:4200
   Reset_Password_Route: reset_password

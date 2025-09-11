@@ -9,8 +9,8 @@ import (
 
 type DownloadedMovie struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
-	MovieID      int       `gorm:"not null" json:"movie_id"`
-	Quality      string    `gorm:"size:10;not null" json:"quality"`
+	MovieID      int       `gorm:"not null;uniqueIndex:idx_movie_quality" json:"movie_id"`
+	Quality      string    `gorm:"size:10;not null;uniqueIndex:idx_movie_quality" json:"quality"`
 	FilePath     string    `gorm:"size:500;not null" json:"file_path"`
 	MagnetLink   string    `gorm:"type:text" json:"magnet_link"`
 	DownloadedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"downloaded_at"`
@@ -22,8 +22,8 @@ type DownloadedMovie struct {
 
 type Subtitle struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	MovieID   int       `gorm:"not null" json:"movie_id"`
-	Language  string    `gorm:"size:10;not null" json:"language"`
+	MovieID   int       `gorm:"not null;uniqueIndex:idx_movie_language" json:"movie_id"`
+	Language  string    `gorm:"size:10;not null;uniqueIndex:idx_movie_language" json:"language"`
 	FilePath  string    `gorm:"size:500;not null" json:"file_path"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
