@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  full_bin = "make swagger && ./tmp/main"
+  bin = "./tmp/main"
   cmd = "go build -o ./tmp/main ./main.go"
   delay = 3000
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs"]
@@ -12,6 +12,7 @@ tmp_dir = "tmp"
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
+  full_bin = ""
   include_dir = []
   include_ext = ["go", "tpl", "tmpl", "html"]
   include_file = []

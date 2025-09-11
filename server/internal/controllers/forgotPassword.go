@@ -22,6 +22,21 @@ type TemplateArgs struct {
 	URL  string
 }
 
+type ForgotPasswordRes struct {
+	Message string `json:"message" example:"success"`
+}
+
+// Forgot Password godoc
+//
+//	@Summary		Forgot password
+//	@Description	Request reset password
+//	@Tags			reset-password
+//	@Security		JWT
+//	@Accept			json
+//	@Produce		json
+//	@Param			ForgotPasswordPayload	body		ForgotPasswordPayload	true	"json body to send to reset password"
+//	@Success		200						{object}	ForgotPasswordRes
+//	@Router			/forgot-password [post]
 func ForgotPassword(c echo.Context) error {
 	var body ForgotPasswordPayload
 
@@ -78,7 +93,5 @@ func ForgotPassword(c echo.Context) error {
 		log.Fatal(err)
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{
-		"message": "success",
-	})
+	return c.JSON(http.StatusOK, ForgotPasswordRes{"success"})
 }

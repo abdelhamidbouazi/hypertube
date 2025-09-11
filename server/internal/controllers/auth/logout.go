@@ -14,6 +14,7 @@ import (
 //	@Summary		Logout
 //	@Description	Logout
 //	@Tags			auth
+//	@Security		JWT
 //	@Accept			json
 //	@Produce		plain
 //	@Param			refreshToken	header		string	true	"refresh token that was sent on login or refresh token"

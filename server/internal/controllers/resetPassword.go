@@ -15,6 +15,21 @@ type ResetPasswordPayload struct {
 	NewPassword string `json:"password" validate:"required,min=8"`
 }
 
+type ResetPasswordRes struct {
+	Message string `json:"message" example:"success"`
+}
+
+// Reset Password godoc
+//
+//	@Summary		Reset password
+//	@Description	Renew old password
+//	@Tags			reset-password
+//	@Security		JWT
+//	@Accept			json
+//	@Produce		json
+//	@Param			ResetPasswordPayload	body		ResetPasswordPayload	true	"json body to send to renew old password"
+//	@Success		200						{object}	ResetPasswordRes
+//	@Router			/reset-password [post]
 func ResetPassword(c echo.Context) error {
 	var body ResetPasswordPayload
 
@@ -58,7 +73,5 @@ func ResetPassword(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, echo.Map{
-		"message": "success",
-	})
+	return c.JSON(http.StatusOK, ResetPasswordRes{"success"})
 }

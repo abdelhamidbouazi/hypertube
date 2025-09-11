@@ -15,6 +15,16 @@ type RegisterUserType struct {
 	Password  string `validate:"required,min=8"`
 }
 
+// Register godoc
+//
+//	@Summary		Register
+//	@Description	Register new user
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			RegisterUserType	body		RegisterUserType	true	"register credentials to send"
+//	@Success		200					{string}	string				"success"
+//	@Router			/auth/register [post]
 func Register(c echo.Context) error {
 	var newUser RegisterUserType
 
