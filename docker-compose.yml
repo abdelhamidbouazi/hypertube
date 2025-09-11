@@ -31,9 +31,13 @@ services:
     env_file:
       - .env
     environment:
-      # HTTP_PORT: 8081
       CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
       UI_ADDRESS: http://localhost:4200
+      MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
+      MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
+      DOWNLOADS_DIRECTORY: "/app/downloads"
+      STREAMING_DOWNLOAD_DIR: "/app/downloads"
+      STREAMING_TMDB_API_KEY: "72b05171afec3bc193323f47ee8368b8"
 
 networks:
   hypertube:

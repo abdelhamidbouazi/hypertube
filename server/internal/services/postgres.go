@@ -49,4 +49,23 @@ func loadMigrations(db *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&models.Comment{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.DownloadedMovie{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.Subtitle{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Add unique constraints
+	db.Exec(`ALTER TABLE downloaded_movies ADD CONSTRAINT IF NOT EXISTS unique_movie_quality UNIQUE (movie_id, quality)`)
+	db.Exec(`ALTER TABLE subtitles ADD CONSTRAINT IF NOT EXISTS unique_movie_language UNIQUE (movie_id, language)`)
 }
