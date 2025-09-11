@@ -58,3 +58,5 @@ client/.vscode/
 # Temporary files
 client/*.log
 client/*.tmp
+
+/downloads/
