@@ -9,10 +9,10 @@ import (
 )
 
 type RegisterUserType struct {
-	FirstName string `validate:"required,min=4"`
-	LastName  string `validate:"required,min=4"`
-	Email     string `validate:"required,email"`
-	Password  string `validate:"required,min=8"`
+	FirstName string `validate:"required,min=4" example:"Alan"`
+	LastName  string `validate:"required,min=4" example:"Turing"`
+	Email     string `validate:"required,email" example:"example@email.com"`
+	Password  string `validate:"required,min=8" example:"j8Kt603ql0RV"`
 }
 
 // Register godoc
@@ -23,7 +23,7 @@ type RegisterUserType struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			RegisterUserType	body		RegisterUserType	true	"register credentials to send"
-//	@Success		200					{string}	string				"success"
+//	@Success		200					{string}	string				"success message"
 //	@Router			/auth/register [post]
 func Register(c echo.Context) error {
 	var newUser RegisterUserType

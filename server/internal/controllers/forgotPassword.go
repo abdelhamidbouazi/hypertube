@@ -14,7 +14,7 @@ import (
 )
 
 type ForgotPasswordPayload struct {
-	Email string `json:"email" validate:"email"`
+	Email string `json:"email" validate:"email" example:"example@email.com"`
 }
 
 type TemplateArgs struct {

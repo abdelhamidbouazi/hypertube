@@ -16,11 +16,11 @@ type JwtCustomClaims struct {
 }
 
 type RevokeTokenRes struct {
-	AccessToken           string
-	RefreshToken          string
-	TokenType             string
-	ExpiresIn             int64
-	RefreshTokenExpiresIn int64
+	AccessToken           string `example:"token"`
+	RefreshToken          string `example:"token"`
+	TokenType             string `example:"Bearer"`
+	ExpiresIn             int64  `example:"1757713129"`
+	RefreshTokenExpiresIn int64  `example:"1789248229"`
 }
 
 func RevokeToken(user models.User, userToken string) (RevokeTokenRes, error) {

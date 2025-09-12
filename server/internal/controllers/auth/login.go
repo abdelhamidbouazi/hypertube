@@ -10,8 +10,8 @@ import (
 )
 
 type LoginUserType struct {
-	Email    string `validate:"required"`
-	Password string `validate:"required"`
+	Email    string `validate:"required" example:"example@email.com"`
+	Password string `validate:"required" example:"j8Kt603ql0RV"`
 }
 
 // Login godoc

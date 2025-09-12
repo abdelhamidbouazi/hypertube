@@ -10,9 +10,9 @@ import (
 )
 
 type ResetPasswordPayload struct {
-	Token       string `json:"token" validate:"required,uuid"`
-	Email       string `json:"email" validate:"required,email"`
-	NewPassword string `json:"password" validate:"required,min=8"`
+	Token       string `json:"token" validate:"required,uuid" example:"3c38d605-200e-413c-9cc6-08d73290e642"`
+	Email       string `json:"email" validate:"required,email" example:"example@email.com"`
+	NewPassword string `json:"password" validate:"required,min=8" example:"aK62p1HYiC1f"`
 }
 
 type ResetPasswordRes struct {

@@ -18,7 +18,7 @@ import (
 //	@Accept			json
 //	@Produce		plain
 //	@Param			refreshToken	header		string	true	"refresh token that was sent on login or refresh token"
-//	@Success		200				{string}	string	"success"
+//	@Success		200				{string}	string	"success message"
 //	@Router			/auth/logout [delete]
 func Logout(c echo.Context) error {
 	token := c.Request().Header.Get("RefreshToken")
