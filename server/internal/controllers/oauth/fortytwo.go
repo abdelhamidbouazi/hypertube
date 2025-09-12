@@ -24,7 +24,6 @@ import (
 //	@Summary		Register using 42 API OAuth2
 //	@Description	Register new user using 42  API OAuth2
 //	@Tags			oauth2
-//	@Security		JWT
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	auth.RevokeTokenRes

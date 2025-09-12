@@ -24,11 +24,12 @@ type ResetPasswordRes struct {
 //	@Summary		Reset password
 //	@Description	Renew old password
 //	@Tags			reset-password
-//	@Security		JWT
 //	@Accept			json
 //	@Produce		json
 //	@Param			ResetPasswordPayload	body		ResetPasswordPayload	true	"json body to send to renew old password"
 //	@Success		200						{object}	ResetPasswordRes
+//	@Failure		401						{object}	utils.HTTPErrorUnauthorized
+//	@Failure		400						{object}	utils.HTTPError
 //	@Router			/reset-password [post]
 func ResetPassword(c echo.Context) error {
 	var body ResetPasswordPayload

@@ -31,11 +31,12 @@ type ForgotPasswordRes struct {
 //	@Summary		Forgot password
 //	@Description	Request reset password
 //	@Tags			reset-password
-//	@Security		JWT
 //	@Accept			json
 //	@Produce		json
 //	@Param			ForgotPasswordPayload	body		ForgotPasswordPayload	true	"json body to send to reset password"
 //	@Success		200						{object}	ForgotPasswordRes
+//	@Failure		401						{object}	utils.HTTPErrorUnauthorized
+//	@Failure		400						{object}	utils.HTTPError
 //	@Router			/forgot-password [post]
 func ForgotPassword(c echo.Context) error {
 	var body ForgotPasswordPayload

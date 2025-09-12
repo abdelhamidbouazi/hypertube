@@ -13,7 +13,8 @@ import (
 //	@Description	get users info
 //	@Tags			users
 //	@Produce		json
-//	@Success		200	{array}	models.User
+//	@Success		200	{array}		models.User
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
 //	@Security		JWT
 //	@Router			/users [get]
 func GetUsers(c echo.Context) error {
@@ -40,6 +41,7 @@ func GetUsers(c echo.Context) error {
 //	@Security		JWT
 //	@Produce		json
 //	@Success		200	{object}	models.User
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
 //	@Router			/users/me [get]
 func GetMe(c echo.Context) error {
 	return c.JSON(http.StatusOK, c.Get("model"))

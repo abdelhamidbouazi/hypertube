@@ -18,6 +18,7 @@ import (
 //	@Produce		json
 //	@Param			RefreshToken	header		string	true	"old refresh token to renew"
 //	@Success		200				{object}	RevokeTokenRes
+//	@Failure		401				{object}	utils.HTTPErrorUnauthorized
 //	@Router			/auth/refreshToken [post]
 func RefreshToken(c echo.Context) error {
 	// refresh tokens must be revoked each time - AKA token ROTATION

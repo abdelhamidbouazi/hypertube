@@ -23,6 +23,8 @@ type LoginUserType struct {
 //	@Produce		json
 //	@Param			loginUserRequest	body		LoginUserType	true	"json body to send with email and password"
 //	@Success		200					{object}	RevokeTokenRes
+//	@Failure		401					{object}	utils.HTTPErrorUnauthorized
+//	@Failure		400					{object}	utils.HTTPError
 //	@Router			/auth/login [post]
 func Login(c echo.Context) error {
 	var newUser LoginUserType

@@ -24,6 +24,7 @@ type RegisterUserType struct {
 //	@Produce		json
 //	@Param			RegisterUserType	body		RegisterUserType	true	"register credentials to send"
 //	@Success		200					{string}	string				"success message"
+//	@Failure		400					{object}	utils.HTTPError
 //	@Router			/auth/register [post]
 func Register(c echo.Context) error {
 	var newUser RegisterUserType
