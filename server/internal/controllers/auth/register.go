@@ -6,6 +6,7 @@ import (
 	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 type RegisterUserType struct {
@@ -32,6 +33,15 @@ func Register(c echo.Context) error {
 
 	err = services.ValidateStruct(newUser)
 	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	_, err = users.GetUserByEmail(user.Email)
+	if err == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "someone already has this email")
+	}
+
+	if err != gorm.ErrRecordNotFound {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
