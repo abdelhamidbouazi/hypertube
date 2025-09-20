@@ -20,7 +20,7 @@ func Register(c echo.Context) error {
 
 	err := c.Bind(&newUser)
 	if err != nil {
-		return echo.ErrBadRequest
+		return err
 	}
 
 	var user users.CreateUserType

@@ -19,7 +19,7 @@ func Login(c echo.Context) error {
 
 	err := c.Bind(&newUser)
 	if err != nil {
-		return echo.ErrBadRequest
+		return err
 	}
 
 	err = services.ValidateStruct(newUser)
