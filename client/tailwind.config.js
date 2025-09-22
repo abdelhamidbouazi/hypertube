@@ -3,6 +3,10 @@ module.exports = {
   content: ['./src/**/*.{html,ts}'],
   theme: {
     extend: {
+      maxHeight: {
+        // Custom size for hero slider height cap
+        '4xl': '36rem',
+      },
       colors: {
         // HyperTybe custom color palette
         'ht-darkest': '#595959',

@@ -1,7 +1,9 @@
 /* Authentication pages background styles */
 .auth-background {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 100%;
+  flex: 1 0 auto;
+  align-self: stretch;
   background-attachment: fixed;
   display: flex;
   align-items: center;
@@ -28,12 +30,20 @@
 
 /* Image background with overlay */
 .auth-background-image {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url('../../assets/images/auth-bg.jpg');
+  background-image: url('/assets/bg-auth.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+/* Ensure auth route hosts expand inside main */
+app-login,
+app-register,
+app-forgot-password,
+app-reset-password {
+  display: block;
+  width: 100%;
 }
 
 /* Animated gradient background */
