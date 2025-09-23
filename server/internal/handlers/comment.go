@@ -1,40 +1,43 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
+	"server/internal/models"
+
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 type CommentHandler struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func NewCommentHandler(db *sql.DB) *CommentHandler {
+func NewCommentHandler(db *gorm.DB) *CommentHandler {
 	return &CommentHandler{
 		db: db,
 	}
 }
 
-
 func (h *CommentHandler) AddComment(c echo.Context) error {
-	var comment struct {
+	var requestComment struct {
 		MovieID  int    `json:"movie_id"`
 		Username string `json:"username"`
 		Content  string `json:"content"`
 	}
 
-	if err := c.Bind(&comment); err != nil {
+	if err := c.Bind(&requestComment); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
 	}
 
-	result, err := h.db.Exec("INSERT INTO comments (movie_id, username, content) VALUES (?, ?, ?)",
-		comment.MovieID, comment.Username, comment.Content)
-	if err != nil {
+	comment := models.Comment{
+		MovieID:  requestComment.MovieID,
+		Username: requestComment.Username,
+		Content:  requestComment.Content,
+	}
+
+	if err := h.db.Create(&comment).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to add comment")
 	}
 
-	id, _ := result.LastInsertId()
-
-	return c.JSON(http.StatusOK, map[string]int64{"id": id})
+	return c.JSON(http.StatusOK, comment)
 }

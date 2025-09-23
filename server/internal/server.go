@@ -23,6 +23,7 @@ var (
 	torrentService     *services.TorrentService
 	transcodingService *services.TranscodingService
 	movieHandler       *handlers.MovieHandler
+	commentHandler     *handlers.CommentHandler
 )
 
 func InitServices() {
@@ -44,6 +45,8 @@ func InitServices() {
 		transcodingService,
 		services.PostgresDB(),
 	)
+
+	commentHandler = handlers.NewCommentHandler(services.PostgresDB())
 }
 
 func Init(config string) {
@@ -94,6 +97,9 @@ func LoadServer() {
 
 	streamGroup := Server.Group("/stream")
 	streamGroup.GET("/:id", movieHandler.StreamMovie, middlewares.Authenticated, middlewares.AttachUser)
+
+	commentGroup := Server.Group("/comments")
+	commentGroup.POST("/add", commentHandler.AddComment, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func StartServer() {

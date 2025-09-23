@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent"
+	"gorm.io/gorm"
 )
 
 type DownloadedMovie struct {
@@ -74,12 +75,11 @@ type Genre struct {
 }
 
 type Comment struct {
-	ID        int       `json:"id"`
-	MovieID   int       `json:"movie_id"`
-	UserID    int       `json:"user_id"`
-	Username  string    `json:"username"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	gorm.Model
+	MovieID  int    `json:"movie_id"`
+	UserID   int    `json:"user_id"`
+	Username string `json:"username"`
+	Content  string `json:"content"`
 }
 
 type TorrentResult struct {
