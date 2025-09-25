@@ -100,6 +100,10 @@ func LoadServer() {
 
 	commentGroup := Server.Group("/comments")
 	commentGroup.POST("/add", commentHandler.AddComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.GET("", commentHandler.GetComments, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.GET("/:id", commentHandler.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.PATCH("/:id", commentHandler.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.DELETE("/:id", commentHandler.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func StartServer() {

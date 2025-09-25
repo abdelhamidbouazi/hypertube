@@ -2,7 +2,7 @@ DB:
   NAME: example
   USER: user
   PASS: password
-  HOST: postgres
+  HOST: localhost
   PORT: 5432
 HTTP:
   PORT: 8080
@@ -16,7 +16,7 @@ SMTP:
     Port: 465
 MOVIE_APIS:
   TMDB:
-    API_KEY: ""
+    API_KEY: "72b05171afec3bc193323f47ee8368b8"
   OMDB:
     API_KEY: ""
 DOWNLOADS:

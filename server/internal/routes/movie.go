@@ -24,6 +24,10 @@ func AddTorrentRouter(torrentRouter *echo.Group, torrentHandler *handlers.Torren
 
 func AddCommentRouter(commentRouter *echo.Group, commentHandler *handlers.CommentHandler) {
 	commentRouter.POST("/add", commentHandler.AddComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentRouter.GET("", commentHandler.GetComments, middlewares.Authenticated, middlewares.AttachUser)
+	commentRouter.GET("/:id", commentHandler.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
+	commentRouter.PATCH("/:id", commentHandler.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentRouter.DELETE("/:id", commentHandler.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func AddSubtitleRouter(subtitleRouter *echo.Group, subtitleHandler *handlers.SubtitleHandler) {
