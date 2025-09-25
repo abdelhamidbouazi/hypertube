@@ -13,6 +13,7 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 var Server *echo.Echo
@@ -46,12 +47,17 @@ func LoadServer() {
 	}
 
 	middlewares.SetupJWT(config)
+	setupSwagger(Server)
 
 	Server.POST("/forgot-password", controllers.ForgotPassword)
 	Server.POST("/reset-password", controllers.ResetPassword)
 	routes.AddAuthRouter(Server.Group("/auth"))
 	routes.AddOAuthRouter(Server.Group("/oauth2"))
 	routes.AddUserRouter(Server.Group("/users"))
+}
+
+func setupSwagger(s *echo.Echo) {
+	s.GET("/swagger/*", echoSwagger.WrapHandler)
 }
 
 func StartServer() {

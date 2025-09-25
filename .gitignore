@@ -58,3 +58,8 @@ client/.vscode/
 # Temporary files
 client/*.log
 client/*.tmp
+
+# Swagger Docs
+server/docs/docs.go
+server/docs/swagger.json
+server/docs/swagger.yaml
