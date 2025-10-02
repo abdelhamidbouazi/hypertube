@@ -1,7 +1,6 @@
-package handlers
+package controllers
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,40 +8,45 @@ import (
 	"path/filepath"
 	"strings"
 
+	"server/internal/models"
+
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
-type SubtitleHandler struct {
-	db *sql.DB
+type SubtitleController struct {
+	db *gorm.DB
 }
 
-func NewSubtitleHandler(db *sql.DB) *SubtitleHandler {
-	return &SubtitleHandler{
+func NewSubtitleController(db *gorm.DB) *SubtitleController {
+	return &SubtitleController{
 		db: db,
 	}
 }
 
-func (h *SubtitleHandler) GetSubtitles(c echo.Context) error {
-	movieID := c.QueryParam("movie_id")
-	language := c.QueryParam("lang")
+func (c *SubtitleController) GetSubtitles(ctx echo.Context) error {
+	movieID := ctx.QueryParam("movie_id")
+	language := ctx.QueryParam("lang")
 	if language == "" {
 		language = "en"
 	}
 
-	var filePath string
-	err := h.db.QueryRow("SELECT file_path FROM subtitles WHERE movie_id = ? AND language = ?", movieID, language).Scan(&filePath)
+	var subtitle models.Subtitle
+	err := c.db.Where("movie_id = ? AND language = ?", movieID, language).First(&subtitle).Error
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Subtitles not found")
 	}
 
+	filePath := subtitle.FilePath
+
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if ext == ".srt" {
-		c.Response().Header().Set("Content-Type", "text/vtt")
-		convertSRTtoVTT(filePath, c.Response().Writer)
+		ctx.Response().Header().Set("Content-Type", "text/vtt")
+		convertSRTtoVTT(filePath, ctx.Response().Writer)
 		return nil
 	}
 
-	return c.File(filePath)
+	return ctx.File(filePath)
 }
 
 func convertSRTtoVTT(srtPath string, w io.Writer) {
@@ -52,7 +56,7 @@ func convertSRTtoVTT(srtPath string, w io.Writer) {
 	}
 	defer file.Close()
 
-	fmt.Fprintln(w, "WEBVTT\n")
+	fmt.Fprintln(w, "WEBVTT")
 
 	buf := make([]byte, 4096)
 	for {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"server/internal/controllers"
-	"server/internal/handlers"
 	"server/internal/middlewares"
 	"server/internal/routes"
 	"server/internal/services"
@@ -22,8 +21,10 @@ var (
 	movieService       *services.MovieService
 	torrentService     *services.TorrentService
 	transcodingService *services.TranscodingService
-	movieHandler       *handlers.MovieHandler
-	commentHandler     *handlers.CommentHandler
+	movieController    *controllers.MovieController
+	torrentController  *controllers.TorrentController
+	subtitleController *controllers.SubtitleController
+	commentController  *controllers.CommentController
 )
 
 func InitServices() {
@@ -39,14 +40,21 @@ func InitServices() {
 
 	transcodingService = services.NewTranscodingService()
 
-	movieHandler = handlers.NewMovieHandler(
+	movieController = controllers.NewMovieController(
 		movieService,
 		torrentService,
 		transcodingService,
 		services.PostgresDB(),
 	)
 
-	commentHandler = handlers.NewCommentHandler(services.PostgresDB())
+	torrentController = controllers.NewTorrentController(
+		torrentService,
+		movieService,
+	)
+
+	subtitleController = controllers.NewSubtitleController(services.PostgresDB())
+
+	commentController = controllers.NewCommentController(services.PostgresDB())
 }
 
 func Init(config string) {
@@ -87,23 +95,26 @@ func LoadServer() {
 	routes.AddUserRouter(Server.Group("/users"))
 
 	movieGroup := Server.Group("/movies")
-	movieGroup.GET("/search", movieHandler.SearchMovies)
-	movieGroup.GET("/:id", movieHandler.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
+	movieGroup.GET("/search", movieController.SearchMovies)
+	movieGroup.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
 
 	torrentGroup := Server.Group("/torrents")
-	torrentGroup.GET("/search", movieHandler.SearchTorrents)
-	torrentGroup.POST("/download", movieHandler.DownloadTorrent)
-	torrentGroup.GET("/progress", movieHandler.GetTorrentProgress)
+	torrentGroup.GET("/search", torrentController.SearchTorrents)
+	torrentGroup.POST("/download", torrentController.StartDownload)
+	torrentGroup.GET("/progress", torrentController.GetDownloadProgress)
 
 	streamGroup := Server.Group("/stream")
-	streamGroup.GET("/:id", movieHandler.StreamMovie, middlewares.Authenticated, middlewares.AttachUser)
+	streamGroup.GET("/:id", movieController.StreamMovie, middlewares.Authenticated, middlewares.AttachUser)
 
 	commentGroup := Server.Group("/comments")
-	commentGroup.POST("/add", commentHandler.AddComment, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.GET("", commentHandler.GetComments, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.GET("/:id", commentHandler.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.PATCH("/:id", commentHandler.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.DELETE("/:id", commentHandler.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.POST("/add", commentController.AddComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.GET("", commentController.GetComments, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.GET("/:id", commentController.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.PATCH("/:id", commentController.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
+	commentGroup.DELETE("/:id", commentController.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
+
+	subtitleGroup := Server.Group("/subtitles")
+	subtitleGroup.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func StartServer() {

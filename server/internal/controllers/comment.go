@@ -1,4 +1,4 @@
-package handlers
+package controllers
 
 import (
 	"net/http"
@@ -9,28 +9,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type CommentHandler struct {
+type CommentController struct {
 	db *gorm.DB
 }
 
-func NewCommentHandler(db *gorm.DB) *CommentHandler {
-	return &CommentHandler{
+func NewCommentController(db *gorm.DB) *CommentController {
+	return &CommentController{
 		db: db,
 	}
 }
 
-func (h *CommentHandler) AddComment(c echo.Context) error {
+func (c *CommentController) AddComment(ctx echo.Context) error {
 	var requestComment struct {
 		MovieID  int    `json:"movie_id"`
 		Username string `json:"username"`
 		Content  string `json:"content"`
 	}
 
-	if err := c.Bind(&requestComment); err != nil {
+	if err := ctx.Bind(&requestComment); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
 	}
 
-	user, exists := c.Get("model").(models.User)
+	user, exists := ctx.Get("model").(models.User)
 	if !exists {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
@@ -42,16 +42,16 @@ func (h *CommentHandler) AddComment(c echo.Context) error {
 		Content:  requestComment.Content,
 	}
 
-	if err := h.db.Create(&comment).Error; err != nil {
+	if err := c.db.Create(&comment).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to add comment")
 	}
 
-	return c.JSON(http.StatusOK, comment)
+	return ctx.JSON(http.StatusOK, comment)
 }
 
-func (h *CommentHandler) GetComments(c echo.Context) error {
+func (c *CommentController) GetComments(ctx echo.Context) error {
 	var comments []models.Comment
-	if err := h.db.Order("created_at DESC").Find(&comments).Error; err != nil {
+	if err := c.db.Order("created_at DESC").Find(&comments).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve comments")
 	}
 
@@ -72,18 +72,18 @@ func (h *CommentHandler) GetComments(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, response)
+	return ctx.JSON(http.StatusOK, response)
 }
 
-func (h *CommentHandler) GetCommentByID(c echo.Context) error {
-	id := c.Param("id")
+func (c *CommentController) GetCommentByID(ctx echo.Context) error {
+	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid comment ID")
 	}
 
 	var comment models.Comment
-	if err := h.db.First(&comment, commentID).Error; err != nil {
+	if err := c.db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusNotFound, "Comment not found")
 		}
@@ -104,11 +104,11 @@ func (h *CommentHandler) GetCommentByID(c echo.Context) error {
 		Content:  comment.Content,
 	}
 
-	return c.JSON(http.StatusOK, response)
+	return ctx.JSON(http.StatusOK, response)
 }
 
-func (h *CommentHandler) UpdateComment(c echo.Context) error {
-	id := c.Param("id")
+func (c *CommentController) UpdateComment(ctx echo.Context) error {
+	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid comment ID")
@@ -119,12 +119,12 @@ func (h *CommentHandler) UpdateComment(c echo.Context) error {
 		Username string `json:"username"`
 	}
 
-	if err := c.Bind(&requestData); err != nil {
+	if err := ctx.Bind(&requestData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request data")
 	}
 
 	var comment models.Comment
-	if err := h.db.First(&comment, commentID).Error; err != nil {
+	if err := c.db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusNotFound, "Comment not found")
 		}
@@ -135,27 +135,27 @@ func (h *CommentHandler) UpdateComment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "You can only update your own comments")
 	}
 
-	if err := h.db.Model(&comment).Update("content", requestData.Content).Error; err != nil {
+	if err := c.db.Model(&comment).Update("content", requestData.Content).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update comment")
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Comment updated successfully"})
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Comment updated successfully"})
 }
 
-func (h *CommentHandler) DeleteComment(c echo.Context) error {
-	id := c.Param("id")
+func (c *CommentController) DeleteComment(ctx echo.Context) error {
+	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid comment ID")
 	}
 
-	user, exists := c.Get("model").(models.User)
+	user, exists := ctx.Get("model").(models.User)
 	if !exists {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
 
 	var comment models.Comment
-	if err := h.db.First(&comment, commentID).Error; err != nil {
+	if err := c.db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusNotFound, "Comment not found")
 		}
@@ -166,9 +166,9 @@ func (h *CommentHandler) DeleteComment(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "You can only delete your own comments")
 	}
 
-	if err := h.db.Delete(&comment).Error; err != nil {
+	if err := c.db.Delete(&comment).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete comment")
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Comment deleted successfully"})
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Comment deleted successfully"})
 }

@@ -1,4 +1,4 @@
-package handlers
+package controllers
 
 import (
 	"fmt"
@@ -14,15 +14,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type MovieHandler struct {
+type MovieController struct {
 	movieService       *services.MovieService
 	torrentService     *services.TorrentService
 	transcodingService *services.TranscodingService
 	db                 *gorm.DB
 }
 
-func NewMovieHandler(ms *services.MovieService, ts *services.TorrentService, tcs *services.TranscodingService, db *gorm.DB) *MovieHandler {
-	return &MovieHandler{
+func NewMovieController(ms *services.MovieService, ts *services.TorrentService, tcs *services.TranscodingService, db *gorm.DB) *MovieController {
+	return &MovieController{
 		movieService:       ms,
 		torrentService:     ts,
 		transcodingService: tcs,
@@ -30,29 +30,29 @@ func NewMovieHandler(ms *services.MovieService, ts *services.TorrentService, tcs
 	}
 }
 
-func (h *MovieHandler) GetMovieDetails(c echo.Context) error {
-	movieID := c.Param("id")
+func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
+	movieID := ctx.Param("id")
 
-	details, err := h.movieService.GetMovieDetails(movieID)
+	details, err := c.movieService.GetMovieDetails(movieID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Movie not found")
 	}
 
-	h.loadComments(details)
+	c.loadComments(details)
 
 	var downloadedMovie models.DownloadedMovie
-	err = h.db.Where("movie_id = ?", details.ID).First(&downloadedMovie).Error
+	err = c.db.Where("movie_id = ?", details.ID).First(&downloadedMovie).Error
 	if err == nil {
 		details.IsAvailable = true
 		details.StreamURL = fmt.Sprintf("/api/stream/%d", details.ID)
 	}
 
-	return c.JSON(http.StatusOK, details)
+	return ctx.JSON(http.StatusOK, details)
 }
 
-func (h *MovieHandler) loadComments(details *models.MovieDetails) {
+func (c *MovieController) loadComments(details *models.MovieDetails) {
 	var comments []models.Comment
-	err := h.db.Where("movie_id = ?", details.ID).Order("created_at DESC").Find(&comments).Error
+	err := c.db.Where("movie_id = ?", details.ID).Order("created_at DESC").Find(&comments).Error
 	if err != nil {
 		return
 	}
@@ -60,11 +60,11 @@ func (h *MovieHandler) loadComments(details *models.MovieDetails) {
 	details.Comments = comments
 }
 
-func (h *MovieHandler) serveVideoFile(c echo.Context, filePath string) error {
-	return h.transcodingService.TranscodeIfNeeded(filePath, c.Response(), c.Request())
+func (c *MovieController) serveVideoFile(ctx echo.Context, filePath string) error {
+	return c.transcodingService.TranscodeIfNeeded(filePath, ctx.Response(), ctx.Request())
 }
 
-func (h *MovieHandler) streamPartialFile(c echo.Context, dl *models.TorrentDownload) error {
+func (c *MovieController) streamPartialFile(ctx echo.Context, dl *models.TorrentDownload) error {
 	dl.Mu.RLock()
 	videoFile := dl.VideoFile
 	dl.Mu.RUnlock()
@@ -76,51 +76,51 @@ func (h *MovieHandler) streamPartialFile(c echo.Context, dl *models.TorrentDownl
 	reader := videoFile.NewReader()
 	defer reader.Close()
 
-	c.Response().Header().Set("Content-Type", "video/mp4")
-	c.Response().Header().Set("Accept-Ranges", "bytes")
-	c.Response().Header().Set("Connection", "keep-alive")
+	ctx.Response().Header().Set("Content-Type", "video/mp4")
+	ctx.Response().Header().Set("Accept-Ranges", "bytes")
+	ctx.Response().Header().Set("Connection", "keep-alive")
 
-	http.ServeContent(c.Response(), c.Request(), "", time.Now(), reader)
+	http.ServeContent(ctx.Response(), ctx.Request(), "", time.Now(), reader)
 	return nil
 }
 
-func (h *MovieHandler) SearchMovies(c echo.Context) error {
-	query := c.QueryParam("q")
-	year := c.QueryParam("year")
+func (c *MovieController) SearchMovies(ctx echo.Context) error {
+	query := ctx.QueryParam("q")
+	year := ctx.QueryParam("year")
 
 	if query == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Query parameter 'q' is required")
 	}
 
-	movies, err := h.movieService.SearchMovies(query, year)
+	movies, err := c.movieService.SearchMovies(query, year)
 	if err != nil {
 		log.Printf("Search error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search movies")
 	}
 
-	return c.JSON(http.StatusOK, movies)
+	return ctx.JSON(http.StatusOK, movies)
 }
 
-func (h *MovieHandler) StreamMovie(c echo.Context) error {
-	movieID := c.Param("id")
-	quality := c.QueryParam("quality")
+func (c *MovieController) StreamMovie(ctx echo.Context) error {
+	movieID := ctx.Param("id")
+	quality := ctx.QueryParam("quality")
 	if quality == "" {
 		quality = "720p" // default quality
 	}
 
 	var downloadedMovie models.DownloadedMovie
-	err := h.db.Where("movie_id = ? AND quality = ?", movieID, quality).First(&downloadedMovie).Error
+	err := c.db.Where("movie_id = ? AND quality = ?", movieID, quality).First(&downloadedMovie).Error
 
 	if err == nil && downloadedMovie.FilePath != "" {
 		if _, err := os.Stat(downloadedMovie.FilePath); err == nil {
-			return h.serveVideoFile(c, downloadedMovie.FilePath)
+			return c.serveVideoFile(ctx, downloadedMovie.FilePath)
 		}
 	}
 
 	downloadKey := fmt.Sprintf("%s-%s", movieID, quality)
-	h.torrentService.Mu.RLock()
-	dl, exists := h.torrentService.Downloads[downloadKey]
-	h.torrentService.Mu.RUnlock()
+	c.torrentService.Mu.RLock()
+	dl, exists := c.torrentService.Downloads[downloadKey]
+	c.torrentService.Mu.RUnlock()
 
 	if exists && dl != nil {
 		dl.Mu.RLock()
@@ -128,7 +128,7 @@ func (h *MovieHandler) StreamMovie(c echo.Context) error {
 		dl.Mu.RUnlock()
 
 		if streamingReady {
-			return h.streamPartialFile(c, dl)
+			return c.streamPartialFile(ctx, dl)
 		} else {
 			return echo.NewHTTPError(http.StatusProcessing, "Movie is still downloading, not ready for streaming yet")
 		}
@@ -138,40 +138,40 @@ func (h *MovieHandler) StreamMovie(c echo.Context) error {
 }
 
 // SearchTorrents handles torrent search requests
-func (h *MovieHandler) SearchTorrents(c echo.Context) error {
-	title := c.QueryParam("title")
-	year := c.QueryParam("year")
+func (c *MovieController) SearchTorrents(ctx echo.Context) error {
+	title := ctx.QueryParam("title")
+	year := ctx.QueryParam("year")
 
 	if title == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Title parameter is required")
 	}
 
-	results, err := h.movieService.SearchTorrents(title, year)
+	results, err := c.movieService.SearchTorrents(title, year)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search torrents")
 	}
 
-	return c.JSON(http.StatusOK, results)
+	return ctx.JSON(http.StatusOK, results)
 }
 
 // DownloadTorrent handles torrent download requests
-func (h *MovieHandler) DownloadTorrent(c echo.Context) error {
+func (c *MovieController) DownloadTorrent(ctx echo.Context) error {
 	var req struct {
 		MovieID int    `json:"movie_id"`
 		Magnet  string `json:"magnet"`
 		Quality string `json:"quality"`
 	}
 
-	if err := c.Bind(&req); err != nil {
+	if err := ctx.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
-	download, err := h.torrentService.GetOrStartDownload(req.MovieID, req.Magnet, req.Quality)
+	download, err := c.torrentService.GetOrStartDownload(req.MovieID, req.Magnet, req.Quality)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to start download: %v", err))
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return ctx.JSON(http.StatusOK, map[string]interface{}{
 		"movie_id": download.MovieID,
 		"quality":  download.Quality,
 		"status":   download.Status,
@@ -180,9 +180,9 @@ func (h *MovieHandler) DownloadTorrent(c echo.Context) error {
 }
 
 // GetTorrentProgress handles torrent progress requests
-func (h *MovieHandler) GetTorrentProgress(c echo.Context) error {
-	movieID := c.QueryParam("movie_id")
-	quality := c.QueryParam("quality")
+func (c *MovieController) GetTorrentProgress(ctx echo.Context) error {
+	movieID := ctx.QueryParam("movie_id")
+	quality := ctx.QueryParam("quality")
 
 	if movieID == "" || quality == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "movie_id and quality parameters are required")
@@ -190,15 +190,15 @@ func (h *MovieHandler) GetTorrentProgress(c echo.Context) error {
 
 	downloadKey := fmt.Sprintf("%s-%s", movieID, quality)
 
-	h.torrentService.Mu.RLock()
-	download, exists := h.torrentService.Downloads[downloadKey]
-	h.torrentService.Mu.RUnlock()
+	c.torrentService.Mu.RLock()
+	download, exists := c.torrentService.Downloads[downloadKey]
+	c.torrentService.Mu.RUnlock()
 
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, "Download not found")
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return ctx.JSON(http.StatusOK, map[string]interface{}{
 		"movie_id":     download.MovieID,
 		"quality":      download.Quality,
 		"status":       download.Status,
