@@ -59,5 +59,16 @@ client/.vscode/
 client/*.log
 client/*.tmp
 
+# Downloads
 server/downloads/
 /downloads/
+
+# Swagger Docs
+server/docs/docs.go
+server/docs/swagger.json
+server/docs/swagger.yaml
+
+server/hypertube
+server/server
+
+server/tmp/

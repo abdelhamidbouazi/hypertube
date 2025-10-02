@@ -19,6 +19,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// FortyTwo OAuth2 godoc
+//
+//	@Summary		Register using 42 API OAuth2
+//	@Description	Register new user using 42  API OAuth2
+//	@Tags			oauth2
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	auth.RevokeTokenRes
+//	@Router			/oauth2/google [post]
 func FortyTwo(c echo.Context) error {
 	config := oauthService.Providers()["42"]
 	if config == nil {
@@ -140,28 +149,28 @@ func FortyTwoCallback(c echo.Context) error {
 
 	cookie := new(http.Cookie)
 	cookie.Name = "AccessToken"
-	cookie.Value = response["AccessToken"].(string)
+	cookie.Value = response.AccessToken
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false   
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
 	cookie = new(http.Cookie)
 	cookie.Name = "AccessTokenExpiresIn"
-	cookie.Value = fmt.Sprintf("%d", response["ExpiresIn"].(int64))
+	cookie.Value = fmt.Sprintf("%d", response.ExpiresIn)
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false   
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 
 	cookie = new(http.Cookie)
 	cookie.Name = "RefreshToken"
-	cookie.Value = response["RefreshToken"].(string)
+	cookie.Value = response.RefreshToken
 	cookie.Path = "/"
-	cookie.HttpOnly = false 
-	cookie.Secure = false  
+	cookie.HttpOnly = false
+	cookie.Secure = false
 	cookie.SameSite = http.SameSiteLaxMode
 	c.SetCookie(cookie)
 

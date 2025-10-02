@@ -13,6 +13,7 @@ import (
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 var Server *echo.Echo
@@ -87,6 +88,7 @@ func LoadServer() {
 	}
 
 	middlewares.SetupJWT(config)
+	setupSwagger(Server)
 
 	Server.POST("/forgot-password", controllers.ForgotPassword)
 	Server.POST("/reset-password", controllers.ResetPassword)
@@ -115,6 +117,10 @@ func LoadServer() {
 
 	subtitleGroup := Server.Group("/subtitles")
 	subtitleGroup.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
+}
+
+func setupSwagger(s *echo.Echo) {
+	s.GET("/swagger/*", echoSwagger.WrapHandler)
 }
 
 func StartServer() {

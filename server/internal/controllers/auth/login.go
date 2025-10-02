@@ -10,10 +10,22 @@ import (
 )
 
 type LoginUserType struct {
-	Email    string `validate:"required"`
-	Password string `validate:"required"`
+	Email    string `validate:"required" example:"example@email.com"`
+	Password string `validate:"required" example:"j8Kt603ql0RV"`
 }
 
+// Login godoc
+//
+//	@Summary		Login
+//	@Description	login using email and password
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			loginUserRequest	body		LoginUserType	true	"json body to send with email and password"
+//	@Success		200					{object}	RevokeTokenRes
+//	@Failure		401					{object}	utils.HTTPErrorUnauthorized
+//	@Failure		400					{object}	utils.HTTPError
+//	@Router			/auth/login [post]
 func Login(c echo.Context) error {
 	var newUser LoginUserType
 
