@@ -14,6 +14,16 @@ SMTP:
   Gmail:
     Host: smtp.gmail.com
     Port: 465
+MOVIE_APIS:
+  TMDB:
+    API_KEY: "72b05171afec3bc193323f47ee8368b8"
+  OMDB:
+    API_KEY: ""
+DOWNLOADS:
+  DIRECTORY: "/home/ayuup/downloads"
+STREAMING:
+  DOWNLOAD_DIR: "/app/downloads"
+  TMDB_API_KEY: ""
 ui:
   address: http://localhost:4200
   Reset_Password_Route: reset_password
