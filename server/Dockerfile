@@ -14,7 +14,7 @@ COPY . .
 
 RUN make swagger
 
-# RUN go build -o /usr/local/bin/hypertube-serve ./main.go
+RUN go build -o /usr/local/bin/hypertube-serve ./main.go
 
 # CMD ["hypertube-serve"]
 CMD ["sh", "-c", "make swagger && air"]

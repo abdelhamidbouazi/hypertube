@@ -10,6 +10,7 @@ import { Spinner } from "@heroui/spinner";
 import { Divider } from "@heroui/divider";
 import { Slider } from "@heroui/slider";
 import { Tooltip } from "@heroui/tooltip";
+import { Alert } from "@heroui/alert";
 import { SearchIcon, X, SlidersHorizontal, RefreshCcw, ListFilterPlus } from "lucide-react";
 import MovieCard from "@/components/movies/MoviesCard";
 import { useInfiniteMovies } from "@/components/movies/useInfiniteMovies";
@@ -33,7 +34,8 @@ export default function DiscoverPage() {
     selectedGenres, toggleGenre,
     minRating, setMinRating,
     yearRange, setYearRange,
-    movies, isLoading, fetchNext, hasMore, isFetchingMore, resetAndRefetch
+    movies, isLoading, fetchNext, hasMore, isFetchingMore, error,
+    resetAndRefetch, useMockData, setUseMockData
   } = useInfiniteMovies();
   const [filters, setFilters] = useState(false)
 
@@ -48,6 +50,17 @@ export default function DiscoverPage() {
     io.observe(el);
     return () => io.unobserve(el);
   }, [hasMore, isFetchingMore, fetchNext]);
+
+  useEffect(() => {
+    const handleRetryFetch = () => {
+      if (!useMockData) {
+        resetAndRefetch();
+      }
+    };
+
+    window.addEventListener('retry-fetch', handleRetryFetch);
+    return () => window.removeEventListener('retry-fetch', handleRetryFetch);
+  }, [useMockData, resetAndRefetch]);
 
   const genreChips = useMemo(
     () =>
@@ -148,7 +161,7 @@ export default function DiscoverPage() {
                 startContent={<SlidersHorizontal size={14} />}
               >
                 {SORT_OPTIONS.map(({ key, label }) => (
-                  <SelectItem key={key} value={key}>
+                  <SelectItem key={key}>
                     {label}
                   </SelectItem>
                 ))}
@@ -284,6 +297,56 @@ export default function DiscoverPage() {
       </div>
 
       <Divider className="my-6" />
+
+      {/* Error Alert */}
+      {error && !useMockData && (
+        <div className="mb-6">
+          <Alert
+            color="danger"
+            variant="flat"
+            title="Failed to fetch movies"
+            description={error}
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              size="sm"
+              color="primary"
+              variant="flat"
+              onPress={() => setUseMockData(true)}
+            >
+              Show Mock Data
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Mock Data Info */}
+      {useMockData && (
+        <div className="mb-6">
+          <Alert
+            color="warning"
+            variant="flat"
+            title="Using Mock Data"
+            description="You are currently viewing sample movies. The API is not available."
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              size="sm"
+              color="primary"
+              variant="flat"
+              onPress={() => {
+                setUseMockData(false);
+                setTimeout(() => {
+                  const event = new Event('retry-fetch');
+                  window.dispatchEvent(event);
+                }, 100);
+              }}
+            >
+              Try Real Data
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
