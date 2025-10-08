@@ -36,6 +36,7 @@ type Movie struct {
 	ReleaseDate string `json:"release_date"`
 	PosterPath  string `json:"poster_path"`
 	Overview    string `json:"overview"`
+	Language    string `json:"original_language,omitempty"`
 }
 
 type MovieDetails struct {
@@ -48,6 +49,7 @@ type MovieDetails struct {
 	BackdropPath string    `json:"backdrop_path"`
 	VoteAverage  float64   `json:"vote_average"`
 	IMDbID       string    `json:"imdb_id"`
+	Language     string    `json:"original_language,omitempty"`
 	IsAvailable  bool      `json:"is_available"`
 	StreamURL    string    `json:"stream_url"`
 	Cast         []Cast    `json:"cast"`

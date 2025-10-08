@@ -32,4 +32,6 @@ func AddCommentRouter(commentRouter *echo.Group, commentController *controllers.
 
 func AddSubtitleRouter(subtitleRouter *echo.Group, subtitleController *controllers.SubtitleController) {
 	subtitleRouter.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
+	subtitleRouter.GET("/languages", subtitleController.GetAvailableLanguages, middlewares.Authenticated, middlewares.AttachUser)
+	subtitleRouter.GET("/recommendations", subtitleController.GetSubtitleRecommendations, middlewares.Authenticated, middlewares.AttachUser)
 }

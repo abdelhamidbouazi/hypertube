@@ -117,6 +117,8 @@ func LoadServer() {
 
 	subtitleGroup := Server.Group("/subtitles")
 	subtitleGroup.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
+	subtitleGroup.GET("/languages", subtitleController.GetAvailableLanguages, middlewares.Authenticated, middlewares.AttachUser)
+	subtitleGroup.GET("/recommendations", subtitleController.GetSubtitleRecommendations, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func setupSwagger(s *echo.Echo) {

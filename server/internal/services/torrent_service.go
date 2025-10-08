@@ -14,6 +14,7 @@ import (
 
 	"github.com/anacrolix/torrent"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TorrentService struct {
@@ -169,19 +170,65 @@ func (ts *TorrentService) monitorDownload(dl *models.TorrentDownload, downloadKe
 }
 
 func (ts *TorrentService) downloadSubtitles(dl *models.TorrentDownload) {
+	languagePatterns := map[string][]string{
+		"en": {"eng", "english", "en"},
+		"fr": {"fre", "french", "fr", "fra"},
+		"es": {"spa", "spanish", "es", "esp"},
+		"ar": {"ara", "arabic", "ar"},
+	}
+
+	subtitlesFound := make(map[string]bool)
+
 	for _, f := range dl.Torrent.Files() {
 		ext := strings.ToLower(filepath.Ext(f.Path()))
 		if ext == ".srt" || ext == ".vtt" || ext == ".sub" {
-			if strings.Contains(strings.ToLower(f.Path()), "eng") ||
-				strings.Contains(strings.ToLower(f.Path()), "english") {
-				f.Download()
-				dl.SubtitlePath = filepath.Join(ts.downloadDir, f.Path())
-				log.Printf("Found English subtitles: %s", f.Path())
-				break
+			fileName := strings.ToLower(f.Path())
+			for langCode, patterns := range languagePatterns {
+				if subtitlesFound[langCode] {
+					continue
+				}
+
+				for _, pattern := range patterns {
+					if strings.Contains(fileName, pattern) {
+						f.Download()
+						subtitlePath := filepath.Join(ts.downloadDir, f.Path())
+						log.Printf("Found %s subtitles: %s", langCode, f.Path())
+						sub := models.Subtitle{
+							MovieID:  dl.MovieID,
+							Language: langCode,
+							FilePath: subtitlePath,
+						}
+						if err := ts.db.
+							Clauses(clause.OnConflict{
+								Columns:   []clause.Column{{Name: "movie_id"}, {Name: "language"}},
+								DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}),
+							}).
+							Create(&sub).Error; err != nil {
+							log.Printf("Failed to upsert subtitle record for movie %d (lang: %s): %v", dl.MovieID, langCode, err)
+						} else {
+							subtitlesFound[langCode] = true
+							if langCode == "en" {
+								dl.SubtitlePath = subtitlePath
+							}
+						}
+						break
+					}
+				}
 			}
 		}
 	}
 
+	log.Printf("Downloaded subtitles for movie %d in languages: %v", dl.MovieID, ts.getFoundLanguages(subtitlesFound))
+}
+
+func (ts *TorrentService) getFoundLanguages(subtitlesFound map[string]bool) []string {
+	var languages []string
+	for lang, found := range subtitlesFound {
+		if found {
+			languages = append(languages, lang)
+		}
+	}
+	return languages
 }
 
 func (ts *TorrentService) findLargestVideoFile(t *torrent.Torrent) *torrent.File {
