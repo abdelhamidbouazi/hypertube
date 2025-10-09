@@ -21,7 +21,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
   const { id, title, year, rating, posterUrl, watched } = movie;
 
   return (
-    <Link href={`/movie/${id}`} className="group">
+    <Link href={`/app/movie/${id}`} className="group">
       <Card className="h-full overflow-hidden border border-default-100 bg-content1 transition-transform group-hover:-translate-y-1">
         <CardBody className="p-0">
           <div className="relative">

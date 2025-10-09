@@ -52,7 +52,7 @@ export default function CategoriesPage() {
         {CATEGORIES.map((cat) => (
           <li key={cat.slug}>
             <Link
-              href={`/categories/${encodeURIComponent(cat.slug)}`}
+              href={`/app/categories/${encodeURIComponent(cat.slug)}`}
               className="group relative block overflow-hidden rounded-2xl border border-gray-200 bg-white/70 p-4 shadow-sm ring-1 ring-transparent backdrop-blur transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-800 dark:bg-gray-900/60"
             >
               {/* Accent */}

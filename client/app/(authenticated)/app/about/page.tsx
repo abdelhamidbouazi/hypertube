@@ -89,9 +89,9 @@ export default function AboutPage() {
         </ul>
       </section>
 
-      <footer className="pt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+      {/* <footer className="pt-2 text-center text-xs text-gray-500 dark:text-gray-400">
         © {new Date().getFullYear()} {"Cinéthos".toUpperCase()} — built with care by the team.
-      </footer>
+      </footer> */}
     </article>
   );
 }
