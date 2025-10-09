@@ -60,6 +60,24 @@ type AppConfig struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"FORTYTWO"`
 	} `mapstructure:"OAUTH"`
+
+	MOVIE_APIS struct {
+		TMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"TMDB"`
+		OMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"OMDB"`
+	} `mapstructure:"MOVIE_APIS"`
+
+	DOWNLOADS struct {
+		Directory string `mapstructure:"DIRECTORY"`
+	} `mapstructure:"DOWNLOADS"`
+
+	STREAMING struct {
+		DownloadDir string `mapstructure:"DOWNLOAD_DIR"`
+		TMDBAPIKey  string `mapstructure:"TMDB_API_KEY"`
+	} `mapstructure:"STREAMING"`
 }
 
 func LoadConfig(config string) {
