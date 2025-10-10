@@ -30,6 +30,40 @@ func NewMovieController(ms *services.MovieService, ts *services.TorrentService, 
 	}
 }
 
+// MovieDetailsDoc is a doc-only schema for MovieDetails that avoids gorm.Model in nested types
+type MovieDetailsDoc struct {
+	ID           int                      `json:"id"`
+	Title        string                   `json:"title"`
+	Overview     string                   `json:"overview"`
+	ReleaseDate  string                   `json:"release_date"`
+	Runtime      int                      `json:"runtime"`
+	PosterPath   string                   `json:"poster_path"`
+	BackdropPath string                   `json:"backdrop_path"`
+	VoteAverage  float64                  `json:"vote_average"`
+	IMDbID       string                   `json:"imdb_id"`
+	Language     string                   `json:"original_language,omitempty"`
+	IsAvailable  bool                     `json:"is_available"`
+	StreamURL    string                   `json:"stream_url"`
+	Cast         []models.Cast            `json:"cast"`
+	Director     []models.Person          `json:"director"`
+	Producer     []models.Person          `json:"producer"`
+	Genres       []models.Genre           `json:"genres"`
+	Comments     []CommentResponse        `json:"comments"`
+}
+
+// GetMovieDetails godoc
+//
+//	@Summary      Movie details
+//	@Description  Get detailed information for a movie by ID
+//	@Tags         movies
+//	@Accept       json
+//	@Produce      json
+//	@Param        id   path     string  true  "Movie ID"
+//	@Security     JWT
+//	@Success      200  {object} controllers.MovieDetailsDoc
+//	@Failure      401  {object} utils.HTTPErrorUnauthorized
+//	@Failure      404  {object} utils.HTTPError
+//	@Router       /movies/{id} [get]
 func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	movieID := ctx.Param("id")
 
@@ -84,6 +118,19 @@ func (c *MovieController) streamPartialFile(ctx echo.Context, dl *models.Torrent
 	return nil
 }
 
+// SearchMovies godoc
+//
+//	@Summary      Search movies
+//	@Description  Search movies by title with optional year filter
+//	@Tags         movies
+//	@Accept       json
+//	@Produce      json
+//	@Param        q     query    string  true   "Search query (title)"
+//	@Param        year  query    string  false  "Release year"
+//	@Success      200   {array}   models.Movie
+//	@Failure      400   {object}  utils.HTTPError
+//	@Failure      500   {object}  utils.HTTPError
+//	@Router       /movies/search [get]
 func (c *MovieController) SearchMovies(ctx echo.Context) error {
 	query := ctx.QueryParam("q")
 	year := ctx.QueryParam("year")
@@ -103,14 +150,14 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 
 // GetMovies godoc
 //
-//  @Summary      Movies
-//  @Description  Get a default list of movies
-//  @Tags         movies
-//  @Accept       json
-//  @Produce      json
-//  @Success      200  {array}   models.Movie
-//  @Failure      500  {object}  utils.HTTPError
-//  @Router       /movies [get]
+//	@Summary      Movies
+//	@Description  Get a default list of movies
+//	@Tags         movies
+//	@Accept       json
+//	@Produce      json
+//	@Success      200  {array}   models.Movie
+//	@Failure      500  {object}  utils.HTTPError
+//	@Router       /movies [get]
 func (c *MovieController) GetMovies(ctx echo.Context) error {
 	movies, err := c.movieService.GetMovies()
 	if err != nil {
@@ -121,15 +168,15 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 
 // PopularMovies godoc
 //
-//  @Summary      Popular movies
-//  @Description  Get a list of popular movies from TMDB
-//  @Tags         movies
-//  @Accept       json
-//  @Produce      json
-//  @Success      200   {array}   models.Movie
-//  @Failure      400   {object}  utils.HTTPError
-//  @Failure      500   {object}  utils.HTTPError
-//  @Router       /movies/popular [get]
+//	@Summary      Popular movies
+//	@Description  Get a list of popular movies from TMDB
+//	@Tags         movies
+//	@Accept       json
+//	@Produce      json
+//	@Success      200   {array}   models.Movie
+//	@Failure      400   {object}  utils.HTTPError
+//	@Failure      500   {object}  utils.HTTPError
+//	@Router       /movies/popular [get]
 func (c *MovieController) PopularMovies(ctx echo.Context) error {
 	movies, err := c.movieService.GetPopularMovies(1)
 	if err != nil {
@@ -140,15 +187,15 @@ func (c *MovieController) PopularMovies(ctx echo.Context) error {
 
 // RandomMovies godoc
 //
-//  @Summary      Random movies
-//  @Description  Get a random subset of movies from TMDB discover endpoint
-//  @Tags         movies
-//  @Accept       json
-//  @Produce      json
-//  @Success      200        {array}   models.Movie
-//  @Failure      400        {object}  utils.HTTPError
-//  @Failure      500        {object}  utils.HTTPError
-//  @Router       /movies/random [get]
+//	@Summary      Random movies
+//	@Description  Get a random subset of movies from TMDB discover endpoint
+//	@Tags         movies
+//	@Accept       json
+//	@Produce      json
+//	@Success      200        {array}   models.Movie
+//	@Failure      400        {object}  utils.HTTPError
+//	@Failure      500        {object}  utils.HTTPError
+//	@Router       /movies/random [get]
 func (c *MovieController) RandomMovies(ctx echo.Context) error {
 	movies, err := c.movieService.GetRandomMovies(1, 20)
 	if err != nil {
@@ -159,19 +206,19 @@ func (c *MovieController) RandomMovies(ctx echo.Context) error {
 
 // StreamMovie godoc
 //
-//  @Summary      Stream a movie by ID
-//  @Description  Streams a movie if downloaded or from an active torrent. Returns 102 if still downloading.
-//  @Tags         stream
-//  @Accept       */*
-//  @Produce      video/mp4
-//  @Param        id       path   string  true  "Movie ID"
-//  @Param        quality  query  string  false "Desired quality (default: 720p)"
-//  @Security     JWT
-//  @Success      200  {file}    binary  "Video stream"
-//  @Failure      102  {object}  utils.HTTPError  "Still downloading"
-//  @Failure      401  {object}  utils.HTTPErrorUnauthorized
-//  @Failure      404  {object}  utils.HTTPError
-//  @Router       /stream/{id} [get]
+//	@Summary      Stream a movie by ID
+//	@Description  Streams a movie if downloaded or from an active torrent. Returns 102 if still downloading.
+//	@Tags         stream
+//	@Accept       */*
+//	@Produce      video/mp4
+//	@Param        id       path   string  true  "Movie ID"
+//	@Param        quality  query  string  false "Desired quality (default: 720p)"
+//	@Security     JWT
+//	@Success      200  {file}    binary  "Video stream"
+//	@Failure      102  {object}  utils.HTTPError  "Still downloading"
+//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
+//	@Failure      404  {object}  utils.HTTPError
+//	@Router       /stream/{id} [get]
 func (c *MovieController) StreamMovie(ctx echo.Context) error {
 	movieID := ctx.Param("id")
 	quality := ctx.QueryParam("quality")

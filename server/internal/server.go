@@ -97,6 +97,8 @@ func LoadServer() {
 	routes.AddUserRouter(Server.Group("/users"))
 
 	movieGroup := Server.Group("/movies")
+	movieGroup.GET("/search", movieController.SearchMovies)
+	movieGroup.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
 	routes.AddMovieRouter(movieGroup, movieController)
 
 	torrentGroup := Server.Group("/torrents")
