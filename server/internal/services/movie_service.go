@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -108,6 +109,112 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 		})
 	}
 
+	return movies, nil
+}
+
+// GetMovies returns a default list of movies (popular page 1)
+func (ms *MovieService) GetMovies() ([]models.Movie, error) {
+	return ms.GetPopularMovies(1)
+}
+
+// GetPopularMovies fetches a paginated list of popular movies from TMDB
+func (ms *MovieService) GetPopularMovies(page int) ([]models.Movie, error) {
+	if page < 1 {
+		page = 1
+	}
+	baseURL := "https://api.themoviedb.org/3/movie/popular"
+	params := url.Values{}
+	params.Add("api_key", ms.apiKey)
+	params.Add("page", strconv.Itoa(page))
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := ms.client.Get(fullURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var tmdbResp struct {
+		Results []struct {
+			ID          int    `json:"id"`
+			Title       string `json:"title"`
+			ReleaseDate string `json:"release_date"`
+			PosterPath  string `json:"poster_path"`
+			Overview    string `json:"overview"`
+		} `json:"results"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
+		return nil, err
+	}
+
+	var movies []models.Movie
+	for _, result := range tmdbResp.Results {
+		movies = append(movies, models.Movie{
+			ID:          result.ID,
+			Title:       result.Title,
+			ReleaseDate: result.ReleaseDate,
+			PosterPath:  result.PosterPath,
+			Overview:    result.Overview,
+		})
+	}
+
+	return movies, nil
+}
+
+// GetRandomMovies fetches a page from TMDB discover endpoint and returns a shuffled subset
+func (ms *MovieService) GetRandomMovies(page int, pageSize int) ([]models.Movie, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	baseURL := "https://api.themoviedb.org/3/discover/movie"
+	params := url.Values{}
+	params.Add("api_key", ms.apiKey)
+	params.Add("sort_by", "popularity.desc")
+	params.Add("page", strconv.Itoa(page))
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := ms.client.Get(fullURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var tmdbResp struct {
+		Results []struct {
+			ID          int    `json:"id"`
+			Title       string `json:"title"`
+			ReleaseDate string `json:"release_date"`
+			PosterPath  string `json:"poster_path"`
+			Overview    string `json:"overview"`
+		} `json:"results"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
+		return nil, err
+	}
+
+	var movies []models.Movie
+	for _, result := range tmdbResp.Results {
+		movies = append(movies, models.Movie{
+			ID:          result.ID,
+			Title:       result.Title,
+			ReleaseDate: result.ReleaseDate,
+			PosterPath:  result.PosterPath,
+			Overview:    result.Overview,
+		})
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(movies), func(i, j int) { movies[i], movies[j] = movies[j], movies[i] })
+	if pageSize < len(movies) {
+		movies = movies[:pageSize]
+	}
 	return movies, nil
 }
 

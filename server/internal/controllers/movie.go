@@ -101,6 +101,62 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, movies)
 }
 
+// GetMovies godoc
+//
+//  @Summary      Movies
+//  @Description  Get a default list of movies
+//  @Tags         movies
+//  @Accept       json
+//  @Produce      json
+//  @Success      200  {array}   models.Movie
+//  @Failure      500  {object}  utils.HTTPError
+//  @Router       /movies [get]
+func (c *MovieController) GetMovies(ctx echo.Context) error {
+	movies, err := c.movieService.GetMovies()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies")
+	}
+	return ctx.JSON(http.StatusOK, movies)
+}
+
+// PopularMovies godoc
+//
+//  @Summary      Popular movies
+//  @Description  Get a list of popular movies from TMDB
+//  @Tags         movies
+//  @Accept       json
+//  @Produce      json
+//  @Success      200   {array}   models.Movie
+//  @Failure      400   {object}  utils.HTTPError
+//  @Failure      500   {object}  utils.HTTPError
+//  @Router       /movies/popular [get]
+func (c *MovieController) PopularMovies(ctx echo.Context) error {
+	movies, err := c.movieService.GetPopularMovies(1)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch popular movies")
+	}
+	return ctx.JSON(http.StatusOK, movies)
+}
+
+// RandomMovies godoc
+//
+//  @Summary      Random movies
+//  @Description  Get a random subset of movies from TMDB discover endpoint
+//  @Tags         movies
+//  @Accept       json
+//  @Produce      json
+//  @Success      200        {array}   models.Movie
+//  @Failure      400        {object}  utils.HTTPError
+//  @Failure      500        {object}  utils.HTTPError
+//  @Router       /movies/random [get]
+func (c *MovieController) RandomMovies(ctx echo.Context) error {
+	movies, err := c.movieService.GetRandomMovies(1, 20)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch random movies")
+	}
+	return ctx.JSON(http.StatusOK, movies)
+}
+
 // StreamMovie godoc
 //
 //  @Summary      Stream a movie by ID
