@@ -19,12 +19,37 @@ func NewCommentController(db *gorm.DB) *CommentController {
 	}
 }
 
+// AddCommentRequest represents the payload to add a comment
+type AddCommentRequest struct {
+	MovieID  int    `json:"movie_id"`
+	Username string `json:"username"`
+	Content  string `json:"content"`
+}
+
+// CommentResponse represents a comment in responses
+type CommentResponse struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Date     string `json:"date"`
+	Content  string `json:"content"`
+}
+
+// AddComment godoc
+//
+//	@Summary      Add comment
+//	@Description  Add a new comment for a movie
+//	@Tags         comments
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        body  body      AddCommentRequest  true  "Comment body"
+	//	@Success      200   {object}  controllers.CommentResponse
+//	@Failure      400   {object}  utils.HTTPError
+//	@Failure      401   {object}  utils.HTTPErrorUnauthorized
+//	@Failure      500   {object}  utils.HTTPError
+//	@Router       /comments/add [post]
 func (c *CommentController) AddComment(ctx echo.Context) error {
-	var requestComment struct {
-		MovieID  int    `json:"movie_id"`
-		Username string `json:"username"`
-		Content  string `json:"content"`
-	}
+	var requestComment AddCommentRequest
 
 	if err := ctx.Bind(&requestComment); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
@@ -55,13 +80,17 @@ func (c *CommentController) GetComments(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve comments")
 	}
 
-	type CommentResponse struct {
-		ID       uint   `json:"id"`
-		Username string `json:"username"`
-		Date     string `json:"date"`
-		Content  string `json:"content"`
-	}
-
+	// GetComments godoc
+	//
+	//  @Summary      List comments
+	//  @Description  Get all comments (latest first)
+	//  @Tags         comments
+	//  @Accept       json
+	//  @Produce      json
+	//  @Security     JWT
+	//  @Success      200  {array}   CommentResponse
+	//  @Failure      500  {object}  utils.HTTPError
+	//  @Router       /comments [get]
 	var response []CommentResponse
 	for _, comment := range comments {
 		response = append(response, CommentResponse{
@@ -75,6 +104,21 @@ func (c *CommentController) GetComments(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response)
 }
 
+// GetCommentByID godoc
+//
+//	@Summary      Get comment
+//	@Description  Get a single comment by ID
+//	@Tags         comments
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        id   path      string  true  "Comment ID"
+//	@Success      200  {object}  CommentResponse
+//	@Failure      400  {object}  utils.HTTPError
+//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
+//	@Failure      404  {object}  utils.HTTPError
+//	@Failure      500  {object}  utils.HTTPError
+//	@Router       /comments/{id} [get]
 func (c *CommentController) GetCommentByID(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
@@ -90,13 +134,6 @@ func (c *CommentController) GetCommentByID(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve comment")
 	}
 
-	type CommentResponse struct {
-		ID       uint   `json:"id"`
-		Username string `json:"username"`
-		Date     string `json:"date"`
-		Content  string `json:"content"`
-	}
-
 	response := CommentResponse{
 		ID:       comment.ID,
 		Username: comment.Username,
@@ -107,6 +144,29 @@ func (c *CommentController) GetCommentByID(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response)
 }
 
+// UpdateCommentRequest represents the payload to update a comment
+type UpdateCommentRequest struct {
+	Content  string `json:"content"`
+	Username string `json:"username"`
+}
+
+// UpdateComment godoc
+//
+//	@Summary      Update comment
+//	@Description  Update an existing comment (owner only)
+//	@Tags         comments
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        id    path      string                 true  "Comment ID"
+//	@Param        body  body      UpdateCommentRequest   true  "Update body"
+//	@Success      200   {object}  map[string]string
+//	@Failure      400   {object}  utils.HTTPError
+//	@Failure      401   {object}  utils.HTTPErrorUnauthorized
+//	@Failure      403   {object}  utils.HTTPError
+//	@Failure      404   {object}  utils.HTTPError
+//	@Failure      500   {object}  utils.HTTPError
+//	@Router       /comments/{id} [patch]
 func (c *CommentController) UpdateComment(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
@@ -114,10 +174,7 @@ func (c *CommentController) UpdateComment(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid comment ID")
 	}
 
-	var requestData struct {
-		Content  string `json:"content"`
-		Username string `json:"username"`
-	}
+	var requestData UpdateCommentRequest
 
 	if err := ctx.Bind(&requestData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request data")
@@ -142,6 +199,22 @@ func (c *CommentController) UpdateComment(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Comment updated successfully"})
 }
 
+// DeleteComment godoc
+//
+//	@Summary      Delete comment
+//	@Description  Delete an existing comment (owner only)
+//	@Tags         comments
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        id   path      string  true  "Comment ID"
+//	@Success      200  {object}  map[string]string
+//	@Failure      400  {object}  utils.HTTPError
+//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
+//	@Failure      403  {object}  utils.HTTPError
+//	@Failure      404  {object}  utils.HTTPError
+//	@Failure      500  {object}  utils.HTTPError
+//	@Router       /comments/{id} [delete]
 func (c *CommentController) DeleteComment(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)

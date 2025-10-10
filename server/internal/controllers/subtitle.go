@@ -24,6 +24,20 @@ func NewSubtitleController(db *gorm.DB) *SubtitleController {
 	}
 }
 
+// GetSubtitles godoc
+//
+//	@Summary      Get subtitles
+//	@Description  Get subtitles file for a movie in preferred language (defaults to user preferred or en)
+//	@Tags         subtitles
+//	@Accept       json
+//	@Produce      text/vtt
+//	@Security     JWT
+//	@Param        movie_id  query    string  true   "Movie ID"
+//	@Param        lang      query    string  false  "Language code (e.g., en, fr). Defaults to user preference or en"
+//	@Success      200       {file}   binary
+//	@Failure      401       {object} utils.HTTPErrorUnauthorized
+//	@Failure      404       {object} utils.HTTPError
+//	@Router       /subtitles [get]
 func (c *SubtitleController) GetSubtitles(ctx echo.Context) error {
 	movieID := ctx.QueryParam("movie_id")
 	language := ctx.QueryParam("lang")
@@ -61,6 +75,20 @@ func (c *SubtitleController) GetSubtitles(ctx echo.Context) error {
 	return ctx.File(filePath)
 }
 
+// GetAvailableLanguages godoc
+//
+//	@Summary      Available subtitle languages
+//	@Description  List available subtitle languages for a movie
+//	@Tags         subtitles
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        movie_id  query     string  true  "Movie ID"
+//	@Success      200       {object}  map[string]interface{}
+//	@Failure      400       {object}  utils.HTTPError
+//	@Failure      401       {object}  utils.HTTPErrorUnauthorized
+//	@Failure      500       {object}  utils.HTTPError
+//	@Router       /subtitles/languages [get]
 func (c *SubtitleController) GetAvailableLanguages(ctx echo.Context) error {
 	movieID := ctx.QueryParam("movie_id")
 	if movieID == "" {
@@ -85,6 +113,20 @@ func (c *SubtitleController) GetAvailableLanguages(ctx echo.Context) error {
 	})
 }
 
+// GetSubtitleRecommendations godoc
+//
+//	@Summary      Subtitle recommendations
+//	@Description  Recommend subtitle language based on user preference and availability
+//	@Tags         subtitles
+//	@Accept       json
+//	@Produce      json
+//	@Security     JWT
+//	@Param        movie_id  query     string  true  "Movie ID"
+//	@Success      200       {object}  map[string]interface{}
+//	@Failure      400       {object}  utils.HTTPError
+//	@Failure      401       {object}  utils.HTTPErrorUnauthorized
+//	@Failure      500       {object}  utils.HTTPError
+//	@Router       /subtitles/recommendations [get]
 func (c *SubtitleController) GetSubtitleRecommendations(ctx echo.Context) error {
 	movieID := ctx.QueryParam("movie_id")
 	if movieID == "" {
