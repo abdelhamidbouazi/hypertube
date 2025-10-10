@@ -101,6 +101,21 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, movies)
 }
 
+// StreamMovie godoc
+//
+//  @Summary      Stream a movie by ID
+//  @Description  Streams a movie if downloaded or from an active torrent. Returns 102 if still downloading.
+//  @Tags         stream
+//  @Accept       */*
+//  @Produce      video/mp4
+//  @Param        id       path   string  true  "Movie ID"
+//  @Param        quality  query  string  false "Desired quality (default: 720p)"
+//  @Security     JWT
+//  @Success      200  {file}    binary  "Video stream"
+//  @Failure      102  {object}  utils.HTTPError  "Still downloading"
+//  @Failure      401  {object}  utils.HTTPErrorUnauthorized
+//  @Failure      404  {object}  utils.HTTPError
+//  @Router       /stream/{id} [get]
 func (c *MovieController) StreamMovie(ctx echo.Context) error {
 	movieID := ctx.Param("id")
 	quality := ctx.QueryParam("quality")
