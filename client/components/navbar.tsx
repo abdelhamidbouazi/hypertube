@@ -12,6 +12,8 @@ import { Button } from "@heroui/button";
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
+import { Avatar } from "@heroui/avatar";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
@@ -28,6 +30,7 @@ import {
   LoginIcon,
 } from "@/components/icons";
 import { useState } from "react";
+import { User, Settings, LogOut, Bookmark, History } from "lucide-react";
 
 export const Navbar = () => {
   const searchInput = (
@@ -97,15 +100,40 @@ export const Navbar = () => {
         </NavbarItem>
         <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
         <NavbarItem className="hidden md:flex">
-          <Button
-            as={NextLink}
-            className="text-sm font-normal text-default-600 bg-default-100"
-            href={"/auth/login"}
-            startContent={<LoginIcon />}
-            variant="flat"
-          >
-            Login
-          </Button>
+          <Dropdown placement="bottom-end">
+            <DropdownTrigger>
+              <Avatar
+                isBordered
+                as="button"
+                className="transition-transform"
+                color="primary"
+                name="User"
+                size="sm"
+                src="https://i.pravatar.cc/150?u=user"
+              />
+            </DropdownTrigger>
+            <DropdownMenu aria-label="Profile Actions" variant="flat">
+              <DropdownItem key="user-info" className="h-14 gap-2">
+                <p className="font-semibold">Signed in as</p>
+                <p className="font-semibold">user@example.com</p>
+              </DropdownItem>
+              <DropdownItem key="profile" startContent={<User className="h-4 w-4" />}>
+                My Profile
+              </DropdownItem>
+              <DropdownItem key="bookmarks" startContent={<Bookmark className="h-4 w-4" />}>
+                My Bookmarks
+              </DropdownItem>
+              <DropdownItem key="history" startContent={<History className="h-4 w-4" />}>
+                Watch History
+              </DropdownItem>
+              <DropdownItem key="settings" startContent={<Settings className="h-4 w-4" />}>
+                Settings
+              </DropdownItem>
+              <DropdownItem key="logout" color="danger" startContent={<LogOut className="h-4 w-4" />}>
+                Log Out
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
         </NavbarItem>
       </NavbarContent>
 

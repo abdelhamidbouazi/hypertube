@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
@@ -11,9 +11,9 @@ import { Divider } from "@heroui/divider";
 import { Slider } from "@heroui/slider";
 import { Tooltip } from "@heroui/tooltip";
 import { Alert } from "@heroui/alert";
-import { SearchIcon, X, SlidersHorizontal, RefreshCcw, ListFilterPlus } from "lucide-react";
+import { SearchIcon, X, SlidersHorizontal, ListFilterPlus } from "lucide-react";
 import MovieCard from "@/components/movies/MoviesCard";
-import { useInfiniteMovies } from "@/components/movies/useInfiniteMovies";
+import { useMovies } from "@/components/movies/useMovies";
 
 type SortKey = "name" | "year" | "rating";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -34,33 +34,12 @@ export default function DiscoverPage() {
     selectedGenres, toggleGenre,
     minRating, setMinRating,
     yearRange, setYearRange,
-    movies, isLoading, fetchNext, hasMore, isFetchingMore, error,
-    resetAndRefetch, useMockData, setUseMockData
-  } = useInfiniteMovies();
+    movies, isLoading, error,
+    resetAndRefetch
+  } = useMovies();
   const [filters, setFilters] = useState(false)
 
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-    const el = sentinelRef.current;
-    const io = new IntersectionObserver((entries) => {
-      const first = entries[0];
-      if (first.isIntersecting && hasMore && !isFetchingMore) fetchNext();
-    });
-    io.observe(el);
-    return () => io.unobserve(el);
-  }, [hasMore, isFetchingMore, fetchNext]);
 
-  useEffect(() => {
-    const handleRetryFetch = () => {
-      if (!useMockData) {
-        resetAndRefetch();
-      }
-    };
-
-    window.addEventListener('retry-fetch', handleRetryFetch);
-    return () => window.removeEventListener('retry-fetch', handleRetryFetch);
-  }, [useMockData, resetAndRefetch]);
 
   const genreChips = useMemo(
     () =>
@@ -112,17 +91,12 @@ export default function DiscoverPage() {
           </div>
           <div className="flex gap-2">
             {filters ? <>
-            <Tooltip content="Reset filters">
-              <Button variant="flat" startContent={<RefreshCcw size={14} />} onPress={() => resetAndRefetch()}>
-                Reset
-              </Button>
-            </Tooltip>
-            <Tooltip content="Reset filters">
+            <Tooltip content="Close filters">
               <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setFilters(false)}}>
                 Close Filters
               </Button>
             </Tooltip> 
-            </>: <Tooltip content="Reset filters">
+            </>: <Tooltip content="Open filters">
               <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setFilters(true)}}>
                 Filters
               </Button>
@@ -286,7 +260,7 @@ export default function DiscoverPage() {
               )}
               <div className="ml-auto">
                 <Tooltip content="Reset all">
-                  <Button size="sm" variant="light" onPress={() => resetAndRefetch()}>
+                  <Button size="sm" variant="flat" color="secondary" onPress={() => resetAndRefetch()}>
                     Reset
                   </Button>
                 </Tooltip>
@@ -299,7 +273,7 @@ export default function DiscoverPage() {
       <Divider className="my-6" />
 
       {/* Error Alert */}
-      {error && !useMockData && (
+      {error && (
         <div className="mb-6">
           <Alert
             color="danger"
@@ -307,44 +281,6 @@ export default function DiscoverPage() {
             title="Failed to fetch movies"
             description={error}
           />
-          <div className="mt-2 flex justify-end">
-            <Button
-              size="sm"
-              color="primary"
-              variant="flat"
-              onPress={() => setUseMockData(true)}
-            >
-              Show Mock Data
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Mock Data Info */}
-      {useMockData && (
-        <div className="mb-6">
-          <Alert
-            color="warning"
-            variant="flat"
-            title="Using Mock Data"
-            description="You are currently viewing sample movies. The API is not available."
-          />
-          <div className="mt-2 flex justify-end">
-            <Button
-              size="sm"
-              color="primary"
-              variant="flat"
-              onPress={() => {
-                setUseMockData(false);
-                setTimeout(() => {
-                  const event = new Event('retry-fetch');
-                  window.dispatchEvent(event);
-                }, 100);
-              }}
-            >
-              Try Real Data
-            </Button>
-          </div>
         </div>
       )}
 
@@ -369,15 +305,6 @@ export default function DiscoverPage() {
             </div>
           )}
 
-          <div ref={sentinelRef} className="h-12 flex items-center justify-center">
-            {isFetchingMore ? (
-              <Spinner size="sm" label="Loading more…" />
-            ) : hasMore ? (
-              <span className="text-tiny text-foreground-500">Scroll to load more</span>
-            ) : movies.length > 0 ? (
-              <span className="text-tiny text-foreground-500">You’ve reached the end</span>
-            ) : null}
-          </div>
         </>
       )}
     </div>
