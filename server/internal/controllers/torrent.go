@@ -21,6 +21,21 @@ func NewTorrentController(ts *services.TorrentService, ms *services.MovieService
 	}
 }
 
+// SearchTorrents godoc
+//
+//  @Summary      Search torrents by title/year
+//  @Description  Search torrent sources for a given movie title and optional year
+//  @Tags         torrents
+//  @Accept       json
+//  @Produce      json
+//  @Param        title   query     string  true  "Movie title"
+//  @Param        year    query     string  false "Release year"
+//  @Security     JWT
+//  @Success      200  {array}   models.TorrentResult
+//  @Failure      400  {object}  utils.HTTPError
+//  @Failure      401  {object}  utils.HTTPErrorUnauthorized
+//  @Failure      500  {object}  utils.HTTPError
+//  @Router       /torrents/search [get]
 func (c *TorrentController) SearchTorrents(ctx echo.Context) error {
 	title := ctx.QueryParam("title")
 	year := ctx.QueryParam("year")
@@ -33,12 +48,36 @@ func (c *TorrentController) SearchTorrents(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, results)
 }
 
+// StartDownloadRequest represents the request body for starting a torrent download
+type StartDownloadRequest struct {
+	MovieID int    `json:"movie_id" example:"12345"`
+	Magnet  string `json:"magnet" example:"magnet:?xt=urn:btih:..."`
+	Quality string `json:"quality" example:"720p"`
+}
+
+// StartDownloadResponse represents the response after starting a download
+type StartDownloadResponse struct {
+	Status      string  `json:"status" example:"downloading"`
+	Progress    float64 `json:"progress" example:"12.5"`
+	StreamReady bool    `json:"stream_ready" example:"false"`
+}
+
+// StartDownload godoc
+//
+//  @Summary      Start torrent download
+//  @Description  Starts a torrent download for a movie using a magnet link and quality
+//  @Tags         torrents
+//  @Accept       json
+//  @Produce      json
+//  @Param        body  body      StartDownloadRequest  true  "Download request"
+//  @Security     JWT
+//  @Success      200  {object}  StartDownloadResponse
+//  @Failure      400  {object}  utils.HTTPError
+//  @Failure      401  {object}  utils.HTTPErrorUnauthorized
+//  @Failure      500  {object}  utils.HTTPError
+//  @Router       /torrents/download [post]
 func (c *TorrentController) StartDownload(ctx echo.Context) error {
-	var req struct {
-		MovieID int    `json:"movie_id"`
-		Magnet  string `json:"magnet"`
-		Quality string `json:"quality"`
-	}
+	var req StartDownloadRequest
 
 	if err := ctx.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
@@ -49,13 +88,36 @@ func (c *TorrentController) StartDownload(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to start download")
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
-		"status":       download.Status,
-		"progress":     download.Progress,
-		"stream_ready": download.StreamReady,
+	return ctx.JSON(http.StatusOK, StartDownloadResponse{
+		Status:      download.Status,
+		Progress:    download.Progress,
+		StreamReady: download.StreamReady,
 	})
 }
 
+// DownloadProgressResponse represents the torrent progress payload
+type DownloadProgressResponse struct {
+	Status      string  `json:"status" example:"downloading"`
+	Progress    float64 `json:"progress" example:"42.0"`
+	StreamReady bool    `json:"stream_ready" example:"true"`
+	Quality     string  `json:"quality" example:"720p"`
+}
+
+// GetDownloadProgress godoc
+//
+//  @Summary      Get torrent download progress
+//  @Description  Returns current status and progress for a movie download by movie_id and quality
+//  @Tags         torrents
+//  @Accept       json
+//  @Produce      json
+//  @Param        movie_id  query  string  true  "Movie ID"
+//  @Param        quality   query  string  true  "Quality"
+//  @Security     JWT
+//  @Success      200  {object}  DownloadProgressResponse
+//  @Failure      400  {object}  utils.HTTPError
+//  @Failure      401  {object}  utils.HTTPErrorUnauthorized
+//  @Failure      404  {object}  utils.HTTPError
+//  @Router       /torrents/progress [get]
 func (c *TorrentController) GetDownloadProgress(ctx echo.Context) error {
 	movieID := ctx.QueryParam("movie_id")
 	quality := ctx.QueryParam("quality")
@@ -74,10 +136,10 @@ func (c *TorrentController) GetDownloadProgress(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Download not found")
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
-		"status":       dl.Status,
-		"progress":     dl.Progress,
-		"stream_ready": dl.StreamReady,
-		"quality":      dl.Quality,
+	return ctx.JSON(http.StatusOK, DownloadProgressResponse{
+		Status:      dl.Status,
+		Progress:    dl.Progress,
+		StreamReady: dl.StreamReady,
+		Quality:     dl.Quality,
 	})
 }
