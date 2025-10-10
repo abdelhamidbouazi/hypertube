@@ -1,26 +1,41 @@
 import Link from "next/link";
+import { 
+  Zap, 
+  Compass, 
+  Laugh, 
+  Drama, 
+  Rocket, 
+  Ghost, 
+  Heart, 
+  Key, 
+  Palette, 
+  Camera, 
+  Wand2, 
+  Search 
+} from "lucide-react";
+import { LucideProps } from "lucide-react";
 
 type Category = {
   name: string;
   slug: string;
-  emoji: string;
+  icon: React.ComponentType<LucideProps>;
   tone: string; // gradient tailwind classes
   blurb: string;
 };
 
 const CATEGORIES: Category[] = [
-  { name: "Action", slug: "action", emoji: "💥", tone: "from-rose-500 to-orange-500", blurb: "Adrenaline, scale, and high-stakes set pieces." },
-  { name: "Adventure", slug: "adventure", emoji: "🧭", tone: "from-emerald-500 to-lime-500", blurb: "Journeys across worlds, maps, and myths." },
-  { name: "Comedy", slug: "comedy", emoji: "😂", tone: "from-yellow-500 to-amber-500", blurb: "Timing, wit, and laugh-out-loud beats." },
-  { name: "Drama", slug: "drama", emoji: "🎭", tone: "from-violet-500 to-fuchsia-500", blurb: "Human stories with heart and conflict." },
-  { name: "Sci-Fi", slug: "sci-fi", emoji: "🚀", tone: "from-cyan-500 to-sky-500", blurb: "Futures, frontiers, and thought experiments." },
-  { name: "Horror", slug: "horror", emoji: "👻", tone: "from-red-500 to-rose-600", blurb: "Atmosphere, dread, and midnight chills." },
-  { name: "Romance", slug: "romance", emoji: "💞", tone: "from-pink-500 to-rose-500", blurb: "Chemistry, longing, and soft landings." },
-  { name: "Thriller", slug: "thriller", emoji: "🗝️", tone: "from-slate-600 to-slate-800", blurb: "Twists, turns, and razor-wire tension." },
-  { name: "Animation", slug: "animation", emoji: "🎨", tone: "from-indigo-500 to-blue-500", blurb: "Craft, color, and imagination in motion." },
-  { name: "Documentary", slug: "documentary", emoji: "🎥", tone: "from-stone-500 to-neutral-600", blurb: "True stories told with clarity." },
-  { name: "Fantasy", slug: "fantasy", emoji: "🪄", tone: "from-purple-500 to-indigo-600", blurb: "Magic systems, quests, and wonder." },
-  { name: "Crime", slug: "crime", emoji: "🕵️‍♂️", tone: "from-zinc-600 to-gray-700", blurb: "Mystery, motive, and moral gray." },
+  { name: "Action", slug: "action", icon: Zap, tone: "from-rose-500 to-orange-500", blurb: "Adrenaline, scale, and high-stakes set pieces." },
+  { name: "Adventure", slug: "adventure", icon: Compass, tone: "from-emerald-500 to-lime-500", blurb: "Journeys across worlds, maps, and myths." },
+  { name: "Comedy", slug: "comedy", icon: Laugh, tone: "from-yellow-500 to-amber-500", blurb: "Timing, wit, and laugh-out-loud beats." },
+  { name: "Drama", slug: "drama", icon: Drama, tone: "from-violet-500 to-fuchsia-500", blurb: "Human stories with heart and conflict." },
+  { name: "Sci-Fi", slug: "sci-fi", icon: Rocket, tone: "from-cyan-500 to-sky-500", blurb: "Futures, frontiers, and thought experiments." },
+  { name: "Horror", slug: "horror", icon: Ghost, tone: "from-red-500 to-rose-600", blurb: "Atmosphere, dread, and midnight chills." },
+  { name: "Romance", slug: "romance", icon: Heart, tone: "from-pink-500 to-rose-500", blurb: "Chemistry, longing, and soft landings." },
+  { name: "Thriller", slug: "thriller", icon: Key, tone: "from-slate-600 to-slate-800", blurb: "Twists, turns, and razor-wire tension." },
+  { name: "Animation", slug: "animation", icon: Palette, tone: "from-indigo-500 to-blue-500", blurb: "Craft, color, and imagination in motion." },
+  { name: "Documentary", slug: "documentary", icon: Camera, tone: "from-stone-500 to-neutral-600", blurb: "True stories told with clarity." },
+  { name: "Fantasy", slug: "fantasy", icon: Wand2, tone: "from-purple-500 to-indigo-600", blurb: "Magic systems, quests, and wonder." },
+  { name: "Crime", slug: "crime", icon: Search, tone: "from-zinc-600 to-gray-700", blurb: "Mystery, motive, and moral gray." },
 ];
 
 export default function CategoriesPage() {
@@ -63,10 +78,10 @@ export default function CategoriesPage() {
               <div className="flex items-start gap-4">
                 {/* Icon Badge */}
                 <div
-                  className={`shrink-0 rounded-2xl p-3 text-xl text-white shadow-md ring-1 ring-white/20 dark:ring-white/10 bg-gradient-to-br ${cat.tone} transition-transform duration-300 group-hover:scale-105`}
+                  className={`shrink-0 rounded-2xl p-3 text-white shadow-md ring-1 ring-white/20 dark:ring-white/10 bg-gradient-to-br ${cat.tone} transition-transform duration-300 group-hover:scale-105`}
                   aria-hidden
                 >
-                  {cat.emoji}
+                  <cat.icon size={20} />
                 </div>
 
                 {/* Content */}

@@ -39,14 +39,12 @@ services:
       DOWNLOADS_DIRECTORY: "/app/downloads"
       STREAMING_DOWNLOAD_DIR: "/app/downloads"
       STREAMING_TMDB_API_KEY: "${TMDB_API_KEY}"
-  web:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    expose:
-      - "3000"
-    environment:
-      
+  # web:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile
+  #   expose:
+  #     - "3000"
   #     NEXT_PUBLIC_API_BASE: "/api"
   #     NODE_ENV: "production"
   #   networks:
