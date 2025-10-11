@@ -31,7 +31,13 @@ interface MoviePageProps {
 }
 
 export default function MoviePage({ params }: MoviePageProps) {
-  const { movie, isLoading, error, toggleWatched } = useMovieDetails(params.id);
+  const { movie, isLoading, error } = useMovieDetails(params.id);
+  console.log("the movue", movie);
+
+  const toggleWatched = () => {
+    // TODO: implement watched toggle functionality
+    console.log("Toggle watched for movie:", movie?.id);
+  };
 
   if (isLoading) {
     return (
@@ -50,7 +56,7 @@ export default function MoviePage({ params }: MoviePageProps) {
       <div className="min-h-screen bg-gradient-to-br from-background to-content2">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6">
-            <Link href="/discover">
+            <Link href="/app/discover">
               <Button variant="flat" startContent={<ArrowLeft size={16} />}>
                 Back to Discover
               </Button>
@@ -113,7 +119,7 @@ export default function MoviePage({ params }: MoviePageProps) {
               <CardBody className="p-0">
                 <Image
                   removeWrapper
-                  src={movie.posterUrl || "/placeholder-poster.jpg"}
+                  src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "/placeholder-poster.jpg"}
                   alt={`${movie.title} poster`}
                   className="w-full h-auto object-cover"
                 />
@@ -127,14 +133,14 @@ export default function MoviePage({ params }: MoviePageProps) {
             <div>
               <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
               <div className="flex items-center gap-4 mb-4">
-                {movie.year && (
-                  <span className="text-lg text-foreground-500">{movie.year}</span>
+                {movie.release_date && (
+                  <span className="text-lg text-foreground-500">{new Date(movie.release_date).getFullYear()}</span>
                 )}
-                {movie.rating && (
+                {movie.vote_average && (
                   <div className="flex items-center gap-1">
                     <Star size={20} className="text-warning fill-warning" />
-                    <span className="text-lg font-semibold">{movie.rating.toFixed(1)}</span>
-                    <span className="text-sm text-foreground-500">IMDb</span>
+                    <span className="text-lg font-semibold">{movie.vote_average.toFixed(1)}</span>
+                    <span className="text-sm text-foreground-500">TMDB</span>
                   </div>
                 )}
               </div>
@@ -143,9 +149,9 @@ export default function MoviePage({ params }: MoviePageProps) {
             {/* Genres */}
             {movie.genres && movie.genres.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {movie.genres.map((genre) => (
-                  <Chip key={genre} variant="flat" color="primary" size="sm">
-                    {genre}
+                {movie.genres.map((genre: any) => (
+                  <Chip key={genre.id} variant="flat" color="primary" size="sm">
+                    {genre.name}
                   </Chip>
                 ))}
               </div>
@@ -175,10 +181,10 @@ export default function MoviePage({ params }: MoviePageProps) {
             </div>
 
             {/* Description */}
-            {movie.description && (
+            {movie.overview && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">Plot Summary</h3>
-                <p className="text-foreground-600 leading-relaxed">{movie.description}</p>
+                <p className="text-foreground-600 leading-relaxed">{movie.overview}</p>
               </div>
             )}
           </div>
@@ -191,67 +197,45 @@ export default function MoviePage({ params }: MoviePageProps) {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Director */}
-              {movie.director && (
+              {movie.director && movie.director.length > 0 && (
                 <div className="flex items-center gap-3">
                   <Film size={20} className="text-primary" />
                   <div>
                     <p className="text-sm text-foreground-500">Director</p>
-                    <p className="font-semibold">{movie.director}</p>
+                    <p className="font-semibold">{movie.director.map((d: any) => d.name).join(', ')}</p>
                   </div>
                 </div>
               )}
 
               {/* Duration */}
-              {movie.duration && (
+              {movie.runtime && (
                 <div className="flex items-center gap-3">
                   <Clock size={20} className="text-primary" />
                   <div>
                     <p className="text-sm text-foreground-500">Duration</p>
-                    <p className="font-semibold">{formatDuration(movie.duration)}</p>
+                    <p className="font-semibold">{formatDuration(movie.runtime)}</p>
                   </div>
                 </div>
               )}
 
               {/* Release Date */}
-              {movie.releaseDate && (
+              {movie.release_date && (
                 <div className="flex items-center gap-3">
                   <Calendar size={20} className="text-primary" />
                   <div>
                     <p className="text-sm text-foreground-500">Release Date</p>
-                    <p className="font-semibold">{formatDate(movie.releaseDate)}</p>
+                    <p className="font-semibold">{formatDate(movie.release_date)}</p>
                   </div>
                 </div>
               )}
 
               {/* Language */}
-              {movie.language && (
+              {movie.original_language && (
                 <div className="flex items-center gap-3">
                   <Globe size={20} className="text-primary" />
                   <div>
                     <p className="text-sm text-foreground-500">Language</p>
-                    <p className="font-semibold">{movie.language}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Budget */}
-              {movie.budget && (
-                <div className="flex items-center gap-3">
-                  <DollarSign size={20} className="text-primary" />
-                  <div>
-                    <p className="text-sm text-foreground-500">Budget</p>
-                    <p className="font-semibold">{formatCurrency(movie.budget)}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Revenue */}
-              {movie.revenue && (
-                <div className="flex items-center gap-3">
-                  <DollarSign size={20} className="text-primary" />
-                  <div>
-                    <p className="text-sm text-foreground-500">Revenue</p>
-                    <p className="font-semibold">{formatCurrency(movie.revenue)}</p>
+                    <p className="font-semibold">{movie.original_language.toUpperCase()}</p>
                   </div>
                 </div>
               )}
@@ -268,14 +252,17 @@ export default function MoviePage({ params }: MoviePageProps) {
                 Cast
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {movie.cast.map((actor, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-content1">
+                {movie.cast.map((actor: any) => (
+                  <div key={actor.id} className="flex items-center gap-3 p-3 rounded-lg bg-content1">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">
-                        {actor.split(' ').map(n => n[0]).join('')}
+                        {actor.name.split(' ').map((n: string) => n[0]).join('')}
                       </span>
                     </div>
-                    <span className="font-medium">{actor}</span>
+                    <div>
+                      <span className="font-medium">{actor.name}</span>
+                      <p className="text-sm text-foreground-500">{actor.character}</p>
+                    </div>
                   </div>
                 ))}
               </div>

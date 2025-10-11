@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { loginUser } from "@/lib/hooks";
 
 function GoogleIcon() {
   return (
@@ -27,41 +30,88 @@ function FortyTwoIcon() {
 }
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await loginUser(email, password);
+      if (response.AccessToken) {
+        localStorage.setItem('token', response.AccessToken);
+        document.cookie = `token=${response.AccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+        
+        router.push('/app/discover');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="rounded-3xl border border-white/15 bg-white/10 p-8 text-white shadow-2xl backdrop-blur-md">
       <h1 className="text-4xl font-extrabold tracking-tight text-white/95">CINÉTHOS</h1>
       <p className="mt-2 text-sm text-white/85">Welcome back — your cinematic universe awaits.</p>
 
-      
+      {error && (
+        <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
+          {error}
+        </div>
+      )}
 
-      <form className="space-y-5 pt-4">
+      <form onSubmit={(e) => e.preventDefault()} onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+        }
+      }} className="space-y-5 pt-4">
         <Input
           type="email"
+          className="text-slate-800"
           label="Email"
           placeholder="you@example.com"
           variant="faded"
           radius="sm"
           isRequired
-        />
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          />
         <Input
           type="password"
           label="Password"
+          className="text-slate-800"
           placeholder="••••••••"
           variant="faded"
           radius="sm"
           isRequired
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
 
         <div className="flex items-center justify-between text-sm text-white/75">
           <Link href="/forgot-password" className="hover:text-white hover:underline">Forgot password?</Link>
         </div>
 
-        <Button type="submit" radius="sm" fullWidth className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110">
+        <Button 
+          radius="sm" 
+          fullWidth 
+          className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110"
+          isLoading={isLoading}
+          onPress={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+        >
           Log In
         </Button>
 
         <p className="mt-4 text-center text-xs text-white/75">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link href="/auth/register" className="text-pink-300 hover:text-pink-200 hover:underline">Sign up</Link>
         </p>
       </form>

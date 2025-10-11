@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { registerUser } from "@/lib/hooks";
 
 function GoogleIcon() {
   return (
@@ -27,10 +30,46 @@ function FortyTwoIcon() {
 }
 
 export default function RegisterPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await registerUser(email, password, firstName, lastName);
+      router.push('/auth/login');
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Registration failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="rounded-3xl border border-white/15 bg-white/10 p-8 text-white shadow-2xl backdrop-blur-md">
       <h1 className="text-4xl font-extrabold tracking-tight text-white/95">Create account</h1>
       <p className="mt-2 text-sm text-white/85">Join Cinéthos and start exploring instantly.</p>
+
+      {error && (
+        <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-2">
         <Button as={Link} href="/oauth/42" radius="sm" fullWidth className="justify-center bg-white text-gray-900 font-medium hover:brightness-95">
@@ -53,15 +92,29 @@ export default function RegisterPage() {
         <div className="h-px w-full bg-white/20" />
       </div>
 
-      <form className="space-y-5">
-        <Input
-          type="text"
-          label="Username"
-          placeholder="cinephile"
-          variant="faded"
-          radius="sm"
-          isRequired
-        />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            type="text"
+            label="First Name"
+            placeholder="John"
+            variant="faded"
+            radius="sm"
+            isRequired
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+          <Input
+            type="text"
+            label="Last Name"
+            placeholder="Doe"
+            variant="faded"
+            radius="sm"
+            isRequired
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+          />
+        </div>
         <Input
           type="email"
           label="Email"
@@ -69,6 +122,8 @@ export default function RegisterPage() {
           variant="faded"
           radius="sm"
           isRequired
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <Input
           type="password"
@@ -77,6 +132,8 @@ export default function RegisterPage() {
           variant="faded"
           radius="sm"
           isRequired
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <Input
           type="password"
@@ -85,9 +142,17 @@ export default function RegisterPage() {
           variant="faded"
           radius="sm"
           isRequired
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
 
-        <Button type="submit" radius="sm" fullWidth className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110">
+        <Button 
+          type="submit" 
+          radius="sm" 
+          fullWidth 
+          className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110"
+          isLoading={isLoading}
+        >
           Create Account
         </Button>
 

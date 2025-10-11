@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
@@ -16,12 +16,20 @@ type Movie = {
 export default function CategoryPage({
   params,
 }: {
-  params: { "categoryName": string };
+  params: Promise<{ "categoryName": string }>;
 }) {
-  const category = decodeURIComponent(params["categoryName"]).toLowerCase();
+  const [categoryName, setCategoryName] = useState<string>("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    params.then(({ categoryName }) => {
+      setCategoryName(categoryName);
+    });
+  }, [params]);
+
+  const category = categoryName ? decodeURIComponent(categoryName).toLowerCase() : "";
 
   if (isLoading) {
     return (

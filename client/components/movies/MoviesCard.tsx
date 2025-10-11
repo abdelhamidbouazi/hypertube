@@ -8,17 +8,18 @@ import { Tooltip } from "@heroui/tooltip";
 import Link from "next/link";
 
 export type Movie = {
-  id: string;
+  id: number;
   title: string;
-  year?: number;
-  rating?: number; // IMDb rating (0-10)
-  posterUrl?: string;
-  genres?: string[];
+  release_date?: string;
+  poster_path?: string;
+  overview?: string;
+  original_language?: string;
   watched?: boolean;
 };
 
 export default function MovieCard({ movie }: { movie: Movie }) {
-  const { id, title, year, rating, posterUrl, watched } = movie;
+  const { id, title, release_date, poster_path, watched } = movie;
+  const year = release_date ? new Date(release_date).getFullYear() : undefined;
 
   return (
     <Link href={`/app/movie/${id}`} className="group">
@@ -27,23 +28,10 @@ export default function MovieCard({ movie }: { movie: Movie }) {
           <div className="relative">
             <Image
               removeWrapper
-              src={posterUrl || "/placeholder-poster.jpg"}
+              src={poster_path ? `https://image.tmdb.org/t/p/w500${poster_path}` : "/placeholder-poster.jpg"}
               alt={`${title} poster`}
               className="h-64 w-full object-cover"
             />
-
-            {/* Rating badge */}
-            {typeof rating === "number" && (
-              <div className="absolute left-2 top-2">
-                <Chip
-                  size="sm"
-                  variant="solid"
-                  color={rating >= 7.5 ? "success" : rating >= 6 ? "warning" : "default"}
-                >
-                  IMDb {rating.toFixed(1)}
-                </Chip>
-              </div>
-            )}
 
             {/* Watched badge */}
             <div className="absolute right-2 top-2">

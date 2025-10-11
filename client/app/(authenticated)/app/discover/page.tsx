@@ -12,8 +12,9 @@ import { Slider } from "@heroui/slider";
 import { Tooltip } from "@heroui/tooltip";
 import { Alert } from "@heroui/alert";
 import { SearchIcon, X, SlidersHorizontal, ListFilterPlus } from "lucide-react";
-import MovieCard from "@/components/movies/MoviesCard";
-import { useMovies } from "@/components/movies/useMovies";
+import MovieCard, { Movie } from "@/components/movies/MoviesCard";
+import { useMovies } from "@/lib/hooks";
+import { useFilterStore } from "@/lib/store";
 
 type SortKey = "name" | "year" | "rating";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -28,23 +29,26 @@ const GENRES = [
 ];
 
 export default function DiscoverPage() {
+  const { movies, isLoading, error } = useMovies();
   const {
-    query, setQuery,
-    sort, setSort,
-    selectedGenres, toggleGenre,
-    minRating, setMinRating,
-    yearRange, setYearRange,
-    movies, isLoading, error,
-    resetAndRefetch
-  } = useMovies();
-  const [filters, setFilters] = useState(false)
+    filters,
+    setQuery,
+    setSort,
+    toggleGenre,
+    setMinRating,
+    setYearRange,
+    resetFilters,
+  } = useFilterStore();
+  const [showFilters, setShowFilters] = useState(false);
+
+
 
 
 
   const genreChips = useMemo(
     () =>
       GENRES.map((g) => {
-        const active = selectedGenres.includes(g);
+        const active = filters.selectedGenres.includes(g);
         return (
           <Chip
             key={g}
@@ -59,16 +63,16 @@ export default function DiscoverPage() {
           </Chip>
         );
       }),
-    [selectedGenres, toggleGenre]
+    [filters.selectedGenres, toggleGenre]
   );
 
   const hasActiveFilters =
-    query.trim().length > 0 ||
-    selectedGenres.length > 0 ||
-    minRating > 0 ||
-    yearRange[0] !== 1950 ||
-    yearRange[1] !== new Date().getFullYear() ||
-    sort !== "name";
+    filters.query.trim().length > 0 ||
+    filters.selectedGenres.length > 0 ||
+    filters.minRating > 0 ||
+    filters.yearRange[0] !== 2000 ||
+    filters.yearRange[1] !== new Date().getFullYear() ||
+    filters.sort !== "name";
 
     
   return (
@@ -90,14 +94,14 @@ export default function DiscoverPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {filters ? <>
+            {showFilters ? <>
             <Tooltip content="Close filters">
-              <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setFilters(false)}}>
+              <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setShowFilters(false)}}>
                 Close Filters
               </Button>
             </Tooltip> 
             </>: <Tooltip content="Open filters">
-              <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setFilters(true)}}>
+              <Button variant="flat" color="secondary" startContent={<ListFilterPlus size={14} />} onPress={() => {setShowFilters(true)}}>
                 Filters
               </Button>
             </Tooltip> }
@@ -106,7 +110,7 @@ export default function DiscoverPage() {
         </div>
 
         {/* Filters Bar */}
-       { filters && <Card className="mt-5 border border-default-200 bg-content1/80 p-4 shadow-sm backdrop-blur-md">
+       { showFilters && <Card className="mt-5 border border-default-200 bg-content1/80 p-4 shadow-sm backdrop-blur-md">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             {/* 1. Search */}
             <div className="md:col-span-5">
@@ -114,7 +118,7 @@ export default function DiscoverPage() {
                 aria-label="Search movies"
                 placeholder="Search by title, cast, etc."
                 startContent={<SearchIcon size={16} />}
-                value={query}
+                value={filters.query}
                 onValueChange={setQuery}
                 variant="flat"
               />
@@ -126,7 +130,7 @@ export default function DiscoverPage() {
                 aria-label="Sort by"
                 label="Sort"
                 labelPlacement="outside-left"
-                selectedKeys={[sort]}
+                selectedKeys={[filters.sort]}
                 onSelectionChange={(keys) => {
                   const k = Array.from(keys)[0] as SortKey;
                   if (k) setSort(k);
@@ -146,14 +150,14 @@ export default function DiscoverPage() {
             <div className="md:col-span-4">
               <div className="flex items-center justify-between">
                 <label className="text-small font-medium">Min IMDb</label>
-                <span className="text-tiny text-foreground-500">{minRating.toFixed(1)}</span>
+                <span className="text-tiny text-foreground-500">{filters.minRating.toFixed(1)}</span>
               </div>
               <Slider
                 aria-label="Minimum IMDb rating"
                 minValue={0}
                 maxValue={10}
                 step={0.1}
-                value={minRating}
+                value={filters.minRating}
                 onChange={(v) => {
                   const val = Array.isArray(v) ? v[0] : v;
                   setMinRating(Number(val));
@@ -167,7 +171,7 @@ export default function DiscoverPage() {
               <div className="flex items-center justify-between">
                 <label className="text-small font-medium">Year Range</label>
                 <span className="text-tiny text-foreground-500">
-                  {yearRange[0]} – {yearRange[1]}
+                  {filters.yearRange[0]} – {filters.yearRange[1]}
                 </span>
               </div>
               <Slider
@@ -175,7 +179,7 @@ export default function DiscoverPage() {
                 minValue={1950}
                 maxValue={new Date().getFullYear()}
                 step={1}
-                value={yearRange}
+                value={filters.yearRange}
                 onChange={(v) => {
                   const arr = Array.isArray(v) ? (v as number[]) : [Number(v), Number(v)];
                   if (arr.length === 2) setYearRange([arr[0], arr[1]]);
@@ -196,7 +200,7 @@ export default function DiscoverPage() {
           {/* Active Filters Summary */}
           {hasActiveFilters && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              {!!query.trim() && (
+              {!!filters.query.trim() && (
                 <Chip
                   variant="flat"
                   color="primary"
@@ -204,10 +208,10 @@ export default function DiscoverPage() {
                   className="text-tiny"
                   radius="sm"
                 >
-                  “{query.trim()}”
+                  "{filters.query.trim()}"
                 </Chip>
               )}
-              {selectedGenres.map((g) => (
+              {filters.selectedGenres.map((g) => (
                 <Chip
                   key={g}
                   variant="flat"
@@ -219,7 +223,7 @@ export default function DiscoverPage() {
                   {g}
                 </Chip>
               ))}
-              {minRating > 0 && (
+              {filters.minRating > 0 && (
                 <Chip
                   variant="flat"
                   color="success"
@@ -227,10 +231,10 @@ export default function DiscoverPage() {
                   className="text-tiny"
                   radius="sm"
                 >
-                  IMDb ≥ {minRating.toFixed(1)}
+                  IMDb ≥ {filters.minRating.toFixed(1)}
                 </Chip>
               )}
-              {(yearRange[0] !== 1950 || yearRange[1] !== new Date().getFullYear()) && (
+              {(filters.yearRange[0] !== 2000 || filters.yearRange[1] !== new Date().getFullYear()) && (
                 <Chip
                   variant="flat"
                   color="warning"
@@ -238,16 +242,16 @@ export default function DiscoverPage() {
                     <X
                       size={12}
                       className="cursor-pointer"
-                      onClick={() => setYearRange([1950, new Date().getFullYear()])}
+                      onClick={() => setYearRange([2000, new Date().getFullYear()])}
                     />
                   }
                   className="text-tiny"
                   radius="sm"
                 >
-                  {yearRange[0]}–{yearRange[1]}
+                  {filters.yearRange[0]}–{filters.yearRange[1]}
                 </Chip>
               )}
-              {sort !== "name" && (
+              {filters.sort !== "name" && (
                 <Chip
                   variant="flat"
                   color="default"
@@ -255,12 +259,12 @@ export default function DiscoverPage() {
                   className="text-tiny"
                   radius="sm"
                 >
-                  Sort: {SORT_OPTIONS.find(s => s.key === sort)?.label}
+                  Sort: {SORT_OPTIONS.find(s => s.key === filters.sort)?.label}
                 </Chip>
               )}
               <div className="ml-auto">
                 <Tooltip content="Reset all">
-                  <Button size="sm" variant="flat" color="secondary" onPress={() => resetAndRefetch()}>
+                  <Button size="sm" variant="flat" color="secondary" onPress={() => resetFilters()}>
                     Reset
                   </Button>
                 </Tooltip>
@@ -299,7 +303,7 @@ export default function DiscoverPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {movies.map((m) => (
+              {movies.map((m: Movie) => (
                 <MovieCard key={m.id} movie={m} />
               ))}
             </div>
