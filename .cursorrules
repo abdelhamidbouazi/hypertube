@@ -1,0 +1,30 @@
+# Code Quality Rules
+
+## Comments
+- Avoid unnecessary comments that explain obvious code
+- Remove commented-out debug logs and console statements
+- Only add comments for complex business logic or non-obvious decisions
+- Keep comments concise and meaningful
+
+## Code Style
+- Use descriptive variable and function names
+- Prefer self-documenting code over comments
+- Remove redundant code and unused imports
+- Keep functions focused and single-purpose
+
+## Debugging
+- Remove console.log statements from production code
+- Use proper error handling instead of console.error for user-facing errors
+- Keep debug logs only in development-specific files
+
+## Authentication & Middleware
+- Store tokens in both localStorage and cookies for SSR compatibility
+- Use middleware for route protection
+- Implement proper error handling for auth failures
+- Clear tokens on logout and 401 errors
+
+## File Organization
+- Keep related functionality together
+- Use proper TypeScript types
+- Export only what's needed
+- Follow Next.js conventions for file structure

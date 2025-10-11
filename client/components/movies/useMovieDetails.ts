@@ -2,35 +2,37 @@
 
 import React from "react";
 import type { Movie } from "./MoviesCard";
+import { useMovieDetailsReq } from "@/lib/hooks";
 
 export type MovieDetails = Movie & {
-  description?: string;
-  director?: string;
-  cast?: string[];
-  duration?: number; // in minutes
-  releaseDate?: string;
-  language?: string;
-  country?: string;
-  budget?: number;
-  revenue?: number;
-  imdbId?: string;
-  tmdbId?: string;
+  overview?: string;
+  runtime?: number;
+  backdrop_path?: string;
+  vote_average?: number;
+  imdb_id?: string;
+  original_language?: string;
+  is_available?: boolean;
+  stream_url?: string;
+  cast?: Array<{ id: number; name: string; character: string; profile_path: string }>;
+  director?: Array<{ id: number; name: string }>;
+  producer?: Array<{ id: number; name: string }>;
+  genres?: Array<{ id: number; name: string }>;
+  comments?: Array<{ id: number; movie_id: number; user_id: number; username: string; content: string; created_at: string; updated_at: string }>;
 };
 
 export function useMovieDetails(movieId: string) {
-  const [movie, setMovie] = React.useState<MovieDetails | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
-  const toggleWatched = React.useCallback(() => {
-    if (!movie) return;
-    setMovie(prev => prev ? { ...prev, watched: !prev.watched } : null);
-  }, [movie]);
+  const { movie, isLoading, error } = useMovieDetailsReq(movieId);
+
+  // const toggleWatched = React.useCallback(() => {
+  //   if (!movie) return;
+  //   console.log("movie in toggleWatched ", movie);
+  // }, [movie]);
 
   return {
     movie,
     isLoading,
     error,
-    toggleWatched,
+    // toggleWatched,
   };
 }

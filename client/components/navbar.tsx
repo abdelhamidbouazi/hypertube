@@ -20,6 +20,7 @@ import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { logoutUser } from "@/lib/hooks";
 import {
   TwitterIcon,
   GithubIcon,
@@ -129,7 +130,12 @@ export const Navbar = () => {
               <DropdownItem key="settings" startContent={<Settings className="h-4 w-4" />}>
                 Settings
               </DropdownItem>
-              <DropdownItem key="logout" color="danger" startContent={<LogOut className="h-4 w-4" />}>
+              <DropdownItem 
+                key="logout" 
+                color="danger" 
+                startContent={<LogOut className="h-4 w-4" />}
+                onPress={() => logoutUser()}
+              >
                 Log Out
               </DropdownItem>
             </DropdownMenu>
