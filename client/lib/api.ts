@@ -8,6 +8,7 @@ const api = axios.create({
   },
   withCredentials: true,
 });
+console.log("api--->", process.env.NEXT_PUBLIC_API_URL );
 
 api.interceptors.request.use(
   (config) => {
