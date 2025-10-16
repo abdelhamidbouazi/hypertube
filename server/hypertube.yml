@@ -25,7 +25,7 @@ STREAMING:
   DOWNLOAD_DIR: "/app/downloads"
   TMDB_API_KEY: ""
 ui:
-  address: http://localhost:4200
+  address: http://localhost:3000
   Reset_Password_Route: reset_password
   Reset_Password_Token_Query: token
   oauth_callback_route: oauth-callback

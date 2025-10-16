@@ -1,16 +1,8 @@
 // src/components/Footer.tsx
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Button } from "@heroui/button";
-import { Divider } from "@heroui/divider";
-import { Input } from "@heroui/input";
-import { Link as UILink } from "@heroui/link";
-import { Select, SelectItem } from "@heroui/select";
-import { Chip } from "@heroui/chip";
-import { Tooltip } from "@heroui/tooltip";
-
 import {
   FaGithub,
   FaLinkedin,
@@ -74,27 +66,27 @@ function SocialIcon({ name }: { name: string }) {
 
 export default function Footer() {
   const year = new Date().getFullYear();
-//   const year = '2025'
+  //   const year = '2025'
 
   return (
- <footer className="w-full flex items-center justify-center py-3">
-              <Link
-                // isExternal={true}
-                className="flex items-center gap-1 text-current"
-                href="https://github.com/abdelhamidbouazi/hypertube"
-                title="Repository of the project in github"
-              >
-                <span className="text-default-600">© {year} CINÉTHOS — built with care by the team.</span>
-                <p className="text-primary">abouazi</p>
-                <span className="text-default-600">,</span>
-                <p className="text-primary">anaji-el</p>
-                <span className="text-default-600">,</span>
-                <p className="text-primary">stamim</p>
-                <span className="text-default-600">,</span>
-                <p className="text-primary">amessah</p>
-              </Link>
-            </footer>
-
-
+    <footer className="w-full flex items-center justify-center py-3">
+      <Link
+        // isExternal={true}
+        className="flex items-center gap-1 text-current"
+        href="https://github.com/abdelhamidbouazi/hypertube"
+        title="Repository of the project in github"
+      >
+        <span className="text-default-600">
+          © {year} CINÉTHOS — built with care by the team.
+        </span>
+        <p className="text-primary">abouazi</p>
+        <span className="text-default-600">,</span>
+        <p className="text-primary">anaji-el</p>
+        <span className="text-default-600">,</span>
+        <p className="text-primary">stamim</p>
+        <span className="text-default-600">,</span>
+        <p className="text-primary">amessah</p>
+      </Link>
+    </footer>
   );
 }

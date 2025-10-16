@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { 
-  Zap, 
-  Compass, 
-  Laugh, 
-  Drama, 
-  Rocket, 
-  Ghost, 
-  Heart, 
-  Key, 
-  Palette, 
-  Camera, 
-  Wand2, 
-  Search 
+import {
+  Zap,
+  Compass,
+  Laugh,
+  Drama,
+  Rocket,
+  Ghost,
+  Heart,
+  Key,
+  Palette,
+  Camera,
+  Wand2,
+  Search,
 } from "lucide-react";
 import { LucideProps } from "lucide-react";
 
@@ -24,18 +24,90 @@ type Category = {
 };
 
 const CATEGORIES: Category[] = [
-  { name: "Action", slug: "action", icon: Zap, tone: "from-rose-500 to-orange-500", blurb: "Adrenaline, scale, and high-stakes set pieces." },
-  { name: "Adventure", slug: "adventure", icon: Compass, tone: "from-emerald-500 to-lime-500", blurb: "Journeys across worlds, maps, and myths." },
-  { name: "Comedy", slug: "comedy", icon: Laugh, tone: "from-yellow-500 to-amber-500", blurb: "Timing, wit, and laugh-out-loud beats." },
-  { name: "Drama", slug: "drama", icon: Drama, tone: "from-violet-500 to-fuchsia-500", blurb: "Human stories with heart and conflict." },
-  { name: "Sci-Fi", slug: "sci-fi", icon: Rocket, tone: "from-cyan-500 to-sky-500", blurb: "Futures, frontiers, and thought experiments." },
-  { name: "Horror", slug: "horror", icon: Ghost, tone: "from-red-500 to-rose-600", blurb: "Atmosphere, dread, and midnight chills." },
-  { name: "Romance", slug: "romance", icon: Heart, tone: "from-pink-500 to-rose-500", blurb: "Chemistry, longing, and soft landings." },
-  { name: "Thriller", slug: "thriller", icon: Key, tone: "from-slate-600 to-slate-800", blurb: "Twists, turns, and razor-wire tension." },
-  { name: "Animation", slug: "animation", icon: Palette, tone: "from-indigo-500 to-blue-500", blurb: "Craft, color, and imagination in motion." },
-  { name: "Documentary", slug: "documentary", icon: Camera, tone: "from-stone-500 to-neutral-600", blurb: "True stories told with clarity." },
-  { name: "Fantasy", slug: "fantasy", icon: Wand2, tone: "from-purple-500 to-indigo-600", blurb: "Magic systems, quests, and wonder." },
-  { name: "Crime", slug: "crime", icon: Search, tone: "from-zinc-600 to-gray-700", blurb: "Mystery, motive, and moral gray." },
+  {
+    name: "Action",
+    slug: "action",
+    icon: Zap,
+    tone: "from-rose-500 to-orange-500",
+    blurb: "Adrenaline, scale, and high-stakes set pieces.",
+  },
+  {
+    name: "Adventure",
+    slug: "adventure",
+    icon: Compass,
+    tone: "from-emerald-500 to-lime-500",
+    blurb: "Journeys across worlds, maps, and myths.",
+  },
+  {
+    name: "Comedy",
+    slug: "comedy",
+    icon: Laugh,
+    tone: "from-yellow-500 to-amber-500",
+    blurb: "Timing, wit, and laugh-out-loud beats.",
+  },
+  {
+    name: "Drama",
+    slug: "drama",
+    icon: Drama,
+    tone: "from-violet-500 to-fuchsia-500",
+    blurb: "Human stories with heart and conflict.",
+  },
+  {
+    name: "Sci-Fi",
+    slug: "sci-fi",
+    icon: Rocket,
+    tone: "from-cyan-500 to-sky-500",
+    blurb: "Futures, frontiers, and thought experiments.",
+  },
+  {
+    name: "Horror",
+    slug: "horror",
+    icon: Ghost,
+    tone: "from-red-500 to-rose-600",
+    blurb: "Atmosphere, dread, and midnight chills.",
+  },
+  {
+    name: "Romance",
+    slug: "romance",
+    icon: Heart,
+    tone: "from-pink-500 to-rose-500",
+    blurb: "Chemistry, longing, and soft landings.",
+  },
+  {
+    name: "Thriller",
+    slug: "thriller",
+    icon: Key,
+    tone: "from-slate-600 to-slate-800",
+    blurb: "Twists, turns, and razor-wire tension.",
+  },
+  {
+    name: "Animation",
+    slug: "animation",
+    icon: Palette,
+    tone: "from-indigo-500 to-blue-500",
+    blurb: "Craft, color, and imagination in motion.",
+  },
+  {
+    name: "Documentary",
+    slug: "documentary",
+    icon: Camera,
+    tone: "from-stone-500 to-neutral-600",
+    blurb: "True stories told with clarity.",
+  },
+  {
+    name: "Fantasy",
+    slug: "fantasy",
+    icon: Wand2,
+    tone: "from-purple-500 to-indigo-600",
+    blurb: "Magic systems, quests, and wonder.",
+  },
+  {
+    name: "Crime",
+    slug: "crime",
+    icon: Search,
+    tone: "from-zinc-600 to-gray-700",
+    blurb: "Mystery, motive, and moral gray.",
+  },
 ];
 
 export default function CategoriesPage() {
@@ -56,9 +128,15 @@ export default function CategoriesPage() {
           Curated genres with elegant navigation. Light &amp; dark ready.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Shiny UI</span>
-          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Accessible</span>
-          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">Tailwind-only</span>
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+            Shiny UI
+          </span>
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+            Accessible
+          </span>
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+            Tailwind-only
+          </span>
         </div>
       </header>
 
@@ -67,19 +145,21 @@ export default function CategoriesPage() {
         {CATEGORIES.map((cat) => (
           <li key={cat.slug}>
             <Link
-              href={`/app/categories/${encodeURIComponent(cat.slug)}`}
               className="group relative block overflow-hidden rounded-2xl border border-gray-200 bg-white/70 p-4 shadow-sm ring-1 ring-transparent backdrop-blur transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-800 dark:bg-gray-900/60"
+              href={`/app/categories/${encodeURIComponent(cat.slug)}`}
             >
               {/* Accent */}
               <div className="absolute inset-0 -z-10 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-40">
-                <div className={`absolute inset-0 bg-gradient-to-br ${cat.tone}`} />
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${cat.tone}`}
+                />
               </div>
 
               <div className="flex items-start gap-4">
                 {/* Icon Badge */}
                 <div
-                  className={`shrink-0 rounded-2xl p-3 text-white shadow-md ring-1 ring-white/20 dark:ring-white/10 bg-gradient-to-br ${cat.tone} transition-transform duration-300 group-hover:scale-105`}
                   aria-hidden
+                  className={`shrink-0 rounded-2xl p-3 text-white shadow-md ring-1 ring-white/20 dark:ring-white/10 bg-gradient-to-br ${cat.tone} transition-transform duration-300 group-hover:scale-105`}
                 >
                   <cat.icon size={20} />
                 </div>
@@ -110,14 +190,18 @@ export default function CategoriesPage() {
                 {/* Arrow */}
                 <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition group-hover:translate-x-0.5 group-hover:text-gray-700 dark:border-gray-800 dark:text-gray-400">
                   <svg
+                    aria-hidden
                     className="h-4 w-4"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     viewBox="0 0 24 24"
-                    aria-hidden
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    <path
+                      d="M9 5l7 7-7 7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
               </div>

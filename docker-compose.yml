@@ -8,17 +8,22 @@ services:
     networks:
       - hypertube
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "example", "-u", "user"]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U user -d example -h 127.0.0.1 -p 5432 || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - 5432:5432
 
   server:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -32,8 +37,8 @@ services:
     env_file:
       - .env
     environment:
-      CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
-      UI_ADDRESS: http://localhost:4200
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8080"
+      UI_ADDRESS: "http://localhost:3000"
       MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
       MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
       DOWNLOADS_DIRECTORY: "/app/downloads"

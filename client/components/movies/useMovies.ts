@@ -1,14 +1,18 @@
 "use client";
 
-import React from "react";
 import type { Movie } from "./MoviesCard";
+
+import React from "react";
 
 export function useMovies() {
   const [query, setQuery] = React.useState("");
   const [sort, setSort] = React.useState<"name" | "year" | "rating">("name");
   const [selectedGenres, setSelectedGenres] = React.useState<string[]>([]);
   const [minRating, setMinRating] = React.useState<number>(0);
-  const [yearRange, setYearRange] = React.useState<[number, number]>([2000, new Date().getFullYear()]);
+  const [yearRange, setYearRange] = React.useState<[number, number]>([
+    2000,
+    new Date().getFullYear(),
+  ]);
 
   const [movies, setMovies] = React.useState<Movie[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -16,7 +20,7 @@ export function useMovies() {
 
   const toggleGenre = React.useCallback((g: string) => {
     setSelectedGenres((prev) =>
-      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g],
     );
   }, []);
 
@@ -30,16 +34,23 @@ export function useMovies() {
 
   return {
     // filters
-    query, setQuery,
-    sort, setSort,
-    selectedGenres, toggleGenre,
-    minRating, setMinRating,
-    yearRange, setYearRange,
+    query,
+    setQuery,
+    sort,
+    setSort,
+    selectedGenres,
+    toggleGenre,
+    minRating,
+    setMinRating,
+    yearRange,
+    setYearRange,
 
     // data
-    movies, isLoading, error,
+    movies,
+    isLoading,
+    error,
 
     // helpers
-    resetAndRefetch
+    resetAndRefetch,
   };
 }

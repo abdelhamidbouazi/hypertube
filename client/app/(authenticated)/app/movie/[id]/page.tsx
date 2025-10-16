@@ -5,38 +5,44 @@ import { Card, CardBody } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
-import { Divider } from "@heroui/divider";
 import { Spinner } from "@heroui/spinner";
 import { Alert } from "@heroui/alert";
-import { 
-  ArrowLeft, 
-  Play, 
-  Clock, 
-  Calendar, 
-  Globe, 
-  DollarSign, 
+import {
+  ArrowLeft,
+  Play,
+  Clock,
+  Calendar,
+  Globe,
   Star,
   Users,
   Film,
   Eye,
-  EyeOff
+  EyeOff,
 } from "lucide-react";
 import Link from "next/link";
+
 import { useMovieDetails } from "@/components/movies/useMovieDetails";
+import { CommentSection } from "@/components/movies/CommentSection";
 
 interface MoviePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function MoviePage({ params }: MoviePageProps) {
-  const { movie, isLoading, error } = useMovieDetails(params.id);
-  console.log("the movue", movie);
+  const unwrappedParams = React.use(params);
+  const { movie, isLoading, error, refetch } = useMovieDetails(
+    unwrappedParams.id
+  );
 
   const toggleWatched = () => {
-    // TODO: implement watched toggle functionality
-    console.log("Toggle watched for movie:", movie?.id);
+    // Toggle watched functionality would go here
+  };
+
+  const handleCommentAdded = () => {
+    // Refresh movie details to get updated comments
+    refetch();
   };
 
   if (isLoading) {
@@ -44,7 +50,7 @@ export default function MoviePage({ params }: MoviePageProps) {
       <div className="min-h-screen bg-gradient-to-br from-background to-content2">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <Spinner size="lg" label="Loading movie details..." />
+            <Spinner label="Loading movie details..." size="lg" />
           </div>
         </div>
       </div>
@@ -57,45 +63,37 @@ export default function MoviePage({ params }: MoviePageProps) {
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6">
             <Link href="/app/discover">
-              <Button variant="flat" startContent={<ArrowLeft size={16} />}>
+              <Button startContent={<ArrowLeft size={16} />} variant="flat">
                 Back to Discover
               </Button>
             </Link>
           </div>
           <Alert
             color="danger"
-            variant="flat"
-            title="Movie not found"
             description={error || "The movie you're looking for doesn't exist."}
+            title="Movie not found"
+            variant="flat"
           />
         </div>
       </div>
     );
   }
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return "N/A";
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const formatDuration = (minutes?: number) => {
     if (!minutes) return "N/A";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
+
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -104,8 +102,8 @@ export default function MoviePage({ params }: MoviePageProps) {
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <div className="mb-6">
-          <Link href="/discover">
-            <Button variant="flat" startContent={<ArrowLeft size={16} />}>
+          <Link href="/app/discover">
+            <Button startContent={<ArrowLeft size={16} />} variant="flat">
               Back to Discover
             </Button>
           </Link>
@@ -119,9 +117,13 @@ export default function MoviePage({ params }: MoviePageProps) {
               <CardBody className="p-0">
                 <Image
                   removeWrapper
-                  src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "/placeholder-poster.jpg"}
                   alt={`${movie.title} poster`}
                   className="w-full h-auto object-cover"
+                  src={
+                    movie.poster_path
+                      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                      : "/placeholder-poster.jpg"
+                  }
                 />
               </CardBody>
             </Card>
@@ -134,12 +136,16 @@ export default function MoviePage({ params }: MoviePageProps) {
               <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
               <div className="flex items-center gap-4 mb-4">
                 {movie.release_date && (
-                  <span className="text-lg text-foreground-500">{new Date(movie.release_date).getFullYear()}</span>
+                  <span className="text-lg text-foreground-500">
+                    {new Date(movie.release_date).getFullYear()}
+                  </span>
                 )}
                 {movie.vote_average && (
                   <div className="flex items-center gap-1">
-                    <Star size={20} className="text-warning fill-warning" />
-                    <span className="text-lg font-semibold">{movie.vote_average.toFixed(1)}</span>
+                    <Star className="text-warning fill-warning" size={20} />
+                    <span className="text-lg font-semibold">
+                      {movie.vote_average.toFixed(1)}
+                    </span>
                     <span className="text-sm text-foreground-500">TMDB</span>
                   </div>
                 )}
@@ -150,7 +156,7 @@ export default function MoviePage({ params }: MoviePageProps) {
             {movie.genres && movie.genres.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {movie.genres.map((genre: any) => (
-                  <Chip key={genre.id} variant="flat" color="primary" size="sm">
+                  <Chip key={genre.id} color="primary" size="sm" variant="flat">
                     {genre.name}
                   </Chip>
                 ))}
@@ -159,21 +165,23 @@ export default function MoviePage({ params }: MoviePageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-            <Link href={`/app/movie/${movie.id}/watch`}>
+              <Link href={`/app/movie/${movie.id}/watch`}>
                 <Button
+                  className="flex-1"
                   color="primary"
                   size="lg"
                   startContent={<Play size={20} />}
-                  className="flex-1"
                 >
                   Watch Now
                 </Button>
               </Link>
               <Button
-                variant={movie.watched ? "solid" : "bordered"}
                 color={movie.watched ? "success" : "default"}
                 size="lg"
-                startContent={movie.watched ? <EyeOff size={20} /> : <Eye size={20} />}
+                startContent={
+                  movie.watched ? <EyeOff size={20} /> : <Eye size={20} />
+                }
+                variant={movie.watched ? "solid" : "bordered"}
                 onPress={toggleWatched}
               >
                 {movie.watched ? "Watched" : "Mark as Watched"}
@@ -184,7 +192,9 @@ export default function MoviePage({ params }: MoviePageProps) {
             {movie.overview && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">Plot Summary</h3>
-                <p className="text-foreground-600 leading-relaxed">{movie.overview}</p>
+                <p className="text-foreground-600 leading-relaxed">
+                  {movie.overview}
+                </p>
               </div>
             )}
           </div>
@@ -194,15 +204,17 @@ export default function MoviePage({ params }: MoviePageProps) {
         <Card className="mb-8">
           <CardBody className="p-6">
             <h2 className="text-2xl font-bold mb-6">Movie Details</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Director */}
               {movie.director && movie.director.length > 0 && (
                 <div className="flex items-center gap-3">
-                  <Film size={20} className="text-primary" />
+                  <Film className="text-primary" size={20} />
                   <div>
                     <p className="text-sm text-foreground-500">Director</p>
-                    <p className="font-semibold">{movie.director.map((d: any) => d.name).join(', ')}</p>
+                    <p className="font-semibold">
+                      {movie.director.map((d: any) => d.name).join(", ")}
+                    </p>
                   </div>
                 </div>
               )}
@@ -210,10 +222,12 @@ export default function MoviePage({ params }: MoviePageProps) {
               {/* Duration */}
               {movie.runtime && (
                 <div className="flex items-center gap-3">
-                  <Clock size={20} className="text-primary" />
+                  <Clock className="text-primary" size={20} />
                   <div>
                     <p className="text-sm text-foreground-500">Duration</p>
-                    <p className="font-semibold">{formatDuration(movie.runtime)}</p>
+                    <p className="font-semibold">
+                      {formatDuration(movie.runtime)}
+                    </p>
                   </div>
                 </div>
               )}
@@ -221,10 +235,12 @@ export default function MoviePage({ params }: MoviePageProps) {
               {/* Release Date */}
               {movie.release_date && (
                 <div className="flex items-center gap-3">
-                  <Calendar size={20} className="text-primary" />
+                  <Calendar className="text-primary" size={20} />
                   <div>
                     <p className="text-sm text-foreground-500">Release Date</p>
-                    <p className="font-semibold">{formatDate(movie.release_date)}</p>
+                    <p className="font-semibold">
+                      {formatDate(movie.release_date)}
+                    </p>
                   </div>
                 </div>
               )}
@@ -232,10 +248,12 @@ export default function MoviePage({ params }: MoviePageProps) {
               {/* Language */}
               {movie.original_language && (
                 <div className="flex items-center gap-3">
-                  <Globe size={20} className="text-primary" />
+                  <Globe className="text-primary" size={20} />
                   <div>
                     <p className="text-sm text-foreground-500">Language</p>
-                    <p className="font-semibold">{movie.original_language.toUpperCase()}</p>
+                    <p className="font-semibold">
+                      {movie.original_language.toUpperCase()}
+                    </p>
                   </div>
                 </div>
               )}
@@ -245,23 +263,31 @@ export default function MoviePage({ params }: MoviePageProps) {
 
         {/* Cast */}
         {movie.cast && movie.cast.length > 0 && (
-          <Card>
+          <Card className="mb-8">
             <CardBody className="p-6">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Users size={24} className="text-primary" />
+                <Users className="text-primary" size={24} />
                 Cast
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {movie.cast.map((actor: any) => (
-                  <div key={actor.id} className="flex items-center gap-3 p-3 rounded-lg bg-content1">
+                  <div
+                    key={actor.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-content1"
+                  >
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">
-                        {actor.name.split(' ').map((n: string) => n[0]).join('')}
+                        {actor.name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium">{actor.name}</span>
-                      <p className="text-sm text-foreground-500">{actor.character}</p>
+                      <p className="text-sm text-foreground-500">
+                        {actor.character}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -269,6 +295,15 @@ export default function MoviePage({ params }: MoviePageProps) {
             </CardBody>
           </Card>
         )}
+
+        {/* Comments Section */}
+        <CommentSection
+          comments={movie.comments || []}
+          error={error}
+          isLoading={isLoading}
+          movieId={unwrappedParams.id}
+          onCommentAdded={handleCommentAdded}
+        />
       </div>
     </div>
   );

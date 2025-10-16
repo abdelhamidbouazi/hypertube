@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import type { Movie } from "./MoviesCard";
+
 import { useMovieDetailsReq } from "@/lib/hooks";
 
 export type MovieDetails = Movie & {
@@ -13,16 +13,31 @@ export type MovieDetails = Movie & {
   original_language?: string;
   is_available?: boolean;
   stream_url?: string;
-  cast?: Array<{ id: number; name: string; character: string; profile_path: string }>;
+  cast?: Array<{
+    id: number;
+    name: string;
+    character: string;
+    profile_path: string;
+  }>;
   director?: Array<{ id: number; name: string }>;
   producer?: Array<{ id: number; name: string }>;
   genres?: Array<{ id: number; name: string }>;
-  comments?: Array<{ id: number; movie_id: number; user_id: number; username: string; content: string; created_at: string; updated_at: string }>;
+  comments?: Array<{
+    id: number;
+    username: string;
+    content: string;
+    date?: string;
+    CreatedAt?: string;
+    UpdatedAt?: string;
+    DeletedAt?: string | null;
+    ID?: number;
+    movie_id?: number;
+    user_id?: number;
+  }>;
 };
 
 export function useMovieDetails(movieId: string) {
-
-  const { movie, isLoading, error } = useMovieDetailsReq(movieId);
+  const { movie, isLoading, error, refetch } = useMovieDetailsReq(movieId);
 
   // const toggleWatched = React.useCallback(() => {
   //   if (!movie) return;
@@ -33,6 +48,7 @@ export function useMovieDetails(movieId: string) {
     movie,
     isLoading,
     error,
+    refetch,
     // toggleWatched,
   };
 }

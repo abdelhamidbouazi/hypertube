@@ -22,7 +22,7 @@ export const siteConfig = {
       label: "Discover",
       href: "/app/discover",
     },
-    
+
     {
       label: "Team",
       href: "/app/team",

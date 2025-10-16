@@ -22,24 +22,28 @@ export default function MovieCard({ movie }: { movie: Movie }) {
   const year = release_date ? new Date(release_date).getFullYear() : undefined;
 
   return (
-    <Link href={`/app/movie/${id}`} className="group">
+    <Link className="group" href={`/app/movie/${id}`}>
       <Card className="h-full overflow-hidden border border-default-100 bg-content1 transition-transform group-hover:-translate-y-1">
         <CardBody className="p-0">
           <div className="relative">
             <Image
               removeWrapper
-              src={poster_path ? `https://image.tmdb.org/t/p/w500${poster_path}` : "/placeholder-poster.jpg"}
               alt={`${title} poster`}
               className="h-64 w-full object-cover"
+              src={
+                poster_path
+                  ? `https://image.tmdb.org/t/p/w500${poster_path}`
+                  : "/placeholder-poster.jpg"
+              }
             />
 
             {/* Watched badge */}
             <div className="absolute right-2 top-2">
               <Tooltip content={watched ? "Watched" : "Unwatched"}>
                 <Chip
+                  color={watched ? "primary" : "default"}
                   size="sm"
                   variant={watched ? "solid" : "bordered"}
-                  color={watched ? "primary" : "default"}
                 >
                   {watched ? "Watched" : "New"}
                 </Chip>

@@ -1,18 +1,35 @@
 "use client";
+/* eslint-disable */
 
 import Image from "next/image";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import { getAccessToken } from "@/lib/auth";
+
 import Footer from "@/components/footer";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const t = getAccessToken();
+    if (t) router.replace("/app/discover");
+  }, [router]);
+
   return (
     <div className="relative h-screen w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Image
-          src="/movies-bg.jpg"
-          alt="Cinematic background"
           fill
           priority
+          alt="Cinematic background"
           className="object-cover animate-kenburns will-change-transform"
+          src="/movies-bg.jpg"
         />
       </div>
 
@@ -25,14 +42,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="absolute inset-x-0 bottom-0 z-30 ">
         <Footer />
       </div>
-
-      <style jsx global>{`
-        @keyframes kenburns {
-          0% { transform: scale(1.05) translate3d(0,0,0); }
-          100% { transform: scale(1.12) translate3d(2%,2%,0); }
-        }
-        .animate-kenburns { animation: kenburns 22s ease-in-out infinite alternate; }
-      `}</style>
     </div>
   );
 }

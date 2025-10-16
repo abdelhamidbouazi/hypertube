@@ -1,14 +1,11 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Link } from "@heroui/link";
 import clsx from "clsx";
 
 import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
-import Footer from "@/components/footer";
 
 export const metadata: Metadata = {
   title: {
@@ -34,16 +31,29 @@ export default function AuthenthicatedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning lang="en">
+    <html
+      className={clsx(fontSans.variable, "min-h-screen bg-background")}
+      data-theme="light"
+      lang="en"
+      style={{ colorScheme: "light" }}
+    >
       <head />
-      <body
-
-      >
-            <main >
-              {children}
-            </main>
-            
+      <body>
+        <Providers>
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   );
 }
+
+// <html suppressHydrationWarning lang="en">
+//   <head />
+//   <body
+//     className={clsx(
+//       fontSans.variable,
+//       "min-h-screen text-foreground bg-background font-sans antialiased"
+//     )}
+//   >
+// </body>
+// </html>

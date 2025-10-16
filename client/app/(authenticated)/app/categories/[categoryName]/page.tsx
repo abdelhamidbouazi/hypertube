@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { notFound } from "next/navigation";
 import Image from "next/image";
 
 type Movie = {
@@ -16,7 +15,7 @@ type Movie = {
 export default function CategoryPage({
   params,
 }: {
-  params: Promise<{ "categoryName": string }>;
+  params: Promise<{ categoryName: string }>;
 }) {
   const [categoryName, setCategoryName] = useState<string>("");
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -29,7 +28,9 @@ export default function CategoryPage({
     });
   }, [params]);
 
-  const category = categoryName ? decodeURIComponent(categoryName).toLowerCase() : "";
+  const category = categoryName
+    ? decodeURIComponent(categoryName).toLowerCase()
+    : "";
 
   if (isLoading) {
     return (
@@ -46,7 +47,10 @@ export default function CategoryPage({
         </header>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-64 animate-pulse bg-content2 rounded-2xl" />
+            <div
+              key={i}
+              className="h-64 animate-pulse bg-content2 rounded-2xl"
+            />
           ))}
         </div>
       </div>
@@ -63,9 +67,7 @@ export default function CategoryPage({
             </span>
           </h1>
         </header>
-        <div className="text-center text-red-500">
-          {error}
-        </div>
+        <div className="text-center text-red-500">{error}</div>
       </div>
     );
   }
@@ -86,15 +88,18 @@ export default function CategoryPage({
       {movies.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
           {movies.map((movie) => (
-            <div key={movie.id} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white/70 shadow-sm backdrop-blur transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/60">
+            <div
+              key={movie.id}
+              className="group overflow-hidden rounded-2xl border border-gray-200 bg-white/70 shadow-sm backdrop-blur transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/60"
+            >
               <div className="relative aspect-[2/3] w-full">
                 <Image
-                  src={movie.posterUrl || "/placeholder-poster.jpg"}
-                  alt={movie.title}
                   fill
-                  sizes="(max-width: 640px) 50vw, 33vw"
+                  alt={movie.title}
                   className="object-cover transition duration-300 group-hover:scale-105"
                   priority={false}
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  src={movie.posterUrl || "/placeholder-poster.jpg"}
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0 opacity-70" />
                 {typeof movie.rating === "number" && (
@@ -107,11 +112,16 @@ export default function CategoryPage({
                 <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {movie.title}
                 </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">{movie.year}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {movie.year}
+                </p>
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-800" />
                 <div className="flex gap-2">
                   {movie.genres.slice(0, 2).map((genre) => (
-                    <span key={genre} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-700 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    <span
+                      key={genre}
+                      className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] text-gray-700 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                    >
                       {genre}
                     </span>
                   ))}

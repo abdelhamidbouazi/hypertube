@@ -1,3 +1,36 @@
 @import "tailwindcss";
 
-@config "../tailwind.config.js"
+@config "../tailwind.config.js";
+
+/* Global animations */
+@keyframes kenburns {
+  0% {
+    transform: scale(1.05) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.12) translate3d(2%, 2%, 0);
+  }
+}
+.animate-kenburns {
+  animation: kenburns 22s ease-in-out infinite alternate;
+}
+
+/* Fix browser autofill showing white text on dark backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #000 !important; /* force black text */
+  caret-color: #000; /* black caret for readability */
+  /* Prevent yellow autofill background flash overriding styles */
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* Firefox */
+input:-moz-autofill,
+textarea:-moz-autofill,
+select:-moz-autofill {
+  color: #000 !important;
+  caret-color: #000;
+}

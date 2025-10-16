@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -8,35 +8,40 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
 import { Avatar } from "@heroui/avatar";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/dropdown";
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
+import { User, Settings, LogOut, Bookmark, History } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { logoutUser } from "@/lib/hooks";
+import { useAuth } from "@/lib/hooks";
 import {
   TwitterIcon,
   GithubIcon,
   DiscordIcon,
-  HeartFilledIcon,
   SearchIcon,
   Logo,
-  LoginIcon,
 } from "@/components/icons";
-import { useState } from "react";
-import { User, Settings, LogOut, Bookmark, History } from "lucide-react";
 
 export const Navbar = () => {
-  const searchInput = (
+  const { user } = useAuth();
+
+  const desktopSearchInput = (
     <Input
       aria-label="Search"
+      className="w-64 md:w-72 lg:w-80"
       classNames={{
         inputWrapper: "bg-default-100",
         input: "text-sm",
@@ -54,24 +59,62 @@ export const Navbar = () => {
       type="search"
     />
   );
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
+
+  const mobileSearchInput = (
+    <Input
+      aria-label="Search"
+      className="w-full max-w-xs"
+      classNames={{
+        inputWrapper: "bg-default-100 h-8",
+        input: "text-sm",
+      }}
+      labelPlacement="outside"
+      placeholder="Search movies..."
+      startContent={
+        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
+      }
+      type="search"
+    />
+  );
+
+  const isAuthenticated = !!user;
+  const displayName = isAuthenticated
+    ? [user?.firstname, user?.lastname].filter(Boolean).join(" ") ||
+      (user?.email ? user.email.split("@")[0] : "User")
+    : "User";
+  const avatarSrc =
+    user?.avatar ||
+    (user?.email
+      ? `https://i.pravatar.cc/150?u=${encodeURIComponent(user.email)}`
+      : undefined);
+  const signedInLabel = user
+    ? [user?.firstname, user?.lastname].filter(Boolean).join(" ") ||
+      user?.email ||
+      ""
+    : "";
 
   return (
-    <HeroUINavbar maxWidth="xl" position="sticky">
-      <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
-        <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink className="flex justify-start items-center gap-1" href={isAuthenticated ? "/app/discover": "/"}>
+    <HeroUINavbar isBordered maxWidth="xl" position="sticky">
+      <NavbarContent className="basis-1/3" justify="start">
+        <NavbarBrand as="li" className="gap-2 max-w-fit">
+          <NextLink
+            className="flex justify-start items-center gap-2"
+            href={isAuthenticated ? "/app/discover" : "/"}
+          >
             <Logo />
-            <p className="text-inherit text-3xl font-light">CINÉTHOS</p>
+            <p className="text-inherit text-2xl lg:text-3xl font-light hidden sm:block">
+              CINÉTHOS
+            </p>
           </NextLink>
         </NavbarBrand>
-        <ul className="hidden lg:flex gap-4 justify-start ml-2">
+
+        <ul className="hidden lg:flex gap-4 justify-start ml-4">
           {siteConfig.navItems.map((item) => (
             <NavbarItem key={item.href}>
               <NextLink
                 className={clsx(
                   linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
+                  "data-[active=true]:text-primary data-[active=true]:font-medium"
                 )}
                 color="foreground"
                 href={item.href}
@@ -83,56 +126,82 @@ export const Navbar = () => {
         </ul>
       </NavbarContent>
 
-      <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
-        justify="end"
-      >
-        <NavbarItem className="hidden sm:flex gap-2">
-          <Link isExternal aria-label="x" href={siteConfig.links.X}>
-            <TwitterIcon className="text-default-500" />
+      <NavbarContent className="hidden md:flex basis-1/3" justify="center">
+        <NavbarItem className="w-full max-w-sm">
+          {desktopSearchInput}
+        </NavbarItem>
+      </NavbarContent>
+
+      <NavbarContent className="hidden md:flex basis-1/3" justify="end">
+        <NavbarItem className="hidden lg:flex gap-2">
+          <Link isExternal aria-label="X" href={siteConfig.links.X}>
+            <TwitterIcon className="text-default-500 hover:text-default-700 transition-colors" />
           </Link>
-          <Link isExternal aria-label="Discord" href={siteConfig.links.porfolio}>
-            <DiscordIcon className="text-default-500" />
+          <Link
+            isExternal
+            aria-label="Portfolio"
+            href={siteConfig.links.porfolio}
+          >
+            <DiscordIcon className="text-default-500 hover:text-default-700 transition-colors" />
           </Link>
           <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-            <GithubIcon className="text-default-500" />
+            <GithubIcon className="text-default-500 hover:text-default-700 transition-colors" />
           </Link>
           <ThemeSwitch />
         </NavbarItem>
-        <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
-        <NavbarItem className="hidden md:flex">
+        <NavbarItem>
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
               <Avatar
                 isBordered
                 as="button"
-                className="transition-transform"
+                className="transition-transform hover:scale-105"
                 color="primary"
-                name="User"
+                imgProps={{
+                  crossOrigin: "anonymous",
+                  referrerPolicy: "no-referrer",
+                }}
+                name={displayName}
                 size="sm"
-                src="https://i.pravatar.cc/150?u=user"
+                src={avatarSrc}
               />
             </DropdownTrigger>
             <DropdownMenu aria-label="Profile Actions" variant="flat">
-              <DropdownItem key="user-info" className="h-14 gap-2">
+              <DropdownItem
+                key="user-info"
+                className="h-14 gap-2"
+                textValue="User info"
+              >
                 <p className="font-semibold">Signed in as</p>
-                <p className="font-semibold">user@example.com</p>
+                <p className="font-semibold text-primary">{signedInLabel}</p>
               </DropdownItem>
-              <DropdownItem key="profile" startContent={<User className="h-4 w-4" />}>
+              <DropdownItem
+                key="profile"
+                startContent={<User className="h-4 w-4" />}
+              >
                 My Profile
               </DropdownItem>
-              <DropdownItem key="bookmarks" startContent={<Bookmark className="h-4 w-4" />}>
+              <DropdownItem
+                key="bookmarks"
+                startContent={<Bookmark className="h-4 w-4" />}
+              >
                 My Bookmarks
               </DropdownItem>
-              <DropdownItem key="history" startContent={<History className="h-4 w-4" />}>
+              <DropdownItem
+                key="history"
+                startContent={<History className="h-4 w-4" />}
+              >
                 Watch History
               </DropdownItem>
-              <DropdownItem key="settings" startContent={<Settings className="h-4 w-4" />}>
+              <DropdownItem
+                key="settings"
+                startContent={<Settings className="h-4 w-4" />}
+              >
                 Settings
               </DropdownItem>
-              <DropdownItem 
-                key="logout" 
-                color="danger" 
+              <DropdownItem
+                key="logout"
+                color="danger"
                 startContent={<LogOut className="h-4 w-4" />}
                 onPress={() => logoutUser()}
               >
@@ -143,34 +212,134 @@ export const Navbar = () => {
         </NavbarItem>
       </NavbarContent>
 
-      <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-          <GithubIcon className="text-default-500" />
-        </Link>
-        <ThemeSwitch />
+      <NavbarContent className="md:hidden" justify="end">
+        <NavbarItem>
+          <ThemeSwitch />
+        </NavbarItem>
+        <NavbarItem>
+          <Dropdown placement="bottom-end">
+            <DropdownTrigger>
+              <Avatar
+                isBordered
+                as="button"
+                className="transition-transform"
+                color="primary"
+                imgProps={{
+                  crossOrigin: "anonymous",
+                  referrerPolicy: "no-referrer",
+                }}
+                name={displayName}
+                size="sm"
+                src={avatarSrc}
+              />
+            </DropdownTrigger>
+            <DropdownMenu aria-label="Profile Actions" variant="flat">
+              <DropdownItem
+                key="user-info"
+                className="h-14 gap-2"
+                textValue="User info"
+              >
+                <p className="font-semibold">Signed in as</p>
+                <p className="font-semibold text-primary">{signedInLabel}</p>
+              </DropdownItem>
+              <DropdownItem
+                key="profile"
+                startContent={<User className="h-4 w-4" />}
+              >
+                My Profile
+              </DropdownItem>
+              <DropdownItem
+                key="bookmarks"
+                startContent={<Bookmark className="h-4 w-4" />}
+              >
+                My Bookmarks
+              </DropdownItem>
+              <DropdownItem
+                key="history"
+                startContent={<History className="h-4 w-4" />}
+              >
+                Watch History
+              </DropdownItem>
+              <DropdownItem
+                key="settings"
+                startContent={<Settings className="h-4 w-4" />}
+              >
+                Settings
+              </DropdownItem>
+              <DropdownItem
+                key="logout"
+                color="danger"
+                startContent={<LogOut className="h-4 w-4" />}
+                onPress={() => logoutUser()}
+              >
+                Log Out
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </NavbarItem>
         <NavbarMenuToggle />
       </NavbarContent>
 
       <NavbarMenu>
-        {searchInput}
-        <div className="mx-4 mt-2 flex flex-col gap-2">
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                color={
-                  index === 2
-                    ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
+        <div className="mx-4 mt-4 flex flex-col gap-4">
+          <div className="pb-2 border-b border-default-200">
+            {mobileSearchInput}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {siteConfig.navItems.map((item) => (
+              <NavbarMenuItem key={item.href}>
+                <NextLink
+                  className="w-full text-foreground text-lg hover:text-primary transition-colors"
+                  href={item.href}
+                >
+                  {item.label}
+                </NextLink>
+              </NavbarMenuItem>
+            ))}
+          </div>
+
+          {/* <div className="pt-2 border-t border-default-200">
+            {siteConfig.navMenuItems.map((item, index) => (
+              <NavbarMenuItem key={`${item.label}-${index}`}>
+                <Link
+                  className="w-full"
+                  color={
+                    index === siteConfig.navMenuItems.length - 1
                       ? "danger"
                       : "foreground"
-                }
-                href="#"
-                size="lg"
-              >
-                {item.label}
+                  }
+                  href={item.href}
+                  size="lg"
+                >
+                  {item.label}
+                </Link>
+              </NavbarMenuItem>
+            ))}
+          </div> */}
+
+          <div className="pt-2 border-t border-default-200">
+            <p className="text-sm text-default-500 mb-3">Connect with us</p>
+            <div className="flex gap-4">
+              <Link isExternal aria-label="X" href={siteConfig.links.X}>
+                <TwitterIcon className="text-default-500 hover:text-default-700 transition-colors w-5 h-5" />
               </Link>
-            </NavbarMenuItem>
-          ))}
+              <Link
+                isExternal
+                aria-label="Portfolio"
+                href={siteConfig.links.porfolio}
+              >
+                <DiscordIcon className="text-default-500 hover:text-default-700 transition-colors w-5 h-5" />
+              </Link>
+              <Link
+                isExternal
+                aria-label="Github"
+                href={siteConfig.links.github}
+              >
+                <GithubIcon className="text-default-500 hover:text-default-700 transition-colors w-5 h-5" />
+              </Link>
+            </div>
+          </div>
         </div>
       </NavbarMenu>
     </HeroUINavbar>
