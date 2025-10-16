@@ -35,7 +35,14 @@ export function Providers({ children, themeProps }: ProvidersProps) {
   return (
     <SWRConfig value={{ fetcher }}>
       <HeroUIProvider navigate={router.push}>
-        <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
+        <NextThemesProvider
+          enableSystem
+          attribute="class"
+          defaultTheme="light"
+          {...themeProps}
+        >
+          {children}
+        </NextThemesProvider>
         {/* Toast region (does not accept children) */}
         <ToastProvider placement="top-right" />
       </HeroUIProvider>

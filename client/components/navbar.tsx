@@ -8,9 +8,7 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
-import { Input } from "@heroui/input";
 import { Avatar } from "@heroui/avatar";
 import {
   Dropdown,
@@ -25,55 +23,27 @@ import { User, Settings, LogOut, Bookmark, History } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { SearchInput } from "@/components/SearchInput";
 import { logoutUser } from "@/lib/hooks";
 import { useAuth } from "@/lib/hooks";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  SearchIcon,
-  Logo,
-} from "@/components/icons";
+import { TwitterIcon, GithubIcon, DiscordIcon, Logo } from "@/components/icons";
 
 export const Navbar = () => {
   const { user } = useAuth();
 
   const desktopSearchInput = (
-    <Input
-      aria-label="Search"
+    <SearchInput
       className="w-64 md:w-72 lg:w-80"
-      classNames={{
-        inputWrapper: "bg-default-100",
-        input: "text-sm",
-      }}
-      endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
-          K
-        </Kbd>
-      }
-      labelPlacement="outside"
-      placeholder="Search..."
-      startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-      }
-      type="search"
+      placeholder="Search movies..."
+      showKbd={true}
     />
   );
 
   const mobileSearchInput = (
-    <Input
-      aria-label="Search"
+    <SearchInput
       className="w-full max-w-xs"
-      classNames={{
-        inputWrapper: "bg-default-100 h-8",
-        input: "text-sm",
-      }}
-      labelPlacement="outside"
+      isMobile={true}
       placeholder="Search movies..."
-      startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-      }
-      type="search"
     />
   );
 
@@ -128,7 +98,7 @@ export const Navbar = () => {
 
       <NavbarContent className="hidden md:flex basis-1/3" justify="center">
         <NavbarItem className="w-full max-w-sm">
-          {desktopSearchInput}
+          {isAuthenticated && desktopSearchInput}
         </NavbarItem>
       </NavbarContent>
 
@@ -282,9 +252,11 @@ export const Navbar = () => {
 
       <NavbarMenu>
         <div className="mx-4 mt-4 flex flex-col gap-4">
-          <div className="pb-2 border-b border-default-200">
-            {mobileSearchInput}
-          </div>
+          {isAuthenticated && (
+            <div className="pb-2 border-b border-default-200">
+              {mobileSearchInput}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             {siteConfig.navItems.map((item) => (

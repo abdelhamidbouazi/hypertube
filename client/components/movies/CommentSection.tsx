@@ -46,7 +46,6 @@ export function CommentSection({
   const { user: storeUser, isAuthenticated } = useAuthStore();
   const { user: apiUser } = useAuth();
 
-  // Use API user data as primary source, fallback to store
   const user = apiUser || storeUser;
 
   React.useEffect(() => {
@@ -66,10 +65,8 @@ export function CommentSection({
 
     setIsSubmitting(true);
     try {
-      // Get username from user data - try multiple fallback options
       let username = user?.username;
 
-      // Try FirstName/LastName (from API) first, then lowercase versions
       if (!username && user?.FirstName && user?.LastName) {
         username = `${user.FirstName} ${user.LastName}`;
       } else if (!username && user?.firstname && user?.lastname) {
@@ -84,41 +81,34 @@ export function CommentSection({
 
       await api.post("/comments/add", {
         movie_id: parseInt(movieId),
-        username, // Keep sending username for now since backend expects it
+        username,
         content: newComment,
       });
 
       setNewComment("");
 
-      // Trigger refresh of movie details to get updated comments
       if (onCommentAdded) {
         onCommentAdded();
       }
     } catch {
-      // Error handling - could show a toast notification here
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    // Handle various cases where date might be missing or invalid
     if (
       !dateString ||
       dateString === "null" ||
       dateString === "undefined" ||
       dateString.trim() === ""
     ) {
-      return "Just now"; // Default for new comments
+      return "Just now";
     }
-
-    // The backend sends dates in ISO format: "2006-01-02T15:04:05Z07:00"
-    // JavaScript Date constructor handles this format well
     const date = new Date(dateString);
 
-    // Check if date is valid
     if (isNaN(date.getTime())) {
-      return "Just now"; // Fallback for invalid dates
+      return "Just now";
     }
 
     const now = new Date();
@@ -235,8 +225,7 @@ export function CommentSection({
           </div>
         ) : comments && comments.length > 0 ? (
           <div className="space-y-4">
-            {comments.map((comment: Comment) => {
-              // Check if this comment belongs to the current user
+            {comments.map((comment: Comment, index: number) => {
               const isCurrentUser =
                 user &&
                 (comment.username === user.username ||
@@ -246,11 +235,11 @@ export function CommentSection({
 
               return (
                 <div
-                  key={comment.id}
+                  key={comment.id || comment.ID || `comment-${index}`}
                   className={`flex gap-3 p-4 rounded-lg border w-full ${
                     isCurrentUser
-                      ? "bg-primary/10 border-primary/30" // Current user: primary color
-                      : "bg-content1/50 border-divider" // Other users: default style
+                      ? "bg-primary/10 border-primary/30"
+                      : "bg-content1/50 border-divider"
                   }`}
                 >
                   <Avatar

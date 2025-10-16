@@ -32,14 +32,13 @@ export default function AuthenthicatedLayout({
 }) {
   return (
     <html
+      suppressHydrationWarning
       className={clsx(fontSans.variable, "min-h-screen bg-background")}
-      data-theme="light"
       lang="en"
-      style={{ colorScheme: "light" }}
     >
       <head />
       <body>
-        <Providers>
+        <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
           <main>{children}</main>
         </Providers>
       </body>
