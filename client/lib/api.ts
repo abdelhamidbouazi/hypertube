@@ -6,9 +6,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: false,
 });
-console.log("api--->", process.env.NEXT_PUBLIC_API_URL );
 
 api.interceptors.request.use(
   (config) => {

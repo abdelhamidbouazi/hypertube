@@ -101,15 +101,8 @@ export default function MoviePage({ params }: MoviePageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-content2">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Link href="/discover">
-            <Button variant="flat" startContent={<ArrowLeft size={16} />}>
-              Back to Discover
-            </Button>
-          </Link>
-        </div>
+      <div className="container mx-auto px-4 py-2">
+        
 
         {/* Movie Header */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">

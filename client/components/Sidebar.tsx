@@ -235,7 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Dropdown placement="top-start">
             <DropdownTrigger>
               <Button
-                variant="ghost"
+                variant="flat"
                 className={clsx(
                   'w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2',
                   isCollapsed && 'justify-center px-2'
@@ -295,7 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex gap-1 justify-center">
             <Button
               isIconOnly
-              variant="ghost"
+              variant="flat"
               size="sm"
               as={NextLink}
               href="https://x.com/abdelhamidbouazi"
@@ -306,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Button>
             <Button
               isIconOnly
-              variant="ghost"
+              variant="flat"
               size="sm"
               as={NextLink}
               href="https://abouazi.me"
@@ -317,7 +317,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Button>
             <Button
               isIconOnly
-              variant="ghost"
+              variant="flat"
               size="sm"
               as={NextLink}
               href="https://github.com/abdelhamidbouazi"

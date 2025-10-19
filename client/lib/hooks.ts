@@ -32,13 +32,18 @@ export const useMovieDetailsReq = (movieId: string) => {
 };
 
 export const useAuth = () => {
-  const { data, error, isLoading } = useApi('/auth/me');
+  const { data, error, isLoading } = useApi('/users/me');
   
   return {
     user: data,
     isLoading,
     error,
   };
+};
+
+export const useMe = () => {
+  const { data, error, isLoading, mutate } = useApi('/users/me');
+  return { user: data, isLoading, error, refetch: mutate };
 };
 
 export const loginUser = async (email: string, password: string) => {
