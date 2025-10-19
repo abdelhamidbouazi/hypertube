@@ -45,16 +45,21 @@ export const Navbar = ({
   const searchInput = (
     <Input
       variant="flat"
+      color="primary"
       aria-label="Search"
+      classNames={{
+        inputWrapper: "bg-content1/50 backdrop-blur-sm border-primary/20 hover:border-primary/40 focus-within:border-primary shadow-sm",
+        input: "text-foreground placeholder:text-default-500"
+      }}
       endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
+        <Kbd className="hidden lg:inline-block bg-primary/10 text-primary border-primary/20" keys={["command"]}>
           K
         </Kbd>
       }
       labelPlacement="outside"
-      placeholder="Search..."
+      placeholder="Search movies..."
       startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
+        <SearchIcon className="text-base text-primary/70 pointer-events-none flex-shrink-0" />
       }
       type="search"
     />
