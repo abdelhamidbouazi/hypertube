@@ -57,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
 
+  // main navigation items
   const navigation = [
     { name: 'Discover', href: '/app/discover', icon: Compass },
     { name: 'Watch Later', href: '/app/watch-later', icon: Clock },
@@ -64,17 +65,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Settings', href: '/app/settings', icon: Settings },
   ]
 
+  // user dropdown menu items
   const userMenuItems = [
     { key: 'profile', label: 'My Profile', icon: User, href: '/app/profile' },
   ]
 
+  // check if current route is active
   const isActive = (href: string) => pathname === href
 
+  // toggle between light and dark theme
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  // Close sidebar on mobile when route changes
+  // close sidebar on mobile route change
   useEffect(() => {
     if (window.innerWidth < 1024) {
       onToggle()
@@ -83,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* mobile overlay for sidebar */}
       {isOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -91,14 +95,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar */}
+      {/* main sidebar container */}
       <aside className={clsx(
         'fixed left-0 top-0 z-50 flex flex-col bg-content1 border-r border-divider transition-all duration-300 ease-in-out min-h-screen',
         isOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0',
         isCollapsed ? 'lg:w-16' : 'lg:w-56'
       )}>
-        {/* Header */}
+        {/* sidebar header with logo */}
         <div className="flex items-center justify-between p-3 border-b border-divider">
           {!isCollapsed && (
             <NextLink href="/app/discover" className="flex items-center gap-2">
@@ -114,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
         </div>
 
-        {/* Navigation */}
+        {/* main navigation menu */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon
@@ -148,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* Continue Watching Card */}
+        {/* continue watching section */}
         {!isCollapsed && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
@@ -157,12 +161,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-12 h-16 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                    <Film className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-content1 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
+                  <img 
+                    src="/placeholder-poster.jpg" 
+                    alt="The Dark Knight poster"
+                    className="w-12 h-16 object-cover rounded-lg"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-semibold text-foreground truncate">
@@ -171,14 +174,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <p className="text-xs text-default-500 truncate">
                     Action • 2008
                   </p>
-                  <div className="mt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-content2 rounded-full h-1.5">
-                        <div className="bg-primary h-1.5 rounded-full" style={{ width: '65%' }}></div>
-                      </div>
-                      <span className="text-xs text-default-500">65%</span>
-                    </div>
-                  </div>
                 </div>
               </div>
               <div className="mt-3 flex gap-2">
@@ -205,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* Quick Stats */}
+        {/* user stats section */}
         {!isCollapsed && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
@@ -230,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* User Section */}
+        {/* user profile dropdown */}
         <div className="p-3">
           <Dropdown placement="top-start">
             <DropdownTrigger>
@@ -255,20 +250,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu" className="min-w-[200px]">
-              {userMenuItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <DropdownItem
-                    key={item.key}
-                    startContent={<Icon className="w-4 h-4" />}
-                    as={NextLink}
-                    href={item.href}
-                    className="rounded-lg"
-                  >
-                    {item.label}
-                  </DropdownItem>
-                )
-              })}
+              <DropdownItem
+                key="profile"
+                startContent={<User className="w-4 h-4" />}
+                as={NextLink}
+                href="/app/profile"
+                className="rounded-lg"
+              >
+                My Profile
+              </DropdownItem>
               <DropdownItem
                 key="theme"
                 startContent={theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -290,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </Dropdown>
         </div>
 
-        {/* Social Links */}
+        {/* social media links */}
         <div className="px-3 pb-4">
           <div className="flex gap-1 justify-center">
             <Button

@@ -32,11 +32,9 @@ interface MoviePageProps {
 
 export default function MoviePage({ params }: MoviePageProps) {
   const { movie, isLoading, error } = useMovieDetails(params.id);
-  console.log("the movue", movie);
 
   const toggleWatched = () => {
-    // TODO: implement watched toggle functionality
-    console.log("Toggle watched for movie:", movie?.id);
+    console.log("toggle watched for movie:", movie?.id);
   };
 
   if (isLoading) {

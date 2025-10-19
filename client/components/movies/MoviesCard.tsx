@@ -28,14 +28,14 @@ export default function MovieCard({ movie }: { movie: Movie }) {
   const { movie: details } = useMovieDetailsReq(shouldFetchDetails ? String(id) : "");
   const year = release_date ? new Date(release_date).getFullYear() : undefined;
 
-  // Prefer existing rating; otherwise use details when loaded
+  // use existing rating or fetch from details
   const ratingSource = vote_average ?? details?.vote_average;
   const formattedRating = ratingSource !== undefined && ratingSource !== null
     ? Number(ratingSource).toFixed(1)
     : null;
   const inWatchlist = isInWatchlist(id);
 
-  // Trigger details fetch when card becomes visible
+  // lazy load movie details when card becomes visible
   React.useEffect(() => {
     if (!cardRef.current || shouldFetchDetails) return;
     const observer = new IntersectionObserver((entries) => {
@@ -53,7 +53,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
     <Link href={`/app/movie/${id}`} className="group block" onMouseEnter={() => setShouldFetchDetails(true)}>
       <Card className="h-full bg-white dark:bg-gray-800 border-0 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:scale-105 group-hover:-translate-y-1">
         <CardBody className="p-0">
-          {/* Image Container */}
+          {/* movie poster container */}
           <div ref={cardRef} className="relative aspect-[2/3] overflow-hidden">
             <Image
               removeWrapper
@@ -62,13 +62,13 @@ export default function MovieCard({ movie }: { movie: Movie }) {
               className="w-full h-full object-cover transition-all duration-300 group-hover:blur-sm group-hover:scale-110 z-0"
             />
 
-            {/* Dark overlay on hover */}
+            {/* hover overlay */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 z-10" />
 
-            {/* Bottom gradient for text readability */}
+            {/* bottom gradient for text readability */}
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-20" />
 
-            {/* Play Button - Red gradient with subtle ping and white icon */}
+            {/* play button overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 pointer-events-none">
               <div className="relative w-16 h-16">
                 <div className="absolute inset-0 rounded-full bg-red-500/40 animate-ping" />
@@ -80,7 +80,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
               </div>
             </div>
 
-            {/* Top Right - Rating Badge */}
+            {/* movie rating badge */}
             {formattedRating !== null && (
               <div className="absolute top-3 right-3 bg-yellow-400 text-gray-900 rounded-full px-2 py-1 shadow-md z-40">
                 <div className="flex items-center gap-1">
@@ -92,7 +92,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
               </div>
             )}
 
-            {/* Top Left - Watchlist Button */}
+            {/* watchlist button */}
             <div className="absolute top-3 left-3 z-40">
               <Tooltip content={inWatchlist ? "In Watchlist" : "Add to Watchlist"}>
                 <button
@@ -111,7 +111,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
               </Tooltip>
             </div>
 
-            {/* Bottom content: title and year over image */}
+            {/* movie title and year */}
             <div className="absolute inset-x-0 bottom-0 z-40 p-3">
               <div className="flex items-end justify-between">
                 <div className="max-w-[80%]">
