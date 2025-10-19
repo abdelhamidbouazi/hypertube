@@ -17,6 +17,7 @@ import dynamic from "next/dynamic";
 import HeroSection from "@/components/HeroSection";
 import { useMovies } from "@/lib/hooks";
 import { useFilterStore } from "@/lib/store";
+import { getErrorMessage } from "@/lib/error-utils";
 
 type SortKey = "name" | "year" | "rating";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -293,7 +294,7 @@ export default function DiscoverPage() {
             color="danger"
             variant="flat"
             title="Failed to fetch movies"
-            description={error}
+            description={getErrorMessage(error)}
           />
         </div>
       )}

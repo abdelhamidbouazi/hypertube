@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMovieDetails } from "@/components/movies/useMovieDetails";
+import { getErrorMessage } from "@/lib/error-utils";
 
 interface MoviePageProps {
   params: {
@@ -64,7 +65,7 @@ export default function MoviePage({ params }: MoviePageProps) {
             color="danger"
             variant="flat"
             title="Movie not found"
-            description={error || "The movie you're looking for doesn't exist."}
+            description={error ? getErrorMessage(error) : "The movie you're looking for doesn't exist."}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useApi } from './swr';
 import api from './api';
 import { useEffect, useState } from 'react';
+import { ContinueWatchingMovie } from '@/types';
 
 // hook for fetching movies list
 export const useMovies = () => {
@@ -60,6 +61,37 @@ export const loginUser = async (email: string, password: string) => {
 export const registerUser = async (email: string, password: string, firstName: string, lastName: string) => {
   const response = await api.post('/auth/register', { email, password, FirstName: firstName, LastName: lastName });
   return response.data;
+};
+
+// hook for user statistics (movies watched, hours, favorites)
+export const useUserStats = () => {
+  // TODO: Replace with real API endpoint when available
+  // const { data, error, isLoading } = useApi('/users/stats');
+  
+  // For now, return placeholder data
+  return {
+    stats: {
+      moviesWatched: 0,
+      hoursWatched: 0,
+      favorites: 0,
+    },
+    isLoading: false,
+    error: null,
+  };
+};
+
+// hook for user watch history and continue watching
+export const useWatchHistory = () => {
+  // TODO: Replace with real API endpoint when available
+  // const { data, error, isLoading } = useApi('/users/watch-history');
+  
+  // For now, return placeholder data
+  return {
+    watchHistory: [] as ContinueWatchingMovie[],
+    continueWatching: null as ContinueWatchingMovie | null,
+    isLoading: false,
+    error: null,
+  };
 };
 
 // logout user and clear tokens

@@ -12,7 +12,7 @@ import {
   DropdownMenu,
   DropdownItem,
 } from '@heroui/dropdown'
-import { logoutUser } from '@/lib/hooks'
+import { logoutUser, useMe, useUserStats, useWatchHistory } from '@/lib/hooks'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useTheme } from 'next-themes'
 import {
@@ -56,6 +56,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const { user, isLoading: userLoading } = useMe()
+  const { stats, isLoading: statsLoading } = useUserStats()
+  const { continueWatching, isLoading: watchHistoryLoading } = useWatchHistory()
 
   // main navigation items
   const navigation = [
@@ -158,43 +161,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
               Continue Watching
             </h3>
-            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img 
-                    src="/placeholder-poster.jpg" 
-                    alt="The Dark Knight poster"
-                    className="w-12 h-16 object-cover rounded-lg"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-foreground truncate">
-                    The Dark Knight
-                  </h4>
-                  <p className="text-xs text-default-500 truncate">
-                    Action • 2008
-                  </p>
+            {watchHistoryLoading ? (
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-16 bg-content2 rounded-lg animate-pulse" />
+                  <div className="flex-1 min-w-0">
+                    <div className="h-4 bg-content2 rounded animate-pulse mb-2" />
+                    <div className="h-3 bg-content2 rounded animate-pulse w-2/3" />
+                  </div>
                 </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="flat"
-                  className="flex-1 text-xs"
-                >
-                  Resume
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  isIconOnly
-                  className="text-default-500"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
+            ) : continueWatching ? (
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img 
+                      src={continueWatching.posterPath || "/placeholder-poster.jpg"} 
+                      alt={`${continueWatching.title} poster`}
+                      className="w-12 h-16 object-cover rounded-lg"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-foreground truncate">
+                      {continueWatching.title}
+                    </h4>
+                    <p className="text-xs text-default-500 truncate">
+                      {continueWatching.genre} • {continueWatching.year}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    color="success"
+                    variant="flat"
+                    className="flex-1"
+                    as={NextLink}
+                    href={`/app/movie/${continueWatching.id}/watch`}
+                  >
+                    Resume
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="danger"
+                    isIconOnly
+                    className="text-default-500"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-gradient-to-br from-content2/50 to-content2/30 rounded-xl p-3 border border-divider">
+                <p className="text-sm text-default-500 text-center">
+                  No movies in progress
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -209,15 +233,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Movies Watched</span>
-                <span className="font-semibold text-primary">42</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.moviesWatched}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Hours</span>
-                <span className="font-semibold text-primary">128</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.hoursWatched}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Favorites</span>
-                <span className="font-semibold text-primary">12</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.favorites}
+                </span>
               </div>
             </div>
           </div>
@@ -238,13 +268,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Avatar
                   size="sm"
-                  src="https://i.pravatar.cc/150?u=user"
+                  src={user?.avatar || "https://i.pravatar.cc/150?u=user"}
                   className="flex-shrink-0 ring-2 ring-primary/20"
                 />
                 {!isCollapsed && (
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-semibold">User Name</span>
-                    <span className="text-xs text-default-500">user@example.com</span>
+                    <span className="text-sm font-semibold">
+                      {userLoading ? 'Loading...' : user ? `${user.firstname} ${user.lastname}` : 'User Name'}
+                    </span>
+                    <span className="text-xs text-default-500">
+                      {userLoading ? 'Loading...' : user?.email || 'user@example.com'}
+                    </span>
                   </div>
                 )}
               </Button>
