@@ -1,39 +1,96 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import { Button } from "@heroui/button";
+import { ListFilterPlus } from "lucide-react";
 
 interface HlsPlayerProps {
   src: string;
-  poster?: string;
+  thumbnail?: string;
+  token: string;
 }
 
-export default function HlsPlayer({ src, poster }: HlsPlayerProps) {
+export default function HlsPlayer({ src, token, thumbnail }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [hls, setHls] = useState<Hls | null>(null);
+  const [levels, setLevels] = useState<{ index: number; label: string }[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    let hls: Hls | null = null;
+
     if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-      return () => hls.destroy();
+      const hlsInstance = new Hls();
+      hlsInstance.loadSource(src);
+      hlsInstance.attachMedia(video);
+
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        const lvls = data.levels.map((lvl: any, i: number) => ({
+          index: i,
+          label: `${lvl.height}p (${Math.round(lvl.bitrate / 1000)} kbps)`,
+        }));
+        setLevels([{ index: -1, label: "Auto" }, ...lvls]);
+      });
+
+      setHls(hlsInstance);
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
-      video.play().catch(() => {});
+      video.src = src; // Safari native HLS
     }
-  }, [src]);
+  }, [src, token]);
+  const handleQualityChange = (level: number) => {
+    if (!hls) return;
+    hls.currentLevel = level;
+  };
 
   return (
-    <video
-      ref={videoRef}
-      poster={poster}
-      controls
-      playsInline
-      className="w-full max-w-3xl rounded-2xl bg-black shadow-lg"
-    />
+    <div className="max-w-7xl mx-auto text-center">
+      {levels.length > 0 && (
+        <div className="flex gap-2 justify-between">
+          {levels.map((lvl) => (
+            <Button
+              variant="flat"
+              color="secondary"
+              key={lvl.index}
+              value={lvl.index.toString()}
+              onPress={() => {
+                handleQualityChange(lvl.index);
+              }}
+            >
+              {`${lvl.label.split(" ")[0]}`}
+            </Button>
+          ))}
+        </div>
+      )}
+      <video
+        ref={videoRef}
+        controls
+        autoPlay
+        style={{ width: "100%", borderRadius: 10 }}
+      >
+        {levels.length > 0 && (
+          <select
+            onChange={(e) => handleQualityChange(Number(e.target.value))}
+            style={{ marginTop: 10 }}
+          >
+            {levels.map((lvl) => (
+              <option key={lvl.index} value={lvl.index}>
+                {lvl.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <track
+          src="/subs/en.vtt"
+          kind="subtitles"
+          srcLang="en"
+          label="English"
+          default
+        />
+      </video>
+    </div>
   );
 }

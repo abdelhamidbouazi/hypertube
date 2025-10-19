@@ -5,12 +5,8 @@ export const siteConfig = {
   description: "Your best watching destintion, Watch with love",
   navItems: [
     {
-      label: "Movies",
+      label: "Discover",
       href: "/app/discover",
-    },
-    {
-      label: "Categories",
-      href: "/app/categories",
     },
     {
       label: "About",

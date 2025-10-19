@@ -25,22 +25,31 @@ import {
   TwitterIcon,
   GithubIcon,
   DiscordIcon,
-  HeartFilledIcon,
   SearchIcon,
   Logo,
   LoginIcon,
 } from "@/components/icons";
 import { useState } from "react";
-import { User, Settings, LogOut, Bookmark, History } from "lucide-react";
+import { User, Settings, LogOut, Bookmark, History, Menu } from "lucide-react";
 
-export const Navbar = () => {
+export const Navbar = ({ 
+  onSidebarToggle, 
+  onSidebarCollapseToggle, 
+  isSidebarCollapsed 
+}: {
+  onSidebarToggle?: () => void
+  onSidebarCollapseToggle?: () => void
+  isSidebarCollapsed?: boolean
+}) => {
   const searchInput = (
     <Input
+      variant="flat"
+      // color="primary"
       aria-label="Search"
-      classNames={{
-        inputWrapper: "bg-default-100",
-        input: "text-sm",
-      }}
+      // classNames={{
+      //   inputWrapper: "bg-default-100",
+      //   input: "text-sm",
+      // }}
       endContent={
         <Kbd className="hidden lg:inline-block" keys={["command"]}>
           K
@@ -57,97 +66,30 @@ export const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true)
 
   return (
-    <HeroUINavbar maxWidth="xl" position="sticky">
-      <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
-        <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink className="flex justify-start items-center gap-1" href={isAuthenticated ? "/app/discover": "/"}>
-            <Logo />
-            <p className="text-inherit text-3xl font-light">CINÉTHOS</p>
-          </NextLink>
-        </NavbarBrand>
-        <ul className="hidden lg:flex gap-4 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
-              <NextLink
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </NextLink>
-            </NavbarItem>
-          ))}
-        </ul>
+    <HeroUINavbar position="sticky">
+      {/* Left side - Empty for balance */}
+      <NavbarContent justify="start">
+        <NavbarItem>
+          {/* Empty left for visual balance */}
+        </NavbarItem>
       </NavbarContent>
 
-      <NavbarContent
-        className="hidden sm:flex basis-1/5 sm:basis-full"
-        justify="end"
-      >
-        <NavbarItem className="hidden sm:flex gap-2">
-          <Link isExternal aria-label="x" href={siteConfig.links.X}>
-            <TwitterIcon className="text-default-500" />
-          </Link>
-          <Link isExternal aria-label="Discord" href={siteConfig.links.porfolio}>
-            <DiscordIcon className="text-default-500" />
-          </Link>
-          <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-            <GithubIcon className="text-default-500" />
-          </Link>
-          <ThemeSwitch />
-        </NavbarItem>
-        <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
+      {/* Center - Search */}
+      <NavbarContent justify="center">
         <NavbarItem className="hidden md:flex">
-          <Dropdown placement="bottom-end">
-            <DropdownTrigger>
-              <Avatar
-                isBordered
-                as="button"
-                className="transition-transform"
-                color="primary"
-                name="User"
-                size="sm"
-                src="https://i.pravatar.cc/150?u=user"
-              />
-            </DropdownTrigger>
-            <DropdownMenu aria-label="Profile Actions" variant="flat">
-              <DropdownItem key="user-info" className="h-14 gap-2">
-                <p className="font-semibold">Signed in as</p>
-                <p className="font-semibold">user@example.com</p>
-              </DropdownItem>
-              <DropdownItem key="profile" startContent={<User className="h-4 w-4" />}>
-                My Profile
-              </DropdownItem>
-              <DropdownItem key="bookmarks" startContent={<Bookmark className="h-4 w-4" />}>
-                My Bookmarks
-              </DropdownItem>
-              <DropdownItem key="history" startContent={<History className="h-4 w-4" />}>
-                Watch History
-              </DropdownItem>
-              <DropdownItem key="settings" startContent={<Settings className="h-4 w-4" />}>
-                Settings
-              </DropdownItem>
-              <DropdownItem 
-                key="logout" 
-                color="danger" 
-                startContent={<LogOut className="h-4 w-4" />}
-                onPress={() => logoutUser()}
-              >
-                Log Out
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          {searchInput}
         </NavbarItem>
       </NavbarContent>
 
-      <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-        <Link isExternal aria-label="Github" href={siteConfig.links.github}>
-          <GithubIcon className="text-default-500" />
-        </Link>
-        <ThemeSwitch />
+      {/* Right side - Empty for balance */}
+      <NavbarContent justify="end">
+        <NavbarItem>
+          {/* Empty right for visual balance */}
+        </NavbarItem>
+      </NavbarContent>
+
+      {/* Mobile menu */}
+      <NavbarContent className="sm:hidden" justify="end">
         <NavbarMenuToggle />
       </NavbarContent>
 

@@ -13,6 +13,8 @@ import { Tooltip } from "@heroui/tooltip";
 import { Alert } from "@heroui/alert";
 import { SearchIcon, X, SlidersHorizontal, ListFilterPlus } from "lucide-react";
 import MovieCard, { Movie } from "@/components/movies/MoviesCard";
+import dynamic from "next/dynamic";
+import HeroSection from "@/components/HeroSection";
 import { useMovies } from "@/lib/hooks";
 import { useFilterStore } from "@/lib/store";
 
@@ -76,8 +78,16 @@ export default function DiscoverPage() {
 
     
   return (
-    <div className="mx-auto w-full">
-      <div className="relative overflow-hidden rounded-3xl border border-default-200 bg-content1/70 p-6 shadow-sm backdrop-blur-md dark:border-default-100">
+    <div className="w-full">
+      {/* Hero section (top picks) – FIRST */}
+      {movies.length > 0 && (
+        <div className="mb-8">
+          <HeroSection slides={movies.slice(0, Math.min(8, movies.length))} />
+        </div>
+      )}
+
+      {/* Header and Filters */}
+      <div className="relative overflow-hidden rounded-3xl  bg-content1/70 p-6 shadow-sm backdrop-blur-md ">
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-40 blur-3xl">
           <div className="absolute -top-24 right-0 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 dark:from-indigo-400 dark:to-pink-400" />
           <div className="absolute -bottom-24 left-0 h-48 w-48 rounded-full bg-gradient-to-br from-cyan-500 to-sky-500" />
@@ -274,7 +284,7 @@ export default function DiscoverPage() {
         </Card>}
       </div>
 
-      <Divider className="my-6" />
+      <Divider className="my-6 bg-transparent" />
 
       {/* Error Alert */}
       {error && (

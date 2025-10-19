@@ -27,6 +27,7 @@ import Link from "next/link";
 import { useMovieDetails } from "@/components/movies/useMovieDetails";
 import StreamPlayer from "./components/Stream";
 import HlsPlayer from "./components/Stream";
+import Image from "next/image";
 
 interface WatchPageProps {
   params: {
@@ -74,7 +75,11 @@ export default function WatchPage({ params }: WatchPageProps) {
           </Link>
         </div>
         </div>
-        <HlsPlayer src={`${process.env.NEXT_PUBLIC_API_URL}/stream/${params.id}`} />
+        <HlsPlayer src='https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' token={localStorage.getItem('token') || ''} thumbnail={`https://image.tmdb.org/t/p/w500${movie.backdrop_path}` || ''} />
+        {/* <HlsPlayer src={`${process.env.NEXT_PUBLIC_API_URL}/stream/${params.id}`} token={localStorage.getItem('token') || ''} thumbnail={`https://image.tmdb.org/t/p/w500${movie.backdrop_path}` || ''} /> */}
+
+        {/* {movie ? `https://image.tmdb.org/t/p/w500${movie.backdrop_path}` : 'loading movies'} */}
+        {/* <Image src={`https://image.tmdb.org/t/p/w500${movie.backdrop_path}` || ''} alt={movie?.title || ''} width={1000} height={1000} /> */}
     </div>
   );
 }
