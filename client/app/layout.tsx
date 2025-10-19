@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
 };
 
@@ -37,12 +37,16 @@ export default function AuthenthicatedLayout({
     <html suppressHydrationWarning lang="en">
       <head />
       <body
-
+        className={clsx(
+          "min-h-screen text-foreground bg-background font-sans antialiased",
+          fontSans.variable,
+        )}
       >
-            <main >
-              {children}
-            </main>
-            
+        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
+          <main>
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

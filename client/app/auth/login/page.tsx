@@ -38,18 +38,24 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted!', { email, password });
     setIsLoading(true);
     setError("");
 
     try {
+      console.log('Calling loginUser...');
       const response = await loginUser(email, password);
+      console.log('Login response:', response);
+      
       if (response.AccessToken) {
+        console.log('Setting token and redirecting...');
         localStorage.setItem('token', response.AccessToken);
-        document.cookie = `token=${response.AccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+        document.cookie = `token=${response.AccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict`;
         
         router.push('/app/discover');
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.response?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);
@@ -67,12 +73,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form onSubmit={(e) => e.preventDefault()} onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-        }
-      }} className="space-y-5 pt-4">
+      <form onSubmit={handleSubmit} className="space-y-5 pt-4" action="#" method="post">
         <Input
           type="email"
           className="text-slate-800"
@@ -107,8 +108,9 @@ export default function LoginPage() {
           isLoading={isLoading}
           onPress={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
         >
-          Log In
+          {isLoading ? 'Logging in...' : 'Log In'}
         </Button>
+        {/* </button> */}
 
         <p className="mt-4 text-center text-xs text-white/75">
           Don't have an account?{" "}

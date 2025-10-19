@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix"
@@ -53,9 +53,11 @@
     "@heroui/user": "2.2.22",
     "@react-aria/ssr": "3.9.10",
     "@react-aria/visually-hidden": "3.8.28",
+    "@types/video.js": "^7.3.58",
     "axios": "^1.12.2",
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
+    "hls.js": "^1.6.13",
     "intl-messageformat": "10.7.16",
     "lucide-react": "^0.544.0",
     "next": "15.3.1",
@@ -64,6 +66,7 @@
     "react-dom": "18.3.1",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
+    "swiper": "^12.0.2",
     "swr": "^2.3.6",
     "zustand": "^5.0.8"
   },
@@ -91,6 +94,7 @@
     "prettier": "3.5.3",
     "tailwind-variants": "3.1.1",
     "tailwindcss": "4.1.11",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "video.js": "^8.23.4"
   }
 }

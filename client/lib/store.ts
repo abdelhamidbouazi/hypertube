@@ -88,3 +88,43 @@ export const useFilterStore = create<FilterState>()(
     }
   )
 );
+
+// Watchlist store: persists list of movie IDs added by the user
+interface WatchlistState {
+  watchlistIds: number[];
+  addToWatchlist: (id: number) => void;
+  removeFromWatchlist: (id: number) => void;
+  toggleWatchlist: (id: number) => void;
+  isInWatchlist: (id: number) => boolean;
+}
+
+export const useWatchlistStore = create<WatchlistState>()(
+  persist(
+    (set, get) => ({
+      watchlistIds: [],
+      addToWatchlist: (id) =>
+        set((state) => ({
+          watchlistIds: state.watchlistIds.includes(id)
+            ? state.watchlistIds
+            : [...state.watchlistIds, id],
+        })),
+      removeFromWatchlist: (id) =>
+        set((state) => ({
+          watchlistIds: state.watchlistIds.filter((x) => x !== id),
+        })),
+      toggleWatchlist: (id) => {
+        const isIn = get().watchlistIds.includes(id);
+        if (isIn) {
+          set((state) => ({ watchlistIds: state.watchlistIds.filter((x) => x !== id) }));
+        } else {
+          set((state) => ({ watchlistIds: [...state.watchlistIds, id] }));
+        }
+      },
+      isInWatchlist: (id) => get().watchlistIds.includes(id),
+    }),
+    {
+      name: 'watchlist-storage',
+      partialize: (state) => ({ watchlistIds: state.watchlistIds }),
+    }
+  )
+);
