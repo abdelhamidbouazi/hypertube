@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"server/internal/models"
 	"server/internal/services/users"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -45,4 +47,90 @@ func GetUsers(c echo.Context) error {
 //	@Router			/users/me [get]
 func GetMe(c echo.Context) error {
 	return c.JSON(http.StatusOK, c.Get("model"))
+}
+
+// Get user stats godoc
+//
+//	@Summary		User statistics
+//	@Description	get user statistics including watch count, comments, and watch time
+//	@Tags			users
+//	@Security		JWT
+//	@Produce		json
+//	@Success		200	{object}	users.UserStats
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Router			/users/stats [get]
+func GetUserStats(c echo.Context) error {
+	userModel := c.Get("model").(models.User)
+	
+	stats, err := users.GetUserStats(userModel.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to retrieve user statistics",
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, stats)
+}
+
+// WatchHistoryResponseDoc is for Swagger documentation only
+type WatchHistoryResponseDoc struct {
+	History []WatchHistoryItemDoc `json:"history"`
+	Total   int64                 `json:"total"`
+}
+
+// WatchHistoryItemDoc is for Swagger documentation only
+type WatchHistoryItemDoc struct {
+	ID           uint   `json:"id"`
+	UserID       uint   `json:"user_id"`
+	MovieID      int    `json:"movie_id"`
+	MovieTitle   string `json:"movie_title"`
+	PosterPath   string `json:"poster_path"`
+	WatchedAt    string `json:"watched_at"`
+	Duration     int    `json:"duration"`
+	LastPosition int    `json:"last_position"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// Get user watch history godoc
+//
+//	@Summary		User watch history
+//	@Description	get user's watch history with pagination
+//	@Tags			users
+//	@Security		JWT
+//	@Produce		json
+//	@Param			page	query		int	false	"Page number (default: 1)"
+//	@Param			limit	query		int	false	"Items per page (default: 20)"
+//	@Success		200	{object}	WatchHistoryResponseDoc
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Router			/users/watch-history [get]
+func GetUserWatchHistory(c echo.Context) error {
+	userModel := c.Get("model").(models.User)
+	
+	// Parse pagination parameters
+	page := 1
+	limit := 20
+	
+	if pageStr := c.QueryParam("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := c.QueryParam("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+	
+	history, err := users.GetUserWatchHistory(userModel.ID, page, limit)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to retrieve watch history",
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, history)
 }

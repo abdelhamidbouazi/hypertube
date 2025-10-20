@@ -11,4 +11,8 @@ func AddUserRouter(usersRouter *echo.Group) {
 	usersRouter.GET("", controllers.GetUsers, middlewares.Authenticated, middlewares.AttachUser)
 
 	usersRouter.GET("/me", controllers.GetMe, middlewares.Authenticated, middlewares.AttachUser)
+	
+	usersRouter.GET("/stats", controllers.GetUserStats, middlewares.Authenticated, middlewares.AttachUser)
+	
+	usersRouter.GET("/watch-history", controllers.GetUserWatchHistory, middlewares.Authenticated, middlewares.AttachUser)
 }

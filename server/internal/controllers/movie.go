@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"time"
-
+	"strconv"
+	"strings"
+	
 	"server/internal/models"
 	"server/internal/services"
 
@@ -151,17 +153,82 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 // GetMovies godoc
 //
 //	@Summary      Movies
-//	@Description  Get a default list of movies
+//	@Description  Get movies. Defaults to popular when no filters provided. Supports filters via TMDB discover.
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
+//	@Param        page        query    int     false  "Page number (default 1)"
+//	@Param        genres      query    string  false  "Comma-separated genre names or IDs (e.g., Action,Drama or 28,18)"
+//	@Param        yearFrom    query    int     false  "Release year from (inclusive)"
+//	@Param        yearTo      query    int     false  "Release year to (inclusive)"
+//	@Param        minRating   query    number  false  "Minimum TMDB rating (0-10)"
+//	@Param        sort        query    string  false  "Sort by: year, year_asc, year_desc, rating (default popularity)"
 //	@Success      200  {array}   models.Movie
 //	@Failure      500  {object}  utils.HTTPError
 //	@Router       /movies [get]
 func (c *MovieController) GetMovies(ctx echo.Context) error {
-	movies, err := c.movieService.GetMovies()
+	page := 1
+	if p := ctx.QueryParam("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	// Parse filters
+	genresParam := ctx.QueryParam("genres")           // comma-separated names or ids
+	yearFromParam := ctx.QueryParam("yearFrom")       // int
+	yearToParam := ctx.QueryParam("yearTo")           // int
+	minRatingParam := ctx.QueryParam("minRating")     // float
+	sortParam := ctx.QueryParam("sort")               // year|year_asc|year_desc|rating
+
+	// If no filters at all, keep existing behavior (popular)
+	if genresParam == "" && yearFromParam == "" && yearToParam == "" && minRatingParam == "" && sortParam == "" {
+		movies, err := c.movieService.GetPopularMovies(page)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies")
+		}
+		return ctx.JSON(http.StatusOK, movies)
+	}
+
+	var yearFromPtr, yearToPtr *int
+	if yearFromParam != "" {
+		if v, err := strconv.Atoi(yearFromParam); err == nil && v > 1800 && v < 3000 {
+			yearFromPtr = &v
+		}
+	}
+	if yearToParam != "" {
+		if v, err := strconv.Atoi(yearToParam); err == nil && v > 1800 && v < 3000 {
+			yearToPtr = &v
+		}
+	}
+	var minRatingPtr *float64
+	if minRatingParam != "" {
+		if v, err := strconv.ParseFloat(minRatingParam, 64); err == nil && v >= 0 && v <= 10 {
+			minRatingPtr = &v
+		}
+	}
+
+	var genres []string
+	if genresParam != "" {
+		for _, g := range strings.Split(genresParam, ",") {
+			if s := strings.TrimSpace(g); s != "" {
+				genres = append(genres, s)
+			}
+		}
+	}
+
+	params := services.MovieDiscoverParams{
+		Genres:    genres,
+		YearFrom:  yearFromPtr,
+		YearTo:    yearToPtr,
+		MinRating: minRatingPtr,
+		Sort:      sortParam,
+		Page:      page,
+	}
+
+	movies, err := c.movieService.DiscoverMovies(params)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies")
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies with filters")
 	}
 	return ctx.JSON(http.StatusOK, movies)
 }
@@ -178,7 +245,13 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 //	@Failure      500   {object}  utils.HTTPError
 //	@Router       /movies/popular [get]
 func (c *MovieController) PopularMovies(ctx echo.Context) error {
-	movies, err := c.movieService.GetPopularMovies(1)
+	page := 1
+	if p := ctx.QueryParam("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	movies, err := c.movieService.GetPopularMovies(page)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch popular movies")
 	}
@@ -197,7 +270,19 @@ func (c *MovieController) PopularMovies(ctx echo.Context) error {
 //	@Failure      500        {object}  utils.HTTPError
 //	@Router       /movies/random [get]
 func (c *MovieController) RandomMovies(ctx echo.Context) error {
-	movies, err := c.movieService.GetRandomMovies(1, 20)
+	page := 1
+	limit := 20
+	if p := ctx.QueryParam("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	if l := ctx.QueryParam("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	movies, err := c.movieService.GetRandomMovies(page, limit)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch random movies")
 	}
