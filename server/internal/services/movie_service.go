@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"strings"
 
 	"server/internal/models"
 )
@@ -18,6 +19,8 @@ type MovieService struct {
 	omdbKey        string
 	client         *http.Client
 	torrentSources []string
+	genreCache     map[string]int
+	genreCacheTime time.Time
 }
 
 func NewMovieService(tmdbKey, omdbKey string) *MovieService {
@@ -29,7 +32,174 @@ func NewMovieService(tmdbKey, omdbKey string) *MovieService {
 			"1337x",
 			"yts",
 		},
+		genreCache: make(map[string]int),
 	}
+}
+
+// MovieDiscoverParams encapsulates supported filters for discovering movies
+type MovieDiscoverParams struct {
+	Genres    []string
+	YearFrom  *int
+	YearTo    *int
+	MinRating *float64
+	Sort      string
+	Page      int
+}
+
+// DiscoverMovies calls TMDB discover endpoint with filters
+func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
+	if p.Page < 1 {
+		p.Page = 1
+	}
+
+	baseURL := "https://api.themoviedb.org/3/discover/movie"
+	params := url.Values{}
+	params.Add("api_key", ms.apiKey)
+	params.Add("page", strconv.Itoa(p.Page))
+
+	// Sorting
+	sortBy := "popularity.desc"
+	switch p.Sort {
+	case "year", "year_desc":
+		sortBy = "primary_release_date.desc"
+	case "year_asc":
+		sortBy = "primary_release_date.asc"
+	case "rating":
+		sortBy = "vote_average.desc"
+	}
+	params.Add("sort_by", sortBy)
+
+	// Year range via dates
+	if p.YearFrom != nil {
+		params.Add("primary_release_date.gte", fmt.Sprintf("%04d-01-01", *p.YearFrom))
+	}
+	if p.YearTo != nil {
+		params.Add("primary_release_date.lte", fmt.Sprintf("%04d-12-31", *p.YearTo))
+	}
+
+	// Min rating
+	if p.MinRating != nil {
+		params.Add("vote_average.gte", strconv.FormatFloat(*p.MinRating, 'f', -1, 64))
+	}
+
+	if len(p.Genres) > 0 {
+		ids, err := ms.getGenreIDs(p.Genres)
+		if err == nil && len(ids) > 0 {
+			params.Add("with_genres", ids)
+		}
+	}
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := ms.client.Get(fullURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var tmdbResp struct {
+		Results []struct {
+			ID          int     `json:"id"`
+			Title       string  `json:"title"`
+			ReleaseDate string  `json:"release_date"`
+			PosterPath  string  `json:"poster_path"`
+			Overview    string  `json:"overview"`
+			VoteAverage float64 `json:"vote_average"`
+			GenreIDs    []int   `json:"genre_ids"`
+		} `json:"results"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
+		return nil, err
+	}
+
+	var movies []models.Movie
+	for _, result := range tmdbResp.Results {
+		movies = append(movies, models.Movie{
+			ID:          result.ID,
+			Title:       result.Title,
+			ReleaseDate: result.ReleaseDate,
+			PosterPath:  result.PosterPath,
+			Overview:    result.Overview,
+			VoteAverage: result.VoteAverage,
+			GenreIDs:    result.GenreIDs,
+		})
+	}
+
+	return movies, nil
+}
+
+func (ms *MovieService) getGenreIDs(genres []string) (string, error) {
+	numeric := true
+	for _, g := range genres {
+		if _, err := strconv.Atoi(g); err != nil {
+			numeric = false
+			break
+		}
+	}
+	if numeric {
+		return joinCSV(genres), nil
+	}
+
+	if time.Since(ms.genreCacheTime) > 24*time.Hour || len(ms.genreCache) == 0 {
+		if err := ms.refreshGenreCache(); err != nil {
+			return "", err
+		}
+	}
+
+	ids := []string{}
+	for _, name := range genres {
+		key := normalizeGenreName(name)
+		if id, ok := ms.genreCache[key]; ok {
+			ids = append(ids, strconv.Itoa(id))
+		} else {
+			log.Printf("unknown genre name: %s", name)
+		}
+	}
+	return joinCSV(ids), nil
+}
+
+func (ms *MovieService) refreshGenreCache() error {
+	baseURL := "https://api.themoviedb.org/3/genre/movie/list"
+	params := url.Values{}
+	params.Add("api_key", ms.apiKey)
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := ms.client.Get(fullURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var payload struct {
+		Genres []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"genres"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return err
+	}
+
+	cache := make(map[string]int)
+	for _, g := range payload.Genres {
+		cache[normalizeGenreName(g.Name)] = g.ID
+	}
+	ms.genreCache = cache
+	ms.genreCacheTime = time.Now()
+	return nil
+}
+
+func normalizeGenreName(name string) string {
+	// lower-case and trim spaces for matching
+	return strings.TrimSpace(strings.ToLower(name))
+}
+
+func joinCSV(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+	return strings.Join(items, ",")
 }
 
 func (ms *MovieService) GetMovieDetails(movieID string) (*models.MovieDetails, error) {
@@ -86,11 +256,13 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 
 	var tmdbResp struct {
 		Results []struct {
-			ID          int    `json:"id"`
-			Title       string `json:"title"`
-			ReleaseDate string `json:"release_date"`
-			PosterPath  string `json:"poster_path"`
-			Overview    string `json:"overview"`
+			ID          int     `json:"id"`
+			Title       string  `json:"title"`
+			ReleaseDate string  `json:"release_date"`
+			PosterPath  string  `json:"poster_path"`
+			Overview    string  `json:"overview"`
+			VoteAverage float64 `json:"vote_average"`
+			GenreIDs    []int   `json:"genre_ids"`
 		} `json:"results"`
 	}
 
@@ -106,6 +278,8 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 			ReleaseDate: result.ReleaseDate,
 			PosterPath:  result.PosterPath,
 			Overview:    result.Overview,
+			VoteAverage: result.VoteAverage,
+			GenreIDs:    result.GenreIDs,
 		})
 	}
 
@@ -137,11 +311,13 @@ func (ms *MovieService) GetPopularMovies(page int) ([]models.Movie, error) {
 
 	var tmdbResp struct {
 		Results []struct {
-			ID          int    `json:"id"`
-			Title       string `json:"title"`
-			ReleaseDate string `json:"release_date"`
-			PosterPath  string `json:"poster_path"`
-			Overview    string `json:"overview"`
+			ID          int     `json:"id"`
+			Title       string  `json:"title"`
+			ReleaseDate string  `json:"release_date"`
+			PosterPath  string  `json:"poster_path"`
+			Overview    string  `json:"overview"`
+			VoteAverage float64 `json:"vote_average"`
+			GenreIDs    []int   `json:"genre_ids"`
 		} `json:"results"`
 	}
 
@@ -157,6 +333,8 @@ func (ms *MovieService) GetPopularMovies(page int) ([]models.Movie, error) {
 			ReleaseDate: result.ReleaseDate,
 			PosterPath:  result.PosterPath,
 			Overview:    result.Overview,
+			VoteAverage: result.VoteAverage,
+			GenreIDs:    result.GenreIDs,
 		})
 	}
 
@@ -187,11 +365,13 @@ func (ms *MovieService) GetRandomMovies(page int, pageSize int) ([]models.Movie,
 
 	var tmdbResp struct {
 		Results []struct {
-			ID          int    `json:"id"`
-			Title       string `json:"title"`
-			ReleaseDate string `json:"release_date"`
-			PosterPath  string `json:"poster_path"`
-			Overview    string `json:"overview"`
+			ID          int     `json:"id"`
+			Title       string  `json:"title"`
+			ReleaseDate string  `json:"release_date"`
+			PosterPath  string  `json:"poster_path"`
+			Overview    string  `json:"overview"`
+			VoteAverage float64 `json:"vote_average"`
+			GenreIDs    []int   `json:"genre_ids"`
 		} `json:"results"`
 	}
 
@@ -207,6 +387,8 @@ func (ms *MovieService) GetRandomMovies(page int, pageSize int) ([]models.Movie,
 			ReleaseDate: result.ReleaseDate,
 			PosterPath:  result.PosterPath,
 			Overview:    result.Overview,
+			VoteAverage: result.VoteAverage,
+			GenreIDs:    result.GenreIDs,
 		})
 	}
 

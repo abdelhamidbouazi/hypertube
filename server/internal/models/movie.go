@@ -31,12 +31,14 @@ type Subtitle struct {
 }
 
 type Movie struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	ReleaseDate string `json:"release_date"`
-	PosterPath  string `json:"poster_path"`
-	Overview    string `json:"overview"`
-	Language    string `json:"original_language,omitempty"`
+	ID          int      `json:"id"`
+	Title       string   `json:"title"`
+	ReleaseDate string   `json:"release_date"`
+	PosterPath  string   `json:"poster_path"`
+	Overview    string   `json:"overview"`
+	Language    string   `json:"original_language,omitempty"`
+	VoteAverage float64  `json:"vote_average"`
+	GenreIDs    []int    `json:"genre_ids,omitempty"`
 }
 
 type MovieDetails struct {
@@ -82,6 +84,17 @@ type Comment struct {
 	UserID   int    `json:"user_id"`
 	Username string `json:"username"`
 	Content  string `json:"content"`
+}
+
+type WatchHistory struct {
+	gorm.Model
+	UserID      uint      `gorm:"not null;index" json:"user_id"`
+	MovieID     int       `gorm:"not null" json:"movie_id"`
+	MovieTitle  string    `gorm:"size:500" json:"movie_title"`
+	PosterPath  string    `gorm:"size:500" json:"poster_path"`
+	WatchedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"watched_at"`
+	Duration    int       `json:"duration"`
+	LastPosition int      `json:"last_position"`
 }
 
 type TorrentResult struct {
