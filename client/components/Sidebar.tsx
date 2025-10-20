@@ -12,7 +12,7 @@ import {
   DropdownMenu,
   DropdownItem,
 } from '@heroui/dropdown'
-import { logoutUser } from '@/lib/hooks'
+import { logoutUser, useMe, useUserStats, useWatchHistory } from '@/lib/hooks'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useTheme } from 'next-themes'
 import {
@@ -56,7 +56,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const { user, isLoading: userLoading } = useMe()
+  const { stats, isLoading: statsLoading } = useUserStats()
+  const { continueWatching, isLoading: watchHistoryLoading } = useWatchHistory()
 
+  // main navigation items
   const navigation = [
     { name: 'Discover', href: '/app/discover', icon: Compass },
     { name: 'Watch Later', href: '/app/watch-later', icon: Clock },
@@ -64,17 +68,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Settings', href: '/app/settings', icon: Settings },
   ]
 
+  // user dropdown menu items
   const userMenuItems = [
     { key: 'profile', label: 'My Profile', icon: User, href: '/app/profile' },
   ]
 
+  // check if current route is active
   const isActive = (href: string) => pathname === href
 
+  // toggle between light and dark theme
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  // Close sidebar on mobile when route changes
+  // close sidebar on mobile route change
   useEffect(() => {
     if (window.innerWidth < 1024) {
       onToggle()
@@ -83,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* mobile overlay for sidebar */}
       {isOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -91,14 +98,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar */}
+      {/* main sidebar container */}
       <aside className={clsx(
         'fixed left-0 top-0 z-50 flex flex-col bg-content1 border-r border-divider transition-all duration-300 ease-in-out min-h-screen',
         isOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0',
         isCollapsed ? 'lg:w-16' : 'lg:w-56'
       )}>
-        {/* Header */}
+        {/* sidebar header with logo */}
         <div className="flex items-center justify-between p-3 border-b border-divider">
           {!isCollapsed && (
             <NextLink href="/app/discover" className="flex items-center gap-2">
@@ -114,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
         </div>
 
-        {/* Navigation */}
+        {/* main navigation menu */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon
@@ -148,64 +155,76 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* Continue Watching Card */}
+        {/* continue watching section */}
         {!isCollapsed && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
               Continue Watching
             </h3>
-            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-12 h-16 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                    <Film className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-content1 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-foreground truncate">
-                    The Dark Knight
-                  </h4>
-                  <p className="text-xs text-default-500 truncate">
-                    Action • 2008
-                  </p>
-                  <div className="mt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-content2 rounded-full h-1.5">
-                        <div className="bg-primary h-1.5 rounded-full" style={{ width: '65%' }}></div>
-                      </div>
-                      <span className="text-xs text-default-500">65%</span>
-                    </div>
+            {watchHistoryLoading ? (
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-16 bg-content2 rounded-lg animate-pulse" />
+                  <div className="flex-1 min-w-0">
+                    <div className="h-4 bg-content2 rounded animate-pulse mb-2" />
+                    <div className="h-3 bg-content2 rounded animate-pulse w-2/3" />
                   </div>
                 </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="flat"
-                  className="flex-1 text-xs"
-                >
-                  Resume
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  isIconOnly
-                  className="text-default-500"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
+            ) : continueWatching ? (
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img 
+                      src={continueWatching.posterPath || "/placeholder-poster.jpg"} 
+                      alt={`${continueWatching.title} poster`}
+                      className="w-12 h-16 object-cover rounded-lg"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-foreground truncate">
+                      {continueWatching.title}
+                    </h4>
+                    <p className="text-xs text-default-500 truncate">
+                      {continueWatching.genre} • {continueWatching.year}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    color="success"
+                    variant="flat"
+                    className="flex-1"
+                    as={NextLink}
+                    href={`/app/movie/${continueWatching.id}/watch`}
+                  >
+                    Resume
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="danger"
+                    isIconOnly
+                    className="text-default-500"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-gradient-to-br from-content2/50 to-content2/30 rounded-xl p-3 border border-divider">
+                <p className="text-sm text-default-500 text-center">
+                  No movies in progress
+                </p>
+              </div>
+            )}
           </div>
         )}
 
         <Divider />
 
-        {/* Quick Stats */}
+        {/* user stats section */}
         {!isCollapsed && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
@@ -214,15 +233,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Movies Watched</span>
-                <span className="font-semibold text-primary">42</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.moviesWatched}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Hours</span>
-                <span className="font-semibold text-primary">128</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.hoursWatched}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Favorites</span>
-                <span className="font-semibold text-primary">12</span>
+                <span className="font-semibold text-primary">
+                  {statsLoading ? '...' : stats.favorites}
+                </span>
               </div>
             </div>
           </div>
@@ -230,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* User Section */}
+        {/* user profile dropdown */}
         <div className="p-3">
           <Dropdown placement="top-start">
             <DropdownTrigger>
@@ -243,32 +268,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Avatar
                   size="sm"
-                  src="https://i.pravatar.cc/150?u=user"
+                  src={user?.avatar || "https://i.pravatar.cc/150?u=user"}
                   className="flex-shrink-0 ring-2 ring-primary/20"
                 />
                 {!isCollapsed && (
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-semibold">User Name</span>
-                    <span className="text-xs text-default-500">user@example.com</span>
+                    <span className="text-sm font-semibold">
+                      {userLoading ? 'Loading...' : user ? `${user.firstname} ${user.lastname}` : 'User Name'}
+                    </span>
+                    <span className="text-xs text-default-500">
+                      {userLoading ? 'Loading...' : user?.email || 'user@example.com'}
+                    </span>
                   </div>
                 )}
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu" className="min-w-[200px]">
-              {userMenuItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <DropdownItem
-                    key={item.key}
-                    startContent={<Icon className="w-4 h-4" />}
-                    as={NextLink}
-                    href={item.href}
-                    className="rounded-lg"
-                  >
-                    {item.label}
-                  </DropdownItem>
-                )
-              })}
+              <DropdownItem
+                key="profile"
+                startContent={<User className="w-4 h-4" />}
+                as={NextLink}
+                href="/app/profile"
+                className="rounded-lg"
+              >
+                My Profile
+              </DropdownItem>
               <DropdownItem
                 key="theme"
                 startContent={theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -290,7 +314,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </Dropdown>
         </div>
 
-        {/* Social Links */}
+        {/* social media links */}
         <div className="px-3 pb-4">
           <div className="flex gap-1 justify-center">
             <Button

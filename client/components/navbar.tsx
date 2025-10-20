@@ -41,24 +41,25 @@ export const Navbar = ({
   onSidebarCollapseToggle?: () => void
   isSidebarCollapsed?: boolean
 }) => {
+  // search input component
   const searchInput = (
     <Input
       variant="flat"
-      // color="primary"
+      color="primary"
       aria-label="Search"
-      // classNames={{
-      //   inputWrapper: "bg-default-100",
-      //   input: "text-sm",
-      // }}
+      classNames={{
+        inputWrapper: "bg-content1/50 backdrop-blur-sm border-primary/20 hover:border-primary/40 focus-within:border-primary shadow-sm",
+        input: "text-foreground placeholder:text-default-500"
+      }}
       endContent={
-        <Kbd className="hidden lg:inline-block" keys={["command"]}>
+        <Kbd className="hidden lg:inline-block bg-primary/10 text-primary border-primary/20" keys={["command"]}>
           K
         </Kbd>
       }
       labelPlacement="outside"
-      placeholder="Search..."
+      placeholder="Search movies..."
       startContent={
-        <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
+        <SearchIcon className="text-base text-primary/70 pointer-events-none flex-shrink-0" />
       }
       type="search"
     />
@@ -67,32 +68,31 @@ export const Navbar = ({
 
   return (
     <HeroUINavbar position="sticky">
-      {/* Left side - Empty for balance */}
+      {/* left side - empty for balance */}
       <NavbarContent justify="start">
         <NavbarItem>
-          {/* Empty left for visual balance */}
         </NavbarItem>
       </NavbarContent>
 
-      {/* Center - Search */}
+      {/* center - search input */}
       <NavbarContent justify="center">
         <NavbarItem className="hidden md:flex">
           {searchInput}
         </NavbarItem>
       </NavbarContent>
 
-      {/* Right side - Empty for balance */}
+      {/* right side - empty for balance */}
       <NavbarContent justify="end">
         <NavbarItem>
-          {/* Empty right for visual balance */}
         </NavbarItem>
       </NavbarContent>
 
-      {/* Mobile menu */}
+      {/* mobile menu toggle */}
       <NavbarContent className="sm:hidden" justify="end">
         <NavbarMenuToggle />
       </NavbarContent>
 
+      {/* mobile menu content */}
       <NavbarMenu>
         {searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">

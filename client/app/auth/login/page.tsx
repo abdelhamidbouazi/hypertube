@@ -6,6 +6,7 @@ import { Button } from "@heroui/button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/hooks";
+import { getErrorMessage } from "@/lib/error-utils";
 
 function GoogleIcon() {
   return (
@@ -69,7 +70,7 @@ export default function LoginPage() {
 
       {error && (
         <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
-          {error}
+          {getErrorMessage(error)}
         </div>
       )}
 

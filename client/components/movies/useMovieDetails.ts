@@ -21,18 +21,11 @@ export type MovieDetails = Movie & {
 };
 
 export function useMovieDetails(movieId: string) {
-
   const { movie, isLoading, error } = useMovieDetailsReq(movieId);
-
-  // const toggleWatched = React.useCallback(() => {
-  //   if (!movie) return;
-  //   console.log("movie in toggleWatched ", movie);
-  // }, [movie]);
 
   return {
     movie,
     isLoading,
     error,
-    // toggleWatched,
   };
 }

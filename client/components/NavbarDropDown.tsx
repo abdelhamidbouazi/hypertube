@@ -40,7 +40,7 @@ import {
       <Dropdown
         showArrow
         classNames={{
-          base: "before:bg-default-200", // change arrow background
+          base: "before:bg-default-200",
           content: "p-0 border-small border-divider bg-background",
         }}
         radius="sm"
@@ -71,15 +71,6 @@ import {
           <DropdownSection showDivider aria-label="Profile & Actions">
             <DropdownItem key="profile" isReadOnly className="h-14 gap-2 opacity-100">
               <Avatar
-                // avatarProps={{
-                //   size: "sm",
-                //   src: "https://avatars.githubusercontent.com/u/30373425?v=4",
-                // }}
-                // classNames={{
-                //   name: "text-default-600",
-                //   description: "text-default-500",
-                // }}
-                // description="@jrgarciadev"
                 name="Junior Garcia"
               />
             </DropdownItem>

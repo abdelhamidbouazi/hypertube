@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMovieDetails } from "@/components/movies/useMovieDetails";
+import { getErrorMessage } from "@/lib/error-utils";
 
 interface MoviePageProps {
   params: {
@@ -32,11 +33,9 @@ interface MoviePageProps {
 
 export default function MoviePage({ params }: MoviePageProps) {
   const { movie, isLoading, error } = useMovieDetails(params.id);
-  console.log("the movue", movie);
 
   const toggleWatched = () => {
-    // TODO: implement watched toggle functionality
-    console.log("Toggle watched for movie:", movie?.id);
+    console.log("toggle watched for movie:", movie?.id);
   };
 
   if (isLoading) {
@@ -66,7 +65,7 @@ export default function MoviePage({ params }: MoviePageProps) {
             color="danger"
             variant="flat"
             title="Movie not found"
-            description={error || "The movie you're looking for doesn't exist."}
+            description={error ? getErrorMessage(error) : "The movie you're looking for doesn't exist."}
           />
         </div>
       </div>

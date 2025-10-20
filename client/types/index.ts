@@ -12,3 +12,11 @@ export type User = {
   avatar?: string;
   preferred_language?: string;
 };
+
+export type ContinueWatchingMovie = {
+  id: number;
+  title: string;
+  posterPath?: string;
+  genre: string;
+  year: number;
+};
