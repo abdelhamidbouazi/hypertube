@@ -64,4 +64,9 @@ func loadMigrations(db *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&models.WatchHistory{})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
