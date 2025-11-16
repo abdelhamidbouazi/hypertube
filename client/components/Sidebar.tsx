@@ -78,7 +78,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // toggle between light and dark theme
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
+    // setTheme(theme === 'light' ? 'dark' : 'light')
+    setTheme(theme === 'light' ? 'dark' : 'dark')
   }
 
   // close sidebar on mobile route change
@@ -243,12 +244,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {statsLoading ? '...' : stats.hoursWatched}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
+              {/* <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Favorites</span>
                 <span className="font-semibold text-primary">
                   {statsLoading ? '...' : stats.favorites}
                 </span>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
