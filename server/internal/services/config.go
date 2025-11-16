@@ -75,8 +75,10 @@ type AppConfig struct {
 	} `mapstructure:"DOWNLOADS"`
 
 	STREAMING struct {
-		DownloadDir string `mapstructure:"DOWNLOAD_DIR"`
-		TMDBAPIKey  string `mapstructure:"TMDB_API_KEY"`
+		DownloadDir              string  `mapstructure:"DOWNLOAD_DIR"`
+		TMDBAPIKey               string  `mapstructure:"TMDB_API_KEY"`
+		MinBytesForTranscoding   int64   `mapstructure:"MIN_BYTES_FOR_TRANSCODING"`
+		MinPercentForTranscoding float64 `mapstructure:"MIN_PERCENT_FOR_TRANSCODING"`
 	} `mapstructure:"STREAMING"`
 }
 

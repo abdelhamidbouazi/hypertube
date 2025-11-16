@@ -24,7 +24,13 @@ export default function HlsPlayer({ src, token, thumbnail }: HlsPlayerProps) {
     let hls: Hls | null = null;
 
     if (Hls.isSupported()) {
-      const hlsInstance = new Hls();
+      const hlsInstance = new Hls({
+        xhrSetup: (xhr, url) => {
+          if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          }
+        },
+      });
       hlsInstance.loadSource(src);
       hlsInstance.attachMedia(video);
 
@@ -38,8 +44,18 @@ export default function HlsPlayer({ src, token, thumbnail }: HlsPlayerProps) {
 
       setHls(hlsInstance);
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src; // Safari native HLS
+      // Safari native HLS - can't easily add auth headers
+      // You may need to append token as query parameter for Safari
+      const urlWithToken = token ? `${src}?token=${token}` : src;
+      video.src = urlWithToken;
     }
+
+    // Cleanup function
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
   }, [src, token]);
   const handleQualityChange = (level: number) => {
     if (!hls) return;

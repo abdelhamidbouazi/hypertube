@@ -108,6 +108,10 @@ func (ts *TorrentService) GetOrStartDownload(movieID int, magnet string, quality
 				FilePath:       downloadedMovie.FilePath,
 				CompletedAt:    &[]time.Time{time.Now()}[0],
 			}, nil
+		} else {
+			// File was deleted, clean up database record
+			log.Printf("Movie %d with quality %s marked as downloaded but file missing, deleting database record", movieID, quality)
+			ts.db.Delete(&downloadedMovie)
 		}
 	}
 
@@ -274,6 +278,7 @@ func (ts *TorrentService) monitorProgress(dl *models.TorrentDownload, downloadKe
 	streamingThreshold := int64(5 * 1024 * 1024)
 	noProgressCount := 0
 	lastProgress := float64(0)
+	lastLoggedPercent := -5.0 // Initialize to ensure first log happens
 
 	for {
 		select {
@@ -325,9 +330,13 @@ func (ts *TorrentService) monitorProgress(dl *models.TorrentDownload, downloadKe
 				return
 			}
 
-			log.Printf("Download progress for %s: %.2f%% (%.2f/%.2f MB)",
-				downloadKey, currentProgress,
-				float64(completed)/1024/1024, float64(total)/1024/1024)
+			// Only log at 5% increments or when download completes
+			if currentProgress-lastLoggedPercent >= 5.0 || completed >= total {
+				log.Printf("Download progress for %s: %.2f%% (%.2f/%.2f MB)",
+					downloadKey, currentProgress,
+					float64(completed)/1024/1024, float64(total)/1024/1024)
+				lastLoggedPercent = currentProgress
+			}
 		}
 	}
 }

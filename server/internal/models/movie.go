@@ -17,6 +17,7 @@ type DownloadedMovie struct {
 	DownloadedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"downloaded_at"`
 	LastWatched  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"last_watched"`
 	FileSize     int64     `gorm:"default:0" json:"file_size"`
+	Transcoded   bool      `gorm:"default:false" json:"transcoded"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -31,14 +32,14 @@ type Subtitle struct {
 }
 
 type Movie struct {
-	ID          int      `json:"id"`
-	Title       string   `json:"title"`
-	ReleaseDate string   `json:"release_date"`
-	PosterPath  string   `json:"poster_path"`
-	Overview    string   `json:"overview"`
-	Language    string   `json:"original_language,omitempty"`
-	VoteAverage float64  `json:"vote_average"`
-	GenreIDs    []int    `json:"genre_ids,omitempty"`
+	ID          int     `json:"id"`
+	Title       string  `json:"title"`
+	ReleaseDate string  `json:"release_date"`
+	PosterPath  string  `json:"poster_path"`
+	Overview    string  `json:"overview"`
+	Language    string  `json:"original_language,omitempty"`
+	VoteAverage float64 `json:"vote_average"`
+	GenreIDs    []int   `json:"genre_ids,omitempty"`
 }
 
 type MovieDetails struct {
@@ -88,13 +89,13 @@ type Comment struct {
 
 type WatchHistory struct {
 	gorm.Model
-	UserID      uint      `gorm:"not null;index" json:"user_id"`
-	MovieID     int       `gorm:"not null" json:"movie_id"`
-	MovieTitle  string    `gorm:"size:500" json:"movie_title"`
-	PosterPath  string    `gorm:"size:500" json:"poster_path"`
-	WatchedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"watched_at"`
-	Duration    int       `json:"duration"`
-	LastPosition int      `json:"last_position"`
+	UserID       uint      `gorm:"not null;index" json:"user_id"`
+	MovieID      int       `gorm:"not null" json:"movie_id"`
+	MovieTitle   string    `gorm:"size:500" json:"movie_title"`
+	PosterPath   string    `gorm:"size:500" json:"poster_path"`
+	WatchedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"watched_at"`
+	Duration     int       `json:"duration"`
+	LastPosition int       `json:"last_position"`
 }
 
 type TorrentResult struct {

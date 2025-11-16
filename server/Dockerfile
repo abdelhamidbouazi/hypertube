@@ -2,6 +2,9 @@ FROM golang:1.25-bookworm
 
 WORKDIR /app
 
+# Install FFmpeg for video transcoding
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+
 RUN go install github.com/air-verse/air@latest
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest

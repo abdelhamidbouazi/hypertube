@@ -412,6 +412,48 @@ func (ms *MovieService) SearchTorrents(query string, year string) ([]models.Torr
 	return results, nil
 }
 
+func (ms *MovieService) SearchTorrentsByIMDb(imdbID string) ([]models.TorrentResult, error) {
+	var results []models.TorrentResult
+
+	// YTS supports IMDb ID search
+	ytsResults, err := ms.searchYTSByIMDb(imdbID)
+	if err != nil {
+		log.Printf("Error searching YTS by IMDb: %v", err)
+	} else {
+		results = append(results, ytsResults...)
+	}
+
+	return results, nil
+}
+
+func (ms *MovieService) GetIMDbIDFromTMDb(movieID string) (string, error) {
+	baseURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%s/external_ids", movieID)
+	params := url.Values{}
+	params.Add("api_key", ms.apiKey)
+
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	resp, err := ms.client.Get(fullURL)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var externalIDs struct {
+		IMDbID string `json:"imdb_id"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&externalIDs); err != nil {
+		return "", err
+	}
+
+	if externalIDs.IMDbID == "" {
+		return "", fmt.Errorf("no IMDb ID found for TMDB movie %s", movieID)
+	}
+
+	return externalIDs.IMDbID, nil
+}
+
 func (ms *MovieService) parseTMDBResponse(data map[string]interface{}) *models.MovieDetails {
 	details := &models.MovieDetails{}
 
@@ -552,6 +594,66 @@ func (ms *MovieService) searchYTS(query string, year string) ([]models.TorrentRe
 
 	var results []models.TorrentResult
 	for _, movie := range ytsResp.Data.Movies {
+		for _, t := range movie.Torrents {
+			if t.Hash == "" {
+				log.Printf("Warning: Torrent hash missing for movie %s", movie.Title)
+				continue
+			}
+			magnet := fmt.Sprintf("magnet:?xt=urn:btih:%s&dn=%s", t.Hash, url.QueryEscape(movie.Title))
+
+			results = append(results, models.TorrentResult{
+				Name:     fmt.Sprintf("%s (%d) [%s]", movie.Title, movie.Year, t.Quality),
+				Magnet:   magnet,
+				Size:     t.Size,
+				Seeders:  t.Seeds,
+				Leechers: t.Peers,
+				Quality:  t.Quality,
+			})
+		}
+	}
+
+	return results, nil
+}
+
+func (ms *MovieService) searchYTSByIMDb(imdbID string) ([]models.TorrentResult, error) {
+	apiURL := fmt.Sprintf("https://yts.mx/api/v2/list_movies.json?query_term=%s", imdbID)
+
+	resp, err := ms.client.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var ytsResp struct {
+		Status string `json:"status"`
+		Data   struct {
+			Movies []struct {
+				Title    string `json:"title"`
+				Year     int    `json:"year"`
+				IMDbCode string `json:"imdb_code"`
+				Torrents []struct {
+					URL     string `json:"url"`
+					Hash    string `json:"hash"`
+					Quality string `json:"quality"`
+					Seeds   int    `json:"seeds"`
+					Peers   int    `json:"peers"`
+					Size    string `json:"size"`
+				} `json:"torrents"`
+			} `json:"movies"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&ytsResp); err != nil {
+		return nil, err
+	}
+
+	var results []models.TorrentResult
+	for _, movie := range ytsResp.Data.Movies {
+		// Verify IMDb ID matches
+		if movie.IMDbCode != imdbID {
+			continue
+		}
+
 		for _, t := range movie.Torrents {
 			if t.Hash == "" {
 				log.Printf("Warning: Torrent hash missing for movie %s", movie.Title)
