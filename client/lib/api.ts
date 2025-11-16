@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
   timeout: 10000,
@@ -13,7 +15,7 @@ api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
       let token = localStorage.getItem('token');
-      
+
       if (!token) {
         const cookies = document.cookie.split(';');
         const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('token='));
@@ -21,7 +23,7 @@ api.interceptors.request.use(
           token = tokenCookie.split('=')[1];
         }
       }
-      
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }

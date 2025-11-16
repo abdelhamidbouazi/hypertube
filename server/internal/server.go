@@ -60,6 +60,7 @@ func InitServices() {
 
 func Init(config string) {
 	services.LoadConfig(config)
+	services.LoadVideoTranscoderConfig("video_transcoder.yml")
 	services.LoadTemplateConfig()
 	services.LoadMailDialer()
 	services.LoadValidator()
@@ -106,8 +107,8 @@ func LoadServer() {
 	torrentGroup.POST("/download", torrentController.StartDownload)
 	torrentGroup.GET("/progress", torrentController.GetDownloadProgress)
 
-	streamGroup := Server.Group("/stream")
-	streamGroup.GET("/:id", movieController.StreamMovie, middlewares.Authenticated, middlewares.AttachUser)
+	streamGroup := Server.Group("/stream", middlewares.Authenticated, middlewares.AttachUser)
+	streamGroup.GET("/*", movieController.ServeHLSFile)
 
 	commentGroup := Server.Group("/comments")
 	commentGroup.POST("/add", commentController.AddComment, middlewares.Authenticated, middlewares.AttachUser)

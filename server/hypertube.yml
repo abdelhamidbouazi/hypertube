@@ -24,6 +24,8 @@ DOWNLOADS:
 STREAMING:
   DOWNLOAD_DIR: "/app/downloads"
   TMDB_API_KEY: ""
+  MIN_BYTES_FOR_TRANSCODING: 5242880 # 5MB in bytes (5 * 1024 * 1024)
+  MIN_PERCENT_FOR_TRANSCODING: 0.5 # 0.5% of total file size
 ui:
   address: http://localhost:4200
   Reset_Password_Route: reset_password

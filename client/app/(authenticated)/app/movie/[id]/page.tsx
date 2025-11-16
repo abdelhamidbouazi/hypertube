@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { use } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
@@ -8,13 +8,13 @@ import { Chip } from "@heroui/chip";
 import { Divider } from "@heroui/divider";
 import { Spinner } from "@heroui/spinner";
 import { Alert } from "@heroui/alert";
-import { 
-  ArrowLeft, 
-  Play, 
-  Clock, 
-  Calendar, 
-  Globe, 
-  DollarSign, 
+import {
+  ArrowLeft,
+  Play,
+  Clock,
+  Calendar,
+  Globe,
+  DollarSign,
   Star,
   Users,
   Film,
@@ -26,13 +26,14 @@ import { useMovieDetails } from "@/components/movies/useMovieDetails";
 import { getErrorMessage } from "@/lib/error-utils";
 
 interface MoviePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function MoviePage({ params }: MoviePageProps) {
-  const { movie, isLoading, error } = useMovieDetails(params.id);
+  const { id } = use(params);
+  const { movie, isLoading, error } = useMovieDetails(id);
 
   const toggleWatched = () => {
     console.log("toggle watched for movie:", movie?.id);
@@ -101,7 +102,7 @@ export default function MoviePage({ params }: MoviePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-content2">
       <div className="container mx-auto px-4 py-2">
-        
+
 
         {/* Movie Header */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -151,7 +152,7 @@ export default function MoviePage({ params }: MoviePageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-            <Link href={`/app/movie/${movie.id}/watch`}>
+              <Link href={`/app/movie/${movie.id}/watch`}>
                 <Button
                   color="primary"
                   size="lg"
@@ -186,7 +187,7 @@ export default function MoviePage({ params }: MoviePageProps) {
         <Card className="mb-8">
           <CardBody className="p-6">
             <h2 className="text-2xl font-bold mb-6">Movie Details</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Director */}
               {movie.director && movie.director.length > 0 && (

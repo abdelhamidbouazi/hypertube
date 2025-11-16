@@ -63,6 +63,10 @@ client/*.tmp
 server/downloads/
 /downloads/
 
+# HLS output
+hls_output/
+/hls_output/
+
 # Swagger Docs
 server/docs/docs.go
 server/docs/swagger.json

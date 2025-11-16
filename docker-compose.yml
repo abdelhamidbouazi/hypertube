@@ -29,6 +29,7 @@ services:
     volumes:
       - ./server/:/app
       - ./downloads:/app/downloads
+      - ./hls_output:/app/hls_output
     env_file:
       - .env
     environment:
