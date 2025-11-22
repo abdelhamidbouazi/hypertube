@@ -33,8 +33,10 @@ services:
     env_file:
       - .env
     environment:
-      CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
-      UI_ADDRESS: http://localhost:4200
+      # CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
+      # UI_ADDRESS: http://localhost:4200
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:4200,http://localhost:8080"
+      UI_ADDRESS: http://localhost:3000
       MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
       MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
       DOWNLOADS_DIRECTORY: "/app/downloads"

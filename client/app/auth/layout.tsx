@@ -22,9 +22,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-[90%] max-w-md">{children}</div>
       </section>
 
-      <div className="absolute inset-x-0 bottom-0 z-30 ">
+      {/* <div className="absolute inset-x-0 bottom-0 z-30 ">
         <Footer />
-      </div>
+      </div> */}
 
       <style jsx global>{`
         @keyframes kenburns {
