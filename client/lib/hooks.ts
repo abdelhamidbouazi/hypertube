@@ -94,6 +94,24 @@ export const useUserStats = () => {
   };
 };
 
+// Type for API response (snake_case from backend)
+type WatchHistoryItemResponse = {
+  id?: number;
+  movie_id: number;
+  movie_title: string;
+  poster_path?: string;
+  watched_at?: string;
+  duration?: number;
+  last_position?: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type WatchHistoryResponse = {
+  history: WatchHistoryItemResponse[];
+  total?: number;
+};
+
 // hook for user watch history and continue watching
 export const useWatchHistory = () => {
   const [mounted, setMounted] = useState(false);
@@ -104,8 +122,24 @@ export const useWatchHistory = () => {
     setMounted(true);
   }, []);
 
-  const history = data?.history || [];
-  const continueWatching = history.length > 0 ? history[0] : null;
+  const apiResponse = data as WatchHistoryResponse | undefined;
+  const history = apiResponse?.history || [];
+  
+  // Transform API response to match ContinueWatchingMovie type
+  const continueWatching = history.length > 0 ? (() => {
+    const item = history[0];
+    // Extract year from watched_at or use current year as default
+    const watchedDate = item.watched_at ? new Date(item.watched_at) : null;
+    const year = watchedDate ? watchedDate.getFullYear() : new Date().getFullYear();
+    
+    return {
+      id: item.movie_id,
+      title: item.movie_title || 'Unknown Movie',
+      posterPath: item.poster_path || undefined,
+      genre: 'Movie', // Default since API doesn't provide genre - could be enhanced by fetching movie details
+      year: year,
+    } as ContinueWatchingMovie;
+  })() : null;
   
   return {
     watchHistory: history,

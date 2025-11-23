@@ -37,9 +37,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Clear tokens on 401 - middleware will handle redirect
       localStorage.removeItem('token');
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      window.location.href = '/auth/login';
     }
     return Promise.reject(error);
   }

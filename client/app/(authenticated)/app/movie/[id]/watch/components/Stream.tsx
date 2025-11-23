@@ -107,7 +107,8 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         } catch (error: any) {
           // If 404, try next quality
           if (error.response?.status === 404) {
-            continue;
+            console.log("error, cannot get download progress3");
+            break;
           }
           // Other errors, stop trying
           break;
@@ -125,7 +126,7 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       } else {
         clearInterval(interval);
       }
-    }, 2000);
+    }, 10000);
 
     return () => {
       shouldContinuePolling = false;
