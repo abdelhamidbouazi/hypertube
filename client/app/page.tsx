@@ -46,10 +46,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="absolute inset-x-0 bottom-0 z-30">
+      {/* <div className="absolute inset-x-0 bottom-0 z-30">
           <Footer />
         
-      </div>
+      </div> */}
 
       {/* Keyframes */}
       <style jsx global>{`
