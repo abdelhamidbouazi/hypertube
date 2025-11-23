@@ -31,7 +31,7 @@ function FortyTwoIcon() {
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [Username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,13 +39,13 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted!', { email, password });
+    console.log('Form submitted!', { Username, password });
     setIsLoading(true);
     setError("");
 
     try {
       console.log('Calling loginUser...');
-      const response = await loginUser(email, password);
+      const response = await loginUser(Username, password);
       console.log('Login response:', response);
       
       if (response.AccessToken) {
@@ -76,15 +76,15 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5 pt-4" action="#" method="post">
         <Input
-          type="email"
+          type="Username"
           className="text-slate-800"
-          label="Email"
+          label="Username"
           placeholder="you@example.com"
           variant="faded"
           radius="sm"
           isRequired
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={Username}
+          onChange={(e) => setUsername(e.target.value)}
           />
         <Input
           type="password"

@@ -3,20 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@heroui/button";
-import { ListFilterPlus } from "lucide-react";
+import { Progress } from "@heroui/progress";
+import api from "@/lib/api";
 
 interface HlsPlayerProps {
   src: string;
   thumbnail?: string;
   token: string;
   movieTitle: string;
+  movieId: string;
 }
 
-export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitle }: HlsPlayerProps) {
+interface DownloadProgress {
+  status: string;
+  progress: number;
+  stream_ready: boolean;
+  quality: string;
+}
+
+export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitle, movieId }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [levels, setLevels] = useState<{ index: number; label: string }[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -66,14 +76,111 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       }
     };
   }, [src, token]);
+
+  // Poll download progress
+  useEffect(() => {
+    if (!movieId) return;
+
+    let shouldContinuePolling = true;
+
+    const checkDownloadProgress = async () => {
+      if (!shouldContinuePolling) return;
+
+      // Try common qualities
+      const qualities = ["1080p", "720p", "480p"];
+      
+      for (const quality of qualities) {
+        try {
+          const response = await api.get<DownloadProgress>("/torrents/progress", {
+            params: { movie_id: movieId, quality },
+          });
+          
+          if (response.data) {
+            setDownloadProgress(response.data);
+            // If download is completed or streaming, stop polling
+            if (response.data.status === "completed" || response.data.stream_ready) {
+              shouldContinuePolling = false;
+              return;
+            }
+            break; // Found active download, stop trying other qualities
+          }
+        } catch (error: any) {
+          // If 404, try next quality
+          if (error.response?.status === 404) {
+            continue;
+          }
+          // Other errors, stop trying
+          break;
+        }
+      }
+    };
+
+    // Check immediately
+    checkDownloadProgress();
+
+    // Poll every 2 seconds while download is in progress
+    const interval = setInterval(() => {
+      if (shouldContinuePolling) {
+        checkDownloadProgress();
+      } else {
+        clearInterval(interval);
+      }
+    }, 2000);
+
+    return () => {
+      shouldContinuePolling = false;
+      clearInterval(interval);
+    };
+  }, [movieId]);
+
   const handleQualityChange = (level: number) => {
     if (!hlsRef.current) return;
     hlsRef.current.currentLevel = level;
     setCurrentLevel(level);
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "initializing":
+        return "Initializing download...";
+      case "downloading":
+        return "Downloading...";
+      case "streaming":
+        return "Streaming ready";
+      case "completed":
+        return "Download completed";
+      default:
+        return status;
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto text-center">
+      {/* Download Progress */}
+      {downloadProgress && downloadProgress.status !== "completed" && !downloadProgress.stream_ready && (
+        <div className="mb-4 p-4 rounded-lg bg-content2 dark:bg-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-foreground-500 dark:text-slate-200">
+              {getStatusLabel(downloadProgress.status)}
+            </span>
+            <span className="text-sm text-foreground-500 dark:text-slate-200">
+              {downloadProgress.progress.toFixed(1)}%
+            </span>
+          </div>
+          <Progress
+            value={downloadProgress.progress}
+            color="primary"
+            className="w-full"
+            aria-label="Download progress"
+          />
+          {downloadProgress.quality && (
+            <span className="text-xs text-foreground-400 mt-1 block">
+              Quality: {downloadProgress.quality}
+            </span>
+          )}
+        </div>
+      )}
+
       {levels.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-start font-bold w-full items-start text-xl text-foreground-500 dark:text-slate-200">{movieTitle && movieTitle}</span>

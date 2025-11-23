@@ -3,6 +3,20 @@ import api from './api';
 import { useEffect, useState } from 'react';
 import { ContinueWatchingMovie } from '@/types';
 
+
+export const useSearchMovies = (query: string) => {
+  // Only make API call if query is not empty
+  const url = query.trim() ? `/movies/search?q=${encodeURIComponent(query.trim())}` : null;
+  const { data, error, isLoading, mutate } = useApi(url);
+  return {
+    movies: data || [],
+    isLoading,
+    error,
+    refetch: mutate,
+  };
+};
+
+
 // hook for fetching movies list
 export const useMovies = () => {
   const [mounted, setMounted] = useState(false);
@@ -51,15 +65,15 @@ export const useMe = () => {
   return { user: data, isLoading, error, refetch: mutate };
 };
 
-// authenticate user with email and password
-export const loginUser = async (email: string, password: string) => {
-  const response = await api.post('/auth/login', { email, password });
+// authenticate user with username and password
+export const loginUser = async (username: string, password: string) => {
+  const response = await api.post('/auth/login', { username, password });
   return response.data;
 };
 
 // register new user account
-export const registerUser = async (email: string, password: string, firstName: string, lastName: string) => {
-  const response = await api.post('/auth/register', { email, password, FirstName: firstName, LastName: lastName });
+export const registerUser = async (username: string, password: string, firstName: string, lastName: string) => {
+  const response = await api.post('/auth/register', { username, password, FirstName: firstName, LastName: lastName });
   return response.data;
 };
 
@@ -82,15 +96,23 @@ export const useUserStats = () => {
 
 // hook for user watch history and continue watching
 export const useWatchHistory = () => {
-  // TODO: Replace with real API endpoint when available
-  // const { data, error, isLoading } = useApi('/users/watch-history');
+  const [mounted, setMounted] = useState(false);
+  const { data, error, isLoading, mutate } = useApi(mounted ? '/users/watch-history' : null);
   
-  // For now, return placeholder data
+  // prevent hydration mismatch by waiting for client mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const history = data?.history || [];
+  const continueWatching = history.length > 0 ? history[0] : null;
+  
   return {
-    watchHistory: [] as ContinueWatchingMovie[],
-    continueWatching: null as ContinueWatchingMovie | null,
-    isLoading: false,
-    error: null,
+    watchHistory: history,
+    continueWatching,
+    isLoading: !mounted || isLoading,
+    error,
+    refetch: mutate,
   };
 };
 
