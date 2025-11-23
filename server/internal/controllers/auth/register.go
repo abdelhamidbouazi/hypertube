@@ -6,6 +6,7 @@ import (
 	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 type RegisterUserType struct {
@@ -13,6 +14,7 @@ type RegisterUserType struct {
 	LastName  string `validate:"required,min=4" example:"Turing"`
 	Email     string `validate:"required,email" example:"example@email.com"`
 	Password  string `validate:"required,min=8" example:"j8Kt603ql0RV"`
+	Username  string `validate:"required" example:"fturing"`
 }
 
 // Register godoc
@@ -40,9 +42,19 @@ func Register(c echo.Context) error {
 	user.FirstName = newUser.FirstName
 	user.LastName = newUser.LastName
 	user.Password = newUser.Password
+	user.Username = newUser.Username
 
 	err = services.ValidateStruct(newUser)
 	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	_, err = users.GetUserByUsername(user.Username)
+	if err == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "username is already taken")
+	}
+
+	if err != gorm.ErrRecordNotFound {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 

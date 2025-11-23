@@ -11,6 +11,7 @@ import (
 	"server/internal/services"
 	oauthService "server/internal/services/oauth2"
 	"server/internal/services/users"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -18,49 +19,39 @@ import (
 	"gorm.io/gorm"
 )
 
-// Google OAuth2 godoc
+// Github OAuth2 godoc
 //
-//	@Summary		Register using 42 API OAuth2
-//	@Description	Register new user using 42  API OAuth2
+//	@Summary		Register using Github API OAuth2
+//	@Description	Register new user using Github API OAuth2
 //	@Tags			oauth2
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	auth.RevokeTokenRes
-//	@Router			/oauth2/fortytwo [post]
-func Google(c echo.Context) error {
-	config := oauthService.Providers()["google"]
+//	@Router			/oauth2/github [post]
+func Github(c echo.Context) error {
+	config := oauthService.Providers()["github"]
 	if config == nil {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{
-			"message": "Google method not implemented",
+			"message": "Github API method not implemented",
 		})
 	}
-
 	url := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	return c.Redirect(http.StatusFound, url)
 }
 
-type OAuth2GoogleRedirect struct {
+type OAuth2GithubRedirect struct {
 	Code string `validate:"required" query:"code"`
 }
 
-type GoogleUserResult struct {
-	Id          string
-	Email       string
-	Name        string
-	Given_name  string
-	Family_name string
-	Picture     string
-}
-
-func GoogleCallback(c echo.Context) error {
-	config := oauthService.Providers()["google"]
+func GithubCallback(c echo.Context) error {
+	config := oauthService.Providers()["github"]
 	if config == nil {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{
-			"message": "Google method not implemented",
+			"message": "Github API method not implemented",
 		})
 	}
 
-	var body OAuth2GoogleRedirect
+	var body OAuth2GithubRedirect
 
 	err := c.Bind(&body)
 	if err != nil {
@@ -83,7 +74,7 @@ func GoogleCallback(c echo.Context) error {
 		})
 	}
 
-	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
 		services.Logger.Error(err.Error())
 		return echo.NewHTTPError(http.StatusInternalServerError)
@@ -93,6 +84,7 @@ func GoogleCallback(c echo.Context) error {
 	client := http.Client{
 		Timeout: time.Second * 30,
 	}
+
 	res, err := client.Do(req)
 	if err != nil {
 		services.Logger.Error(err.Error())
@@ -105,26 +97,37 @@ func GoogleCallback(c echo.Context) error {
 	}
 
 	var resBody bytes.Buffer
+
 	_, err = io.Copy(&resBody, res.Body)
 	if err != nil {
 		return err
 	}
 
-	var GoogleUserRes map[string]interface{}
-	if err := json.Unmarshal(resBody.Bytes(), &GoogleUserRes); err != nil {
+	type Source struct {
+		Id        int    `json:"id"`
+		Email     string `json:"email"`
+		FirstName string `json:"name"`
+		LastName  string `json:"last_name"`
+		Avatar    string `json:"avatar_url"`
+		Login     string `json:"login"`
+	}
+
+	var APIUserRes Source
+	if err := json.Unmarshal(resBody.Bytes(), &APIUserRes); err != nil {
 		return err
 	}
 
-	providerId := GoogleUserRes["id"].(string)
-	user, err := users.GetUserByProviderId("google", providerId)
+	provideId := strconv.Itoa(APIUserRes.Id)
+	user, err := users.GetUserByProviderId("github", provideId)
 	if err == gorm.ErrRecordNotFound {
 		newUser := users.CreateUserType{
-			Provider:   "google",
-			ProviderId: providerId,
-			Email:      GoogleUserRes["email"].(string),
-			FirstName:  GoogleUserRes["name"].(string),
-			Avatar:     GoogleUserRes["picture"].(string),
-			Username:   fmt.Sprintf("%s%d", GoogleUserRes["name"].(string), providerId),
+			Provider:   "github",
+			ProviderId: provideId,
+			Email:      APIUserRes.Email,
+			FirstName:  APIUserRes.FirstName,
+			LastName:   APIUserRes.LastName,
+			Avatar:     APIUserRes.Avatar,
+			Username:   APIUserRes.Login,
 		}
 		createdUser, err := users.CreateUser(newUser)
 		if err != nil {

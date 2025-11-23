@@ -9,6 +9,7 @@ import (
 type User struct {
 	gorm.Model        `json:"-"`
 	Tokens            pq.StringArray `gorm:"type:text[]" json:"-"`
+	Username          string         `json:"username" example:"fturing"`
 	FirstName         string         `json:"firstname" example:"Alan"`
 	LastName          string         `json:"lastname" example:"Turing"`
 	Email             string         `json:"email" example:"example@email.com"`

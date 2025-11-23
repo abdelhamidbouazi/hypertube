@@ -16,6 +16,7 @@ type CreateUserType struct {
 	Provider   string `validate:"required"`
 	ProviderId string
 	Avatar     string
+	Username   string `validate:"required"`
 }
 
 func CreateUser(newUser CreateUserType) (models.User, error) {
@@ -25,6 +26,7 @@ func CreateUser(newUser CreateUserType) (models.User, error) {
 	user.FirstName = newUser.FirstName
 	user.LastName = newUser.LastName
 	user.Avatar = newUser.Avatar
+	user.Username = newUser.Username
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), 8)
 	if err != nil {
 		return user, err

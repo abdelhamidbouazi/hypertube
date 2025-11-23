@@ -35,6 +35,56 @@ func GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+type UpdateUserRequest struct {
+	FirstName         string `validate:"min=4" example:"Alan"`
+	LastName          string `validate:"min=4" example:"Turing"`
+	Email             string `validate:"email" example:"example@email.com"`
+	Username          string `validate:"" example:"fturing"`
+	PreferredLanguage string `validate:"max=10,omitempty" default:"en" json:"preferred_language" example:"en"`
+}
+
+// Update users info godoc
+//
+//	@Summary		Update a user
+//	@Description	update a user
+//	@Tags			users
+//	@Produce		json
+//	@Param		UpdateUserRequest body UpdateUserRequest true "update user info"
+//	@Success		200	{array}		models.User
+//	@Failure 400 {object} utils.HTTPError
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Security		JWT
+//	@Router			/users [patch]
+func UpdateUser(c echo.Context) error {
+	var user UpdateUserRequest
+
+	err := c.Bind(&user)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+
+	foundUser := c.Get("model").(models.User)
+
+	if user.Email != "" {
+		foundUser.Email = user.Email
+	}
+	if user.Username != "" {
+		foundUser.Username = user.Username
+	}
+	if user.FirstName != "" {
+		foundUser.FirstName = user.FirstName
+	}
+	if user.LastName != "" {
+		foundUser.LastName = user.LastName
+	}
+	if user.PreferredLanguage != "" {
+		foundUser.PreferredLanguage = user.PreferredLanguage
+	}
+
+	users.UpdateUser(foundUser)
+	return c.JSON(http.StatusOK, foundUser)
+}
+
 // Get user info godoc
 //
 //	@Summary		User info
@@ -61,11 +111,11 @@ func GetMe(c echo.Context) error {
 //	@Router			/users/stats [get]
 func GetUserStats(c echo.Context) error {
 	userModel := c.Get("model").(models.User)
-	
+
 	stats, err := users.GetUserStats(userModel.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": "Failed to retrieve user statistics",
+			"error":   "Failed to retrieve user statistics",
 			"message": err.Error(),
 		})
 	}
@@ -107,27 +157,27 @@ type WatchHistoryItemDoc struct {
 //	@Router			/users/watch-history [get]
 func GetUserWatchHistory(c echo.Context) error {
 	userModel := c.Get("model").(models.User)
-	
+
 	// Parse pagination parameters
 	page := 1
 	limit := 20
-	
+
 	if pageStr := c.QueryParam("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := c.QueryParam("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
 		}
 	}
-	
+
 	history, err := users.GetUserWatchHistory(userModel.ID, page, limit)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": "Failed to retrieve watch history",
+			"error":   "Failed to retrieve watch history",
 			"message": err.Error(),
 		})
 	}
