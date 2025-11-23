@@ -10,7 +10,8 @@ import (
 )
 
 type LoginUserType struct {
-	Email    string `validate:"required" example:"example@email.com"`
+	// Email    string `validate:"required" example:"example@email.com"`
+	Username string `validate:"required" example:"fturing"`
 	Password string `validate:"required" example:"j8Kt603ql0RV"`
 }
 
@@ -21,7 +22,7 @@ type LoginUserType struct {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			loginUserRequest	body		LoginUserType	true	"json body to send with email and password"
+//	@Param			loginUserRequest	body		LoginUserType	true	"json body to send with username and password"
 //	@Success		200					{object}	RevokeTokenRes
 //	@Failure		401					{object}	utils.HTTPErrorUnauthorized
 //	@Failure		400					{object}	utils.HTTPError
@@ -39,7 +40,7 @@ func Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := users.GetUserByEmail(newUser.Email)
+	user, err := users.GetUserByUsername(newUser.Username)
 	if err != nil {
 		return echo.ErrUnauthorized
 	}

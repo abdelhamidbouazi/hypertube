@@ -59,6 +59,9 @@ type AppConfig struct {
 		FortyTwo struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"FORTYTWO"`
+		Github struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"GITHUB"`
 	} `mapstructure:"OAUTH"`
 
 	MOVIE_APIS struct {

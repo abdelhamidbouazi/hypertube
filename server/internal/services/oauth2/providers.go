@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
 )
 
@@ -45,9 +46,25 @@ func LoadGoogleConfig() {
 	}
 }
 
+func LoadGithubConfig() {
+	uid := viper.GetString("OAUTH_GITHUB_UID")
+	secret := viper.GetString("OAUTH_GITHUB_SECRET")
+	redirect := services.Conf.OAUTH.Github.Redirect
+	if uid != "" && secret != "" && redirect != "" {
+		providers["github"] = &oauth2.Config{
+			ClientID:     uid,
+			ClientSecret: secret,
+			Endpoint:     github.Endpoint,
+			RedirectURL:  redirect,
+			Scopes:       []string{"read:user"},
+		}
+	}
+}
+
 func LoadConfig() {
 	LoadGoogleConfig()
 	LoadFortyTwoConfig()
+	LoadGithubConfig()
 }
 
 func Providers() map[string]*oauth2.Config {
