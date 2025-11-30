@@ -20,7 +20,6 @@ func AddStreamRouter(streamRouter *echo.Group, movieController *controllers.Movi
 }
 
 func AddTorrentRouter(torrentRouter *echo.Group, torrentController *controllers.TorrentController) {
-	torrentRouter.GET("/search", torrentController.SearchTorrents, middlewares.Authenticated, middlewares.AttachUser)
 	torrentRouter.POST("/download", torrentController.StartDownload, middlewares.Authenticated, middlewares.AttachUser)
 	torrentRouter.GET("/progress", torrentController.GetDownloadProgress, middlewares.Authenticated, middlewares.AttachUser)
 }

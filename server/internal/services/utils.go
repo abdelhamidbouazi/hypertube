@@ -2,7 +2,10 @@ package services
 
 import (
 	"html/template"
+	"io/fs"
 	"log"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 	gomail "gopkg.in/mail.v2"
@@ -33,4 +36,26 @@ func LoadMailDialer() {
 
 func MailDialer() *gomail.Dialer {
 	return dialer
+}
+
+func FindFilesWithExtension(path string, ext string) ([]string, error) {
+	var srtFiles []string
+
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		if strings.ToLower(filepath.Ext(path)) == "."+ext {
+			srtFiles = append(srtFiles, path)
+		}
+
+		return nil
+	})
+
+	return srtFiles, err
 }

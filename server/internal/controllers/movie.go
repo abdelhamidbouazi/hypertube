@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anacrolix/torrent"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
@@ -294,122 +295,148 @@ func (c *MovieController) RandomMovies(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, movies)
 }
 
-func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
-	path := ctx.Request().URL.Path
-	outputDir := services.VideoTranscoderConf.Output.Directory
+func validateAndExtractMovieFilePath(path string) (int, error) {
+	var movieId int
+	var err error
 
+	services.Logger.Info("Validating path: %s", path)
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid path")
+		return movieId, echo.NewHTTPError(http.StatusBadRequest, "Invalid path")
 	}
 
 	movieIDStr := parts[1]
-	movieID, err := strconv.Atoi(movieIDStr)
+	movieId, err = strconv.Atoi(movieIDStr)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid movie ID")
+		return movieId, echo.NewHTTPError(http.StatusBadRequest, "Invalid movie ID")
 	}
 
-	// Check if movie is already transcoded
+	return movieId, nil
+}
+
+func (c *MovieController) ensureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID int, outputDir string) error {
+	services.Logger.Info(fmt.Sprintf("Ensuring movie %d is partially downloaded and started transcoding", movieID))
 	var downloadedMovie models.DownloadedMovie
-	err = c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error
+	err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error
 	if err == nil && downloadedMovie.Transcoded {
-		// Movie is already transcoded, no need to start stream
-		log.Printf("Movie %d is already transcoded, serving existing files", movieID)
-	} else {
-		// Start transcoding if not already started
-		c.streamMu.Lock()
-		if !c.streamStarted[movieID] {
-			c.streamStarted[movieID] = true
-			go c.startMovieStream(movieID, outputDir)
-		}
-		c.streamMu.Unlock()
+		services.Logger.Info(fmt.Sprintf("Movie %d is already transcoded", movieID))
+		return nil
+	}
+	if err != nil {
+		services.Logger.Info(fmt.Sprintf("Movie %d is not downloaded", movieID))
+	}
+	services.Logger.Info(fmt.Sprintf("Acquiring lock to check transcoding status for movie %d", movieID))
+	c.streamMu.Lock()
+	services.Logger.Info(fmt.Sprintf("Checking if transcoding already started for movie %d", movieID))
+	if !c.streamStarted[movieID] {
+		services.Logger.Info(fmt.Sprintf("Starting transcoding for movie %d", movieID))
+		c.streamStarted[movieID] = true
+		go c.startMovieStream(movieID, outputDir)
+	}
+	services.Logger.Info(fmt.Sprintf("Releasing lock after checking transcoding status for movie %d", movieID))
+	c.streamMu.Unlock()
+	services.Logger.Info(fmt.Sprintf("Transcoding process initiated for movie %d", movieID))
+	return err
+}
+
+// serveHLSFile godoc
+//
+// @Summary      Serve HLS video or playlist file
+// @Description  Streams HLS (.m3u8 playlist or .ts segment) files for a given movie. Triggers transcoding if not already done.
+// @Tags         stream
+// @Produce      application/vnd.apple.mpegurl,video/MP2T
+// @Param        movieID  path      int     true  "Movie ID"
+// @Param        file     path      string  true  "HLS file path (e.g. master.m3u8, 720p/0.ts)"
+// @Success      200      {file}    binary  "HLS file"
+// @Failure      400      {object}  utils.HTTPError
+// @Failure      404      {object}  utils.HTTPError
+// @Failure      500      {object}  utils.HTTPError
+// @Security     ApiKeyAuth
+// @Router       /stream/{movieID}/{file} [get]
+func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
+	path := ctx.Request().URL.Path
+
+	services.Logger.Info("Requested HLS path: " + path)
+
+	movieID, err := validateAndExtractMovieFilePath(path)
+	if err != nil {
+		return err
 	}
 
+	outputDir := services.VideoTranscoderConf.Output.Directory
 	filePath := filepath.Join(outputDir, strings.TrimPrefix(path, "/stream/"))
-	log.Printf("Waiting for HLS file: %s", filePath)
-	if err := c.waitForFile(filePath, 5*time.Second); err != nil {
-		log.Printf("File not found after waiting: %s", filePath)
-		return echo.NewHTTPError(http.StatusNotFound, "File not ready")
-	}
 
-	log.Printf("Serving HLS file: %s", filePath)
+	services.Logger.Info("Serving HLS file: " + filePath)
+
+	err = c.checkFileExits(filePath)
+	if err != nil {
+		services.Logger.Info("File does not exist yet: " + filePath)
+		err = c.ensureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID, outputDir)
+		if err != nil {
+			return err
+		}
+
+		services.Logger.Info("Waiting for file to be ready: " + filePath)
+		if err := c.waitForFile(filePath, 5*time.Second); err != nil {
+			return echo.NewHTTPError(http.StatusNotFound, "File not ready")
+		}
+
+		services.Logger.Info("Serving file: " + filePath)
+	}
 	return ctx.File(filePath)
 }
 
-func (c *MovieController) startMovieStream(movieID int, outputDir string) {
-	var shouldCleanup bool
-
-	defer func() {
-		if shouldCleanup || recover() != nil {
-			c.streamMu.Lock()
-			delete(c.streamStarted, movieID)
-			c.streamMu.Unlock()
-		}
-	}()
-
-	activeDownload, err := c.findAndDownloadMovie(movieID)
-	if err != nil {
-		shouldCleanup = true
-		return
+func (c *MovieController) startMovieStreamCleanup(shouldCleanup bool, movieID int) {
+	services.Logger.Info("Cleaning up startMovieStream for movieID: " + strconv.Itoa(movieID))
+	if shouldCleanup || recover() != nil {
+		services.Logger.Info("Acquiring lock to clean up streamStarted entry for movieID: " + strconv.Itoa(movieID))
+		c.streamMu.Lock()
+		delete(c.streamStarted, movieID)
+		c.streamMu.Unlock()
+		services.Logger.Info("Released lock after cleaning up streamStarted entry for movieID: " + strconv.Itoa(movieID))
 	}
+}
 
-	hlsOutputDir := filepath.Join(services.VideoTranscoderConf.Output.Directory, fmt.Sprintf("%d", movieID))
-	if err := os.MkdirAll(hlsOutputDir, 0755); err != nil {
-		shouldCleanup = true
-		return
-	}
+func (c *MovieController) ensureHLSMovieDirectory(hlsOutputDir string) error {
+	return os.MkdirAll(hlsOutputDir, 0755)
+}
 
-	// Check if this is a completed download (FilePath already set, no active torrent)
+func (c *MovieController) getTorrentMovieDetails(activeDownload *models.TorrentDownload) (string, *torrent.File, string, float64) {
 	activeDownload.Mu.RLock()
 	filePath := activeDownload.FilePath
 	videoFile := activeDownload.VideoFile
 	status := activeDownload.Status
+	progress := activeDownload.Progress
 	activeDownload.Mu.RUnlock()
 
-	if status == "completed" && filePath != "" && videoFile == nil {
-		// This is a completed download, skip waiting and go directly to transcoding
-		log.Printf("Using completed download for movie %d: %s", movieID, filePath)
-	} else {
-		// This is an active download, wait for video file to be detected
+	return filePath, videoFile, status, progress
+}
+
+func (c *MovieController) waitUntilVideoFileIsReady(
+	activeDownload *models.TorrentDownload, filePath string,
+	videoFile *torrent.File,
+	status string,
+) {
+	if !(status == "completed" && filePath != "" && videoFile == nil) {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 
 	waitLoop:
 		for {
-			activeDownload.Mu.RLock()
-			videoFile := activeDownload.VideoFile
-			activeDownload.Mu.RUnlock()
+			_, videoFile, _, _ = c.getTorrentMovieDetails(activeDownload)
 
 			if videoFile != nil {
-				log.Printf("Video file detected for movie %d: %s", movieID, activeDownload.FilePath)
 				break waitLoop
 			}
 
 			<-ticker.C
-			// Continue waiting indefinitely
 		}
 
-		// Wait for sufficient data before transcoding.
-		// Start with lower threshold and retry if FFmpeg fails
 		minBytesForTranscoding := services.Conf.STREAMING.MinBytesForTranscoding
 		minPercentForTranscoding := services.Conf.STREAMING.MinPercentForTranscoding
 
-		// Fallback to defaults if not configured
-		if minBytesForTranscoding == 0 {
-			minBytesForTranscoding = 5 * 1024 * 1024 // 5MB
-		}
-		if minPercentForTranscoding == 0 {
-			minPercentForTranscoding = 0.5 // 0.5%
-		}
-
-		log.Printf("Waiting for sufficient download progress for movie %d (min: %d bytes or %.2f%%)...",
-			movieID, minBytesForTranscoding, minPercentForTranscoding)
 		for {
-			activeDownload.Mu.RLock()
-			progress := activeDownload.Progress
-			videoFile := activeDownload.VideoFile
-			filePath := activeDownload.FilePath
-			activeDownload.Mu.RUnlock()
+			filePath, videoFile, _, progress := c.getTorrentMovieDetails(activeDownload)
 
 			if videoFile != nil {
 				totalSize := videoFile.Length()
@@ -418,79 +445,86 @@ func (c *MovieController) startMovieStream(movieID int, outputDir string) {
 				if totalSize > 0 {
 					downloadedBytes = int64(float64(totalSize) * progress / 100.0)
 				} else {
-					// Fallback: stat the partial file on disk if total size isn't available yet
 					partPath := filePath + ".part"
 					if fi, err := os.Stat(partPath); err == nil {
 						downloadedBytes = fi.Size()
 					}
 				}
 
-				log.Printf("Movie %d download progress: %.2f%%, downloaded %d MB, total %d MB", movieID, progress, downloadedBytes/(1024*1024), videoFile.Length()/(1024*1024))
-
 				if downloadedBytes >= minBytesForTranscoding || progress >= minPercentForTranscoding {
-					log.Printf("Sufficient data downloaded for movie %d: %.2f%% (%d MB)", movieID, progress, downloadedBytes/(1024*1024))
 					break
 				}
 			}
 
 			<-ticker.C
-			// Continue waiting
 		}
 	}
+}
 
-	// Retry transcoding loop - keep trying infinitely while download is active
+func (c *MovieController) tryFFmpegTranscoding(
+	activeDownload *models.TorrentDownload,
+	movieID int,
+	hlsOutputDir string,
+	shouldchange *bool,
+) {
 	retryDelay := 10 * time.Second
 	attempt := 0
 
 	for {
 		attempt++
-		// Use .part file if regular file doesn't exist (torrent still downloading)
 		inputFile := activeDownload.FilePath
 		if _, err := os.Stat(inputFile); os.IsNotExist(err) {
 			partFile := inputFile + ".part"
 			if _, err := os.Stat(partFile); err == nil {
 				inputFile = partFile
-				log.Printf("Using .part file for transcoding: %s", partFile)
 			}
 		}
 
-		log.Printf("Starting FFmpeg transcoding for movie %d (attempt %d) with input: %s", movieID, attempt, inputFile)
-		err := c.runFFmpegTranscoding(inputFile, hlsOutputDir)
-
+		srtFiles := make([]string, 0)
+		err := c.runFFmpegTranscoding(inputFile, srtFiles, hlsOutputDir)
 		if err == nil {
-			log.Printf("FFmpeg transcoding completed successfully for movie %d", movieID)
-
-			// Mark movie as transcoded in database
 			var downloadedMovie models.DownloadedMovie
 			if err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error; err == nil {
 				c.db.Model(&downloadedMovie).Update("transcoded", true)
-				log.Printf("Marked movie %d as transcoded in database", movieID)
 			}
-
+			*shouldchange = false
 			break
 		}
 
-		// Check if download is still active
-		activeDownload.Mu.RLock()
-		progress := activeDownload.Progress
-		status := activeDownload.Status
-		activeDownload.Mu.RUnlock()
-
+		_, _, status, progress := c.getTorrentMovieDetails(activeDownload)
 		if status == "completed" || progress >= 100.0 {
-			// Download is complete, don't retry
-			log.Printf("FFmpeg transcoding failed for movie %d after completion: %v", movieID, err)
-			shouldCleanup = true
+			*shouldchange = true
 			break
 		}
 
-		// Download still active, retry after delay
-		log.Printf("FFmpeg transcoding failed for movie %d (attempt %d): %v. Download at %.2f%%, retrying in %v...",
-			movieID, attempt, err, progress, retryDelay)
 		time.Sleep(retryDelay)
 	}
 }
 
-func (c *MovieController) runFFmpegTranscoding(inputFile string, hlsOutputDir string) error {
+func (c *MovieController) startMovieStream(movieID int, outputDir string) {
+	shouldCleanup := false
+	defer c.startMovieStreamCleanup(shouldCleanup, movieID)
+
+	movieIDStr := fmt.Sprintf("%d", movieID)
+	hlsOutputDir := filepath.Join(services.VideoTranscoderConf.Output.Directory, movieIDStr)
+
+	activeDownload, err := c.findAndDownloadMovie(movieID)
+	if err != nil {
+		shouldCleanup = true
+		return
+	}
+
+	if err := c.ensureHLSMovieDirectory(hlsOutputDir); err != nil {
+		shouldCleanup = true
+		return
+	}
+
+	filePath, videoFile, status, _ := c.getTorrentMovieDetails(activeDownload)
+	c.waitUntilVideoFileIsReady(activeDownload, filePath, videoFile, status)
+	c.tryFFmpegTranscoding(activeDownload, movieID, hlsOutputDir, &shouldCleanup)
+}
+
+func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []string, hlsOutputDir string) error {
 	var args []string
 	args = append(args, "-i", inputFile)
 
@@ -564,24 +598,26 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, hlsOutputDir st
 	outputPattern := filepath.Join(hlsOutputDir, "%v/playlist.m3u8")
 	args = append(args, outputPattern)
 
-	log.Printf("Starting FFmpeg with command: ffmpeg %v", strings.Join(args, " "))
-
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		log.Printf("FFmpeg command failed: %v", err)
 		return err
 	}
 
-	log.Printf("FFmpeg command completed successfully")
 	return nil
+}
+
+func (c *MovieController) checkFileExits(filePath string) error {
+	services.Logger.Info("Checking if file exists: " + filePath)
+	_, err := os.Stat(filePath)
+	return err
 }
 
 func (c *MovieController) waitForFile(filePath string, timeout time.Duration) error {
 	for {
-		if _, err := os.Stat(filePath); err == nil {
+		if err := c.checkFileExits(filePath); err == nil {
 			time.Sleep(100 * time.Millisecond)
 			return nil
 		}
@@ -590,33 +626,11 @@ func (c *MovieController) waitForFile(filePath string, timeout time.Duration) er
 }
 
 func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDownload, error) {
-	movieIDStr := strconv.Itoa(movieID)
-	details, err := c.movieService.GetMovieDetails(movieIDStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get movie details: %w", err)
-	}
+	services.Logger.Info(fmt.Sprintf("Finding and downloading movie with ID: %d", movieID))
+	details, err := c.movieService.GetIMDbIDFromTMDb(movieID)
 
-	var imdbID string
-	if details.IMDbID != "" {
-		imdbID = details.IMDbID
-	} else {
-		imdbID, err = c.movieService.GetIMDbIDFromTMDb(movieIDStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get IMDb ID: %w", err)
-		}
-	}
-
-	torrents, err := c.movieService.SearchTorrentsByIMDb(imdbID)
-	if err != nil || len(torrents) == 0 {
-		year := ""
-		if len(details.ReleaseDate) >= 4 {
-			year = details.ReleaseDate[:4]
-		}
-		torrents, err = c.movieService.SearchTorrents(details.Title, year)
-		if err != nil || len(torrents) == 0 {
-			return nil, fmt.Errorf("no torrents found for movie")
-		}
-	}
+	services.Logger.Info(fmt.Sprintf("Movie details fetched: %+v", details))
+	torrents, err := c.movieService.SearchTorrentsByIMDb(*details)
 
 	if len(torrents) == 0 {
 		return nil, fmt.Errorf("no suitable torrent found")
@@ -648,7 +662,6 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		}
 
 		<-ticker.C
-		// Continue waiting indefinitely
 	}
 }
 
@@ -698,23 +711,6 @@ func (c *MovieController) StreamMovie(ctx echo.Context) error {
 	}
 
 	return echo.NewHTTPError(http.StatusNotFound, "Movie not available for streaming")
-}
-
-// SearchTorrents handles torrent search requests
-func (c *MovieController) SearchTorrents(ctx echo.Context) error {
-	title := ctx.QueryParam("title")
-	year := ctx.QueryParam("year")
-
-	if title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Title parameter is required")
-	}
-
-	results, err := c.movieService.SearchTorrents(title, year)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search torrents")
-	}
-
-	return ctx.JSON(http.StatusOK, results)
 }
 
 // DownloadTorrent handles torrent download requests
