@@ -5,14 +5,14 @@ import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Alert } from "@heroui/alert";
 import { Chip } from "@heroui/chip";
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Home, 
+import {
+  AlertTriangle,
+  RefreshCw,
+  Home,
   ArrowLeft,
   Bug,
   Wifi,
-  Server
+  Server,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,43 +29,65 @@ export default function Error({
 
   const getErrorType = (error: Error) => {
     const message = error.message.toLowerCase();
-    if (message.includes('network') || message.includes('fetch')) return 'network';
-    if (message.includes('server') || message.includes('500')) return 'server';
-    if (message.includes('not found') || message.includes('404')) return 'notfound';
-    return 'general';
+    if (message.includes("network") || message.includes("fetch"))
+      return "network";
+    if (message.includes("server") || message.includes("500")) return "server";
+    if (message.includes("not found") || message.includes("404"))
+      return "notfound";
+    return "general";
   };
 
   const errorType = getErrorType(error);
-  
+
   const errorConfig = {
     network: {
       icon: <Wifi size={48} className="text-warning" />,
       title: "Connection Lost",
-      description: "It looks like you've lost your internet connection. Please check your network and try again.",
+      description:
+        "It looks like you've lost your internet connection. Please check your network and try again.",
       color: "warning" as const,
-      suggestions: ["Check your internet connection", "Try refreshing the page", "Switch to a different network"]
+      suggestions: [
+        "Check your internet connection",
+        "Try refreshing the page",
+        "Switch to a different network",
+      ],
     },
     server: {
       icon: <Server size={48} className="text-danger" />,
       title: "Server Error",
-      description: "Our servers are experiencing some issues. We're working to fix this as quickly as possible.",
+      description:
+        "Our servers are experiencing some issues. We're working to fix this as quickly as possible.",
       color: "danger" as const,
-      suggestions: ["Try again in a few minutes", "Check our status page", "Contact support if the issue persists"]
+      suggestions: [
+        "Try again in a few minutes",
+        "Check our status page",
+        "Contact support if the issue persists",
+      ],
     },
     notfound: {
       icon: <AlertTriangle size={48} className="text-warning" />,
       title: "Page Not Found",
-      description: "The page you're looking for doesn't exist or has been moved.",
+      description:
+        "The page you're looking for doesn't exist or has been moved.",
       color: "warning" as const,
-      suggestions: ["Check the URL for typos", "Go back to the previous page", "Visit our homepage"]
+      suggestions: [
+        "Check the URL for typos",
+        "Go back to the previous page",
+        "Visit our homepage",
+      ],
     },
     general: {
       icon: <Bug size={48} className="text-danger" />,
       title: "Something Went Wrong",
-      description: "An unexpected error occurred. Don't worry, we've been notified and are looking into it.",
+      description:
+        "An unexpected error occurred. Don't worry, we've been notified and are looking into it.",
       color: "danger" as const,
-      suggestions: ["Try refreshing the page", "Clear your browser cache", "Contact support if the issue persists"]
-    }
+      suggestions: [
+        "Try refreshing the page",
+        "Clear your browser cache",
+        "Contact support if the issue persists",
+      ],
+    },
   };
 
   const config = errorConfig[errorType];
@@ -83,9 +105,7 @@ export default function Error({
           {/* Error Content */}
           <div className="text-center space-y-6">
             {/* Error Icon */}
-            <div className="flex justify-center">
-              {config.icon}
-            </div>
+            <div className="flex justify-center">{config.icon}</div>
 
             {/* Error Title */}
             <div>
@@ -104,7 +124,9 @@ export default function Error({
               <CardBody className="p-4">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <Bug size={16} className="text-foreground-500" />
-                  <span className="text-sm font-medium text-foreground-500">Error Details</span>
+                  <span className="text-sm font-medium text-foreground-500">
+                    Error Details
+                  </span>
                 </div>
                 <code className="text-xs text-foreground-600 bg-content1 p-2 rounded border block text-left break-all">
                   {error.message || "Unknown error occurred"}
@@ -114,7 +136,9 @@ export default function Error({
 
             {/* Suggestions */}
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-foreground-700">What you can try:</h3>
+              <h3 className="text-lg font-semibold text-foreground-700">
+                What you can try:
+              </h3>
               <div className="flex flex-wrap justify-center gap-2">
                 {config.suggestions.map((suggestion, index) => (
                   <Chip
@@ -142,7 +166,7 @@ export default function Error({
               >
                 Go Back
               </Button>
-              
+
               <Button
                 color="primary"
                 variant="flat"
@@ -153,7 +177,7 @@ export default function Error({
               >
                 Try Again
               </Button>
-              
+
               <Button
                 as={Link}
                 href="/app/discover"
@@ -170,7 +194,7 @@ export default function Error({
             {/* Additional Help */}
             <div className="pt-6 border-t border-default-200">
               <p className="text-sm text-foreground-500 mb-3">
-                Still having trouble? We're here to help.
+                Still having trouble? We&apos;re here to help.
               </p>
               <div className="flex justify-center gap-4">
                 <Button
@@ -195,8 +219,6 @@ export default function Error({
             </div>
           </div>
         </div>
-
-        
       </div>
     </div>
   );

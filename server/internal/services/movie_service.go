@@ -66,6 +66,8 @@ func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, e
 		sortBy = "primary_release_date.asc"
 	case "rating":
 		sortBy = "vote_average.desc"
+	case "name":
+		sortBy = "original_title.asc"
 	}
 	params.Add("sort_by", sortBy)
 

@@ -4,9 +4,11 @@ import type { ThemeProviderProps } from "next-themes";
 
 import * as React from "react";
 import { HeroUIProvider } from "@heroui/system";
-import { useRouter } from "next/navigation";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { SWRConfig } from "swr";
+import { useRouter } from "next/navigation";
+import { ToastProvider } from "@heroui/toast";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+
 import fetcher from "@/lib/swr";
 
 export interface ProvidersProps {
@@ -27,9 +29,12 @@ export function Providers({ children, themeProps }: ProvidersProps) {
 
   return (
     <SWRConfig value={{ fetcher }}>
-      <HeroUIProvider navigate={router.push}>
-        <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
-      </HeroUIProvider>
+      <NextThemesProvider {...themeProps}>
+        <HeroUIProvider navigate={router.push}>
+          {children}
+          <ToastProvider placement="top-right" />
+        </HeroUIProvider>
+      </NextThemesProvider>
     </SWRConfig>
   );
 }
