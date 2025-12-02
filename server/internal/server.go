@@ -103,7 +103,6 @@ func LoadServer() {
 	routes.AddMovieRouter(movieGroup, movieController)
 
 	torrentGroup := Server.Group("/torrents")
-	torrentGroup.GET("/search", torrentController.SearchTorrents)
 	torrentGroup.POST("/download", torrentController.StartDownload)
 	torrentGroup.GET("/progress", torrentController.GetDownloadProgress)
 

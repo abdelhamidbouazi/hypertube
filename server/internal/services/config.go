@@ -104,6 +104,14 @@ func LoadConfig(config string) {
 		log.Fatal(err)
 	}
 
+	if Conf.STREAMING.MinBytesForTranscoding < 5*1024*1024 {
+		log.Fatal("MinBytesForTranscoding should be greater or equal than 5MB")
+	}
+
+	if Conf.STREAMING.MinPercentForTranscoding < 0.5 {
+		log.Fatal("MinPercentForTranscoding should be greater or equal than 0.5 percent")
+	}
+
 	setupExtra()
 }
 

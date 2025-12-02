@@ -21,33 +21,6 @@ func NewTorrentController(ts *services.TorrentService, ms *services.MovieService
 	}
 }
 
-// SearchTorrents godoc
-//
-//	@Summary      Search torrents by title/year
-//	@Description  Search torrent sources for a given movie title and optional year
-//	@Tags         torrents
-//	@Accept       json
-//	@Produce      json
-//	@Param        title   query     string  true  "Movie title"
-//	@Param        year    query     string  false "Release year"
-//	@Security     JWT
-//	@Success      200  {array}   models.TorrentResult
-//	@Failure      400  {object}  utils.HTTPError
-//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
-//	@Failure      500  {object}  utils.HTTPError
-//	@Router       /torrents/search [get]
-func (c *TorrentController) SearchTorrents(ctx echo.Context) error {
-	title := ctx.QueryParam("title")
-	year := ctx.QueryParam("year")
-
-	results, err := c.movieService.SearchTorrents(title, year)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search torrents")
-	}
-
-	return ctx.JSON(http.StatusOK, results)
-}
-
 // StartDownloadRequest represents the request body for starting a torrent download
 type StartDownloadRequest struct {
 	MovieID int    `json:"movie_id" example:"12345"`
