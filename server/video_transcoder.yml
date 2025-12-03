@@ -4,8 +4,9 @@ encoding:
   gop_size: 48 # Keyframe every 2 seconds at 24fps
   keyint_min: 48
   sc_threshold: 0
-  audio_bitrate: "128k"
+  audio_bitrate: "192k" # Increased from 128k for better audio quality, especially for MKV files
   audio_sample_rate: 48000
+  audio_channels: 2 # Stereo output
 
 qualities:
   - name: "1080p"

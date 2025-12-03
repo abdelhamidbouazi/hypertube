@@ -71,6 +71,9 @@ type AppConfig struct {
 		OMDB struct {
 			APIKey string `mapstructure:"API_KEY"`
 		} `mapstructure:"OMDB"`
+		SUBDL struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"SUBDL"`
 	} `mapstructure:"MOVIE_APIS"`
 
 	DOWNLOADS struct {
@@ -79,6 +82,8 @@ type AppConfig struct {
 
 	STREAMING struct {
 		DownloadDir              string  `mapstructure:"DOWNLOAD_DIR"`
+		HLSOutputDir             string  `mapstructure:"HLS_OUTPUT_DIR"`
+		SubtitlesDir             string  `mapstructure:"SUBTITLES_DIR"`
 		TMDBAPIKey               string  `mapstructure:"TMDB_API_KEY"`
 		MinBytesForTranscoding   int64   `mapstructure:"MIN_BYTES_FOR_TRANSCODING"`
 		MinPercentForTranscoding float64 `mapstructure:"MIN_PERCENT_FOR_TRANSCODING"`
@@ -104,12 +109,12 @@ func LoadConfig(config string) {
 		log.Fatal(err)
 	}
 
-	if Conf.STREAMING.MinBytesForTranscoding < 5*1024*1024 {
-		log.Fatal("MinBytesForTranscoding should be greater or equal than 5MB")
+	if Conf.STREAMING.MinBytesForTranscoding < 1*1024*1024 {
+		log.Fatal("MinBytesForTranscoding should be greater or equal than 1MB")
 	}
 
-	if Conf.STREAMING.MinPercentForTranscoding < 0.5 {
-		log.Fatal("MinPercentForTranscoding should be greater or equal than 0.5 percent")
+	if Conf.STREAMING.MinPercentForTranscoding < 0.1 {
+		log.Fatal("MinPercentForTranscoding should be greater or equal than 0.1 percent")
 	}
 
 	setupExtra()

@@ -66,6 +66,8 @@ server/downloads/
 # HLS output
 hls_output/
 /hls_output/
+subtitles/
+/subtitles/
 
 # Swagger Docs
 server/docs/docs.go
@@ -76,3 +78,10 @@ server/hypertube
 server/server
 
 server/tmp/
+
+# Log files
+server/logs/
+/logs/
+*.log
+
+postgres_data/
