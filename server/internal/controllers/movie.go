@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -15,30 +16,65 @@ import (
 	"time"
 
 	"github.com/anacrolix/torrent"
+	"github.com/grafov/m3u8"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
 type MovieController struct {
-	movieService       *services.MovieService
-	torrentService     *services.TorrentService
-	transcodingService *services.TranscodingService
-	db                 *gorm.DB
-	streamStarted      map[int]bool // tracks if startMovieStream has been called per movieID
-	streamMu           sync.Mutex   // protects streamStarted map
+	movieService        *services.MovieService
+	torrentService      *services.TorrentService
+	subtitleService     *services.SubtitleService
+	db                  *gorm.DB
+	websocketController *WebSocketController
+	streamStarted       map[int]bool
+	streamStatus        map[int]map[string]interface{}
+	streamMu            sync.Mutex
 }
 
-func NewMovieController(ms *services.MovieService, ts *services.TorrentService, tcs *services.TranscodingService, db *gorm.DB) *MovieController {
+func getLanguageLabel(code string) string {
+	languageLabels := map[string]string{
+		"en": "English",
+		"fr": "French",
+		"es": "Spanish",
+		"ar": "Arabic",
+		"de": "German",
+		"it": "Italian",
+		"pt": "Portuguese",
+		"ru": "Russian",
+		"ja": "Japanese",
+		"ko": "Korean",
+		"zh": "Chinese",
+		"hi": "Hindi",
+		"nl": "Dutch",
+		"pl": "Polish",
+		"tr": "Turkish",
+	}
+	if label, ok := languageLabels[code]; ok {
+		return label
+	}
+	return code
+}
+
+func NewMovieController(ms *services.MovieService, ts *services.TorrentService, db *gorm.DB, wsc *WebSocketController) *MovieController {
+	subdlAPIKey := services.Conf.MOVIE_APIS.SUBDL.APIKey
+	subtitleService, err := services.NewSubtitleService(subdlAPIKey)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize subtitle service: %v", err)
+	}
+
 	return &MovieController{
-		movieService:       ms,
-		torrentService:     ts,
-		transcodingService: tcs,
-		db:                 db,
-		streamStarted:      make(map[int]bool),
+		movieService:   ms,
+		torrentService: ts,
+		// transcodingService:  tcs,
+		subtitleService:     subtitleService,
+		db:                  db,
+		websocketController: wsc,
+		streamStarted:       make(map[int]bool),
+		streamStatus:        make(map[int]map[string]interface{}),
 	}
 }
 
-// MovieDetailsDoc is a doc-only schema for MovieDetails that avoids gorm.Model in nested types
 type MovieDetailsDoc struct {
 	ID           int               `json:"id"`
 	Title        string            `json:"title"`
@@ -100,30 +136,6 @@ func (c *MovieController) loadComments(details *models.MovieDetails) {
 	}
 
 	details.Comments = comments
-}
-
-func (c *MovieController) serveVideoFile(ctx echo.Context, filePath string) error {
-	return c.transcodingService.TranscodeIfNeeded(filePath, ctx.Response(), ctx.Request())
-}
-
-func (c *MovieController) streamPartialFile(ctx echo.Context, dl *models.TorrentDownload) error {
-	dl.Mu.RLock()
-	videoFile := dl.VideoFile
-	dl.Mu.RUnlock()
-
-	if videoFile == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Video file not available")
-	}
-
-	reader := videoFile.NewReader()
-	defer reader.Close()
-
-	ctx.Response().Header().Set("Content-Type", "video/mp4")
-	ctx.Response().Header().Set("Accept-Ranges", "bytes")
-	ctx.Response().Header().Set("Connection", "keep-alive")
-
-	http.ServeContent(ctx.Response(), ctx.Request(), "", time.Now(), reader)
-	return nil
 }
 
 // SearchMovies godoc
@@ -299,7 +311,6 @@ func validateAndExtractMovieFilePath(path string) (int, error) {
 	var movieId int
 	var err error
 
-	services.Logger.Info("Validating path: %s", path)
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 {
 		return movieId, echo.NewHTTPError(http.StatusBadRequest, "Invalid path")
@@ -315,7 +326,6 @@ func validateAndExtractMovieFilePath(path string) (int, error) {
 }
 
 func (c *MovieController) ensureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID int, outputDir string) error {
-	services.Logger.Info(fmt.Sprintf("Ensuring movie %d is partially downloaded and started transcoding", movieID))
 	var downloadedMovie models.DownloadedMovie
 	err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error
 	if err == nil && downloadedMovie.Transcoded {
@@ -336,7 +346,7 @@ func (c *MovieController) ensureMovieIsPartiallyDownloadedAndStartedTranscoding(
 	services.Logger.Info(fmt.Sprintf("Releasing lock after checking transcoding status for movie %d", movieID))
 	c.streamMu.Unlock()
 	services.Logger.Info(fmt.Sprintf("Transcoding process initiated for movie %d", movieID))
-	return err
+	return nil
 }
 
 // serveHLSFile godoc
@@ -356,8 +366,6 @@ func (c *MovieController) ensureMovieIsPartiallyDownloadedAndStartedTranscoding(
 func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 	path := ctx.Request().URL.Path
 
-	services.Logger.Info("Requested HLS path: " + path)
-
 	movieID, err := validateAndExtractMovieFilePath(path)
 	if err != nil {
 		return err
@@ -366,34 +374,39 @@ func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 	outputDir := services.VideoTranscoderConf.Output.Directory
 	filePath := filepath.Join(outputDir, strings.TrimPrefix(path, "/stream/"))
 
-	services.Logger.Info("Serving HLS file: " + filePath)
-
 	err = c.checkFileExits(filePath)
 	if err != nil {
-		services.Logger.Info("File does not exist yet: " + filePath)
 		err = c.ensureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID, outputDir)
 		if err != nil {
 			return err
 		}
 
-		services.Logger.Info("Waiting for file to be ready: " + filePath)
 		if err := c.waitForFile(filePath, 5*time.Second); err != nil {
-			return echo.NewHTTPError(http.StatusNotFound, "File not ready")
-		}
+			c.streamMu.Lock()
+			status, exists := c.streamStatus[movieID]
+			c.streamMu.Unlock()
 
-		services.Logger.Info("Serving file: " + filePath)
+			if !exists {
+				status = map[string]interface{}{
+					"stage":   "initializing",
+					"message": "Stream initialization in progress",
+				}
+			}
+
+			return ctx.JSON(http.StatusAccepted, map[string]interface{}{
+				"error":  status["message"],
+				"status": status,
+			})
+		}
 	}
 	return ctx.File(filePath)
 }
 
 func (c *MovieController) startMovieStreamCleanup(shouldCleanup bool, movieID int) {
-	services.Logger.Info("Cleaning up startMovieStream for movieID: " + strconv.Itoa(movieID))
 	if shouldCleanup || recover() != nil {
-		services.Logger.Info("Acquiring lock to clean up streamStarted entry for movieID: " + strconv.Itoa(movieID))
 		c.streamMu.Lock()
 		delete(c.streamStarted, movieID)
 		c.streamMu.Unlock()
-		services.Logger.Info("Released lock after cleaning up streamStarted entry for movieID: " + strconv.Itoa(movieID))
 	}
 }
 
@@ -410,6 +423,27 @@ func (c *MovieController) getTorrentMovieDetails(activeDownload *models.TorrentD
 	activeDownload.Mu.RUnlock()
 
 	return filePath, videoFile, status, progress
+}
+
+func (c *MovieController) updateStreamStatus(movieID int, stage string, message string, additionalData map[string]interface{}) {
+	c.streamMu.Lock()
+
+	status := map[string]interface{}{
+		"movieID": movieID,
+		"stage":   stage,
+		"message": message,
+	}
+
+	for key, value := range additionalData {
+		status[key] = value
+	}
+
+	c.streamStatus[movieID] = status
+	c.streamMu.Unlock()
+
+	if c.websocketController != nil {
+		c.websocketController.UpdateStreamState(movieID, status)
+	}
 }
 
 func (c *MovieController) waitUntilVideoFileIsReady(
@@ -480,19 +514,31 @@ func (c *MovieController) tryFFmpegTranscoding(
 			}
 		}
 
-		srtFiles := make([]string, 0)
-		err := c.runFFmpegTranscoding(inputFile, srtFiles, hlsOutputDir)
+		err := c.runFFmpegTranscoding(inputFile, hlsOutputDir)
 		if err == nil {
 			var downloadedMovie models.DownloadedMovie
 			if err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error; err == nil {
 				c.db.Model(&downloadedMovie).Update("transcoded", true)
 			}
+			c.updateStreamStatus(movieID, "ready", "Stream is ready to play", map[string]interface{}{
+				"transcodingStatus": "ready",
+			})
 			*shouldchange = false
 			break
 		}
 
+		c.updateStreamStatus(movieID, "transcoding", fmt.Sprintf("Transcoding attempt %d failed, retrying...", attempt), map[string]interface{}{
+			"transcodingStatus": "retrying",
+			"attempt":           attempt,
+			"error":             err.Error(),
+		})
+
 		_, _, status, progress := c.getTorrentMovieDetails(activeDownload)
 		if status == "completed" || progress >= 100.0 {
+			c.updateStreamStatus(movieID, "error", "Transcoding failed after download completed", map[string]interface{}{
+				"transcodingStatus": "failed",
+				"lastError":         err.Error(),
+			})
 			*shouldchange = true
 			break
 		}
@@ -505,28 +551,266 @@ func (c *MovieController) startMovieStream(movieID int, outputDir string) {
 	shouldCleanup := false
 	defer c.startMovieStreamCleanup(shouldCleanup, movieID)
 
+	c.updateStreamStatus(movieID, "initializing", "Starting movie stream", nil)
 	movieIDStr := fmt.Sprintf("%d", movieID)
-	hlsOutputDir := filepath.Join(services.VideoTranscoderConf.Output.Directory, movieIDStr)
+	hlsBaseDir := services.VideoTranscoderConf.Output.Directory
+	if services.Conf.STREAMING.HLSOutputDir != "" {
+		hlsBaseDir = services.Conf.STREAMING.HLSOutputDir
+	}
+	hlsOutputDir := filepath.Join(hlsBaseDir, movieIDStr)
 
+	srtFiles := c.downloadMovieSubtitles(movieID)
+
+	c.updateStreamStatus(movieID, "downloading", "Finding and downloading movie", nil)
 	activeDownload, err := c.findAndDownloadMovie(movieID)
 	if err != nil {
+		c.updateStreamStatus(movieID, "error", "Failed to download movie: "+err.Error(), nil)
 		shouldCleanup = true
 		return
 	}
 
 	if err := c.ensureHLSMovieDirectory(hlsOutputDir); err != nil {
+		c.updateStreamStatus(movieID, "error", "Failed to create HLS output directory: "+err.Error(), nil)
 		shouldCleanup = true
 		return
 	}
 
-	filePath, videoFile, status, _ := c.getTorrentMovieDetails(activeDownload)
+	filePath, videoFile, status, progress := c.getTorrentMovieDetails(activeDownload)
+	c.updateStreamStatus(movieID, "downloading", fmt.Sprintf("Downloading: %.1f%% complete", progress), map[string]interface{}{
+		"downloadProgress": progress,
+		"downloadStatus":   status,
+	})
 	c.waitUntilVideoFileIsReady(activeDownload, filePath, videoFile, status)
+
+	if err := c.convertSubtitlesToHLS(srtFiles, hlsOutputDir); err != nil {
+		c.updateStreamStatus(movieID, "error", "Failed to convert subtitles to HLS: "+err.Error(), nil)
+		shouldCleanup = true
+		return
+	}
+
+	_, err = c.createMasterPlaylist(hlsOutputDir, srtFiles)
+	if err != nil {
+		c.updateStreamStatus(movieID, "error", "Failed to create master playlist: "+err.Error(), nil)
+		shouldCleanup = true
+		return
+	}
+
+	c.updateStreamStatus(movieID, "transcoding", "Converting video to HLS format", map[string]interface{}{
+		"transcodingStatus": "in_progress",
+	})
 	c.tryFFmpegTranscoding(activeDownload, movieID, hlsOutputDir, &shouldCleanup)
 }
 
-func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []string, hlsOutputDir string) error {
+func (c *MovieController) createMasterPlaylist(hlsOutputDir string, srtFiles []string) (*m3u8.MasterPlaylist, error) {
+	masterPlaylistPath := filepath.Join(hlsOutputDir, "master.m3u8")
+
+	masterPlaylist := m3u8.NewMasterPlaylist()
+	masterPlaylist.SetVersion(3)
+
+	var subtitleAlternatives []*m3u8.Alternative
+	subsDir := filepath.Join(hlsOutputDir, "subs")
+	if entries, err := os.ReadDir(subsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				lang := entry.Name()
+				playlistPath := filepath.Join(subsDir, lang, "playlist.m3u8")
+				if _, err := os.Stat(playlistPath); err == nil {
+					vttPlaylist := fmt.Sprintf("subs/%s/playlist.m3u8", lang)
+					isDefault := lang == "en"
+					subtitleAlt := &m3u8.Alternative{
+						GroupId:    "subs",
+						Type:       "SUBTITLES",
+						Name:       getLanguageLabel(lang),
+						Language:   lang,
+						Default:    isDefault,
+						Autoselect: "NO",
+						URI:        vttPlaylist,
+					}
+					subtitleAlternatives = append(subtitleAlternatives, subtitleAlt)
+				}
+			}
+		}
+	}
+
+	for _, quality := range services.VideoTranscoderConf.Qualities {
+		if !quality.Enabled {
+			continue
+		}
+
+		uri := fmt.Sprintf("%s/playlist.m3u8", quality.Name)
+		params := m3u8.VariantParams{
+			Bandwidth:    parseBandwidth(quality.VideoBitrate),
+			Resolution:   quality.Resolution,
+			Codecs:       "avc1.640028,mp4a.40.2",
+			Alternatives: subtitleAlternatives,
+		}
+
+		if len(subtitleAlternatives) > 0 {
+			params.Subtitles = "subs"
+		}
+
+		masterPlaylist.Append(uri, nil, params)
+	}
+
+	masterFile, err := os.Create(masterPlaylistPath)
+	if err != nil {
+		return nil, err
+	}
+	defer masterFile.Close()
+
+	_, err = masterFile.Write(masterPlaylist.Encode().Bytes())
+	return masterPlaylist, err
+}
+
+func (c *MovieController) downloadMovieSubtitles(movieID int) []string {
+	if c.subtitleService == nil {
+		services.Logger.Warn("Subtitle service not initialized, skipping subtitle download")
+		return []string{}
+	}
+
+	baseDir := services.Conf.STREAMING.SubtitlesDir
+	if baseDir == "" {
+		baseDir = "subtitles"
+	}
+
+	dirPath, err := c.subtitleService.CreateSubtitlesDirectory(movieID, baseDir)
+	if err != nil {
+		services.Logger.Error(fmt.Sprintf("Failed to create subtitles directory for movie %d: %v", movieID, err))
+		return []string{}
+	}
+
+	services.Logger.Info(fmt.Sprintf("Downloading subtitles for movie %d from subdl.com", movieID))
+	downloadedCount := c.subtitleService.DownloadSubtitles(movieID, dirPath)
+	services.Logger.Info(fmt.Sprintf("Downloaded %d subtitle(s) for movie %d", downloadedCount, movieID))
+
+	srtFiles, err := services.FindFilesWithExtension(dirPath, "srt")
+	if err != nil {
+		services.Logger.Error(fmt.Sprintf("Error finding downloaded SRT files: %v", err))
+		return []string{}
+	}
+
+	return srtFiles
+}
+
+func (c *MovieController) convertSubtitlesToHLS(srtFiles []string, hlsOutputDir string) error {
+	if len(srtFiles) == 0 {
+		return nil
+	}
+
+	vttTempDir := filepath.Join(hlsOutputDir, "subs_vtt_temp")
+	if err := os.MkdirAll(vttTempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create VTT temp directory: %w", err)
+	}
+	defer os.RemoveAll(vttTempDir)
+
+	for _, srtFile := range srtFiles {
+		baseName := filepath.Base(srtFile)
+		lang := strings.TrimSuffix(baseName, filepath.Ext(baseName))
+
+		langSubsDir := filepath.Join(hlsOutputDir, "subs", lang)
+		if err := os.MkdirAll(langSubsDir, 0755); err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to create subtitle directory for %s: %v", lang, err))
+			continue
+		}
+
+		vttFile := filepath.Join(vttTempDir, fmt.Sprintf("%s.vtt", lang))
+		vttFileHandle, err := os.Create(vttFile)
+		if err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to create VTT file for %s: %v", lang, err))
+			continue
+		}
+
+		convertSRTtoVTT(srtFile, vttFileHandle)
+		vttFileHandle.Close()
+
+		if _, err := os.Stat(vttFile); os.IsNotExist(err) {
+			services.Logger.Error(fmt.Sprintf("VTT file was not created for %s", lang))
+			continue
+		}
+
+		destVttFile := filepath.Join(langSubsDir, "subtitle.vtt")
+		if err := copyFile(vttFile, destVttFile); err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to copy VTT file for %s: %v", lang, err))
+			continue
+		}
+
+		playlistPath := filepath.Join(langSubsDir, "playlist.m3u8")
+		mediaPlaylist, err := m3u8.NewMediaPlaylist(1, 1)
+		if err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to create media playlist for %s: %v", lang, err))
+			continue
+		}
+
+		mediaPlaylist.MediaType = m3u8.VOD
+		mediaPlaylist.SetVersion(3)
+
+		if err := mediaPlaylist.Append("subtitle.vtt", 0.0, ""); err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to append segment to playlist for %s: %v", lang, err))
+			continue
+		}
+		mediaPlaylist.Close()
+
+		playlistFile, err := os.Create(playlistPath)
+		if err != nil {
+			services.Logger.Error(fmt.Sprintf("Failed to create playlist file for %s: %v", lang, err))
+			continue
+		}
+		playlistFile.WriteString(mediaPlaylist.String())
+		playlistFile.Close()
+
+		services.Logger.Info(fmt.Sprintf("Successfully converted subtitles for language: %s", lang))
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
+}
+
+func parseBandwidth(bitrate string) uint32 {
+	bitrate = strings.TrimSpace(bitrate)
+	bitrate = strings.ToLower(bitrate)
+
+	if strings.HasSuffix(bitrate, "k") {
+		value := strings.TrimSuffix(bitrate, "k")
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return uint32(v * 1000)
+		}
+	} else if strings.HasSuffix(bitrate, "m") {
+		value := strings.TrimSuffix(bitrate, "m")
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return uint32(v * 1000000)
+		}
+	} else {
+		if v, err := strconv.ParseFloat(bitrate, 64); err == nil {
+			return uint32(v)
+		}
+	}
+
+	return 0
+}
+
+func (c *MovieController) runFFmpegTranscoding(inputFile string, hlsOutputDir string) error {
 	var args []string
-	args = append(args, "-i", inputFile)
+
+	args = append(args,
+		"-fflags", "+genpts+igndts+discardcorrupt",
+		"-err_detect", "ignore_err",
+		"-i", inputFile)
 
 	args = append(args,
 		"-c:v", "libx264",
@@ -535,12 +819,6 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []stri
 		"-g", fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.GOPSize),
 		"-keyint_min", fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.KeyintMin),
 		"-sc_threshold", fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.SCThreshold),
-	)
-
-	args = append(args,
-		"-c:a", "aac",
-		"-b:a", services.VideoTranscoderConf.Encoding.AudioBitrate,
-		"-ar", fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.AudioSampleRate),
 	)
 
 	variantIndex := 0
@@ -566,6 +844,18 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []stri
 			fmt.Sprintf("-bufsize:%d", variantIndex), quality.BufSize,
 		)
 
+		args = append(args,
+			fmt.Sprintf("-c:a:%d", variantIndex), "aac",
+			fmt.Sprintf("-b:a:%d", variantIndex), services.VideoTranscoderConf.Encoding.AudioBitrate,
+			fmt.Sprintf("-ar:%d", variantIndex), fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.AudioSampleRate),
+		)
+
+		if services.VideoTranscoderConf.Encoding.AudioChannels > 0 {
+			args = append(args,
+				fmt.Sprintf("-ac:%d", variantIndex), fmt.Sprintf("%d", services.VideoTranscoderConf.Encoding.AudioChannels),
+			)
+		}
+
 		variantIndex++
 	}
 
@@ -573,8 +863,8 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []stri
 		"-f", "hls",
 		"-hls_time", fmt.Sprintf("%d", services.VideoTranscoderConf.Output.SegmentTime),
 		"-hls_playlist_type", "event",
-		"-hls_flags", "temp_file+independent_segments",
-		"-hls_segment_filename", filepath.Join(hlsOutputDir, "%v/segment%03d.ts"),
+		"-hls_flags", "temp_file+independent_segments+omit_endlist",
+		"-hls_list_size", "0",
 	)
 
 	var varStreamMap strings.Builder
@@ -586,16 +876,16 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []stri
 		if idx > 0 {
 			varStreamMap.WriteString(" ")
 		}
-		varStreamMap.WriteString(fmt.Sprintf("v:%d,a:%d", idx, idx))
+		varStreamMap.WriteString(fmt.Sprintf("v:%d,a:%d,name:%s", idx, idx, quality.Name))
 		idx++
 	}
 
 	args = append(args,
 		"-var_stream_map", varStreamMap.String(),
-		"-master_pl_name", "master.m3u8",
+		"-hls_segment_filename", filepath.Join(hlsOutputDir, "%v", "segment%03d.ts"),
 	)
 
-	outputPattern := filepath.Join(hlsOutputDir, "%v/playlist.m3u8")
+	outputPattern := filepath.Join(hlsOutputDir, "%v", "playlist.m3u8")
 	args = append(args, outputPattern)
 
 	cmd := exec.Command("ffmpeg", args...)
@@ -610,7 +900,6 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, srtFiles []stri
 }
 
 func (c *MovieController) checkFileExits(filePath string) error {
-	services.Logger.Info("Checking if file exists: " + filePath)
 	_, err := os.Stat(filePath)
 	return err
 }
@@ -626,15 +915,42 @@ func (c *MovieController) waitForFile(filePath string, timeout time.Duration) er
 }
 
 func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDownload, error) {
-	services.Logger.Info(fmt.Sprintf("Finding and downloading movie with ID: %d", movieID))
-	details, err := c.movieService.GetIMDbIDFromTMDb(movieID)
+	c.updateStreamStatus(movieID, "searching", "Fetching movie information", map[string]interface{}{
+		"step": "fetch_details",
+	})
 
-	services.Logger.Info(fmt.Sprintf("Movie details fetched: %+v", details))
-	torrents, err := c.movieService.SearchTorrentsByIMDb(*details)
+	details, err := c.movieService.GetIMDbIDFromTMDb(movieID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch movie details: %w", err)
+	}
+
+	c.updateStreamStatus(movieID, "searching", "Searching torrent sources", map[string]interface{}{
+		"step":         "search_torrents",
+		"imdb_id":      details.IMDbID,
+		"title":        details.Title,
+		"release_date": details.ReleaseDate,
+	})
+
+	torrents, err := c.movieService.SearchTorrentsByIMDb(*details, 30*time.Second)
+
+	if err != nil {
+		services.Logger.Error(fmt.Sprintf("Error searching torrents: %v", err))
+		return nil, fmt.Errorf("failed to search torrents: %w", err)
+	}
+
+	c.updateStreamStatus(movieID, "searching", fmt.Sprintf("Found %d torrent(s)", len(torrents)), map[string]interface{}{
+		"step":          "torrents_found",
+		"torrent_count": len(torrents),
+	})
 
 	if len(torrents) == 0 {
 		return nil, fmt.Errorf("no suitable torrent found")
 	}
+
+	c.updateStreamStatus(movieID, "searching", "Analyzing torrents and fetching metadata", map[string]interface{}{
+		"step":          "analyze_torrents",
+		"torrent_count": len(torrents),
+	})
 
 	bestTorrent := &torrents[0]
 
@@ -643,125 +959,62 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		quality = "720p"
 	}
 
+	c.updateStreamStatus(movieID, "searching", "Selected best torrent", map[string]interface{}{
+		"step":     "torrent_selected",
+		"name":     bestTorrent.Name,
+		"quality":  quality,
+		"size":     bestTorrent.Size,
+		"seeders":  bestTorrent.Seeders,
+		"leechers": bestTorrent.Leechers,
+	})
+
+	c.updateStreamStatus(movieID, "downloading", "Connecting to peers", map[string]interface{}{
+		"step":    "start_download",
+		"quality": quality,
+	})
+
 	download, err := c.torrentService.GetOrStartDownload(movieID, bestTorrent.Magnet, quality)
 	if err != nil {
+		c.updateStreamStatus(movieID, "error", "Failed to start download: "+err.Error(), nil)
 		return nil, fmt.Errorf("failed to start download: %w", err)
 	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
+	waitCount := 0
+	lastProgress := 0.0
+
 	for {
 		download.Mu.RLock()
 		ready := download.StreamingReady
 		filePath := download.FilePath
+		status := download.Status
+		progress := download.Progress
 		download.Mu.RUnlock()
 
 		if ready && filePath != "" {
+			c.updateStreamStatus(movieID, "downloading", "Download ready for streaming", map[string]interface{}{
+				"step":             "download_ready",
+				"downloadProgress": progress,
+				"fileName":         filepath.Base(filePath),
+			})
 			return download, nil
 		}
 
+		progressChanged := progress-lastProgress >= 1.0
+		if progressChanged || waitCount%5 == 0 {
+			if progressChanged && progress > 0 {
+				c.updateStreamStatus(movieID, "downloading", fmt.Sprintf("Downloading: %.1f%% complete", progress), map[string]interface{}{
+					"step":             "downloading",
+					"downloadProgress": progress,
+					"downloadStatus":   status,
+				})
+				lastProgress = progress
+			}
+		}
+
+		waitCount++
 		<-ticker.C
 	}
-}
-
-// @Accept       */*
-// @Produce      video/mp4
-// @Param        id       path   string  true  "Movie ID"
-// @Param        quality  query  string  false "Desired quality (default: 720p)"
-// @Security     JWT
-// @Success      200  {file}    binary  "Video stream"
-// @Failure      102  {object}  utils.HTTPError  "Still downloading"
-// @Failure      401  {object}  utils.HTTPErrorUnauthorized
-// @Failure      404  {object}  utils.HTTPError
-// @Router       /stream/{id} [get]
-func (c *MovieController) StreamMovie(ctx echo.Context) error {
-	movieID := ctx.Param("id")
-	quality := ctx.QueryParam("quality")
-	if quality == "" {
-		quality = "720p" // default quality
-	}
-
-	var downloadedMovie models.DownloadedMovie
-	err := c.db.Where("movie_id = ? AND quality = ?", movieID, quality).First(&downloadedMovie).Error
-
-	// if the movie is already downloaded
-	if err == nil && downloadedMovie.FilePath != "" {
-		if _, err := os.Stat(downloadedMovie.FilePath); err == nil {
-			return c.serveVideoFile(ctx, downloadedMovie.FilePath)
-		}
-	}
-
-	// movie is not downloaded
-	downloadKey := fmt.Sprintf("%s-%s", movieID, quality)
-	c.torrentService.Mu.RLock()
-	dl, exists := c.torrentService.Downloads[downloadKey]
-	c.torrentService.Mu.RUnlock()
-
-	if exists && dl != nil {
-		dl.Mu.RLock()
-		streamingReady := dl.StreamingReady
-		dl.Mu.RUnlock()
-
-		if streamingReady {
-			return c.streamPartialFile(ctx, dl)
-		} else {
-			return echo.NewHTTPError(http.StatusProcessing, "Movie is still downloading, not ready for streaming yet")
-		}
-	}
-
-	return echo.NewHTTPError(http.StatusNotFound, "Movie not available for streaming")
-}
-
-// DownloadTorrent handles torrent download requests
-func (c *MovieController) DownloadTorrent(ctx echo.Context) error {
-	var req struct {
-		MovieID int    `json:"movie_id"`
-		Magnet  string `json:"magnet"`
-		Quality string `json:"quality"`
-	}
-
-	if err := ctx.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
-	}
-
-	download, err := c.torrentService.GetOrStartDownload(req.MovieID, req.Magnet, req.Quality)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to start download: %v", err))
-	}
-
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
-		"movie_id": download.MovieID,
-		"quality":  download.Quality,
-		"status":   download.Status,
-		"progress": download.Progress,
-	})
-}
-
-// GetTorrentProgress handles torrent progress requests
-func (c *MovieController) GetTorrentProgress(ctx echo.Context) error {
-	movieID := ctx.QueryParam("movie_id")
-	quality := ctx.QueryParam("quality")
-
-	if movieID == "" || quality == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "movie_id and quality parameters are required")
-	}
-
-	downloadKey := fmt.Sprintf("%s-%s", movieID, quality)
-
-	c.torrentService.Mu.RLock()
-	download, exists := c.torrentService.Downloads[downloadKey]
-	c.torrentService.Mu.RUnlock()
-
-	if !exists {
-		return echo.NewHTTPError(http.StatusNotFound, "Download not found")
-	}
-
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
-		"movie_id":     download.MovieID,
-		"quality":      download.Quality,
-		"status":       download.Status,
-		"progress":     download.Progress,
-		"stream_ready": download.StreamReady,
-	})
 }

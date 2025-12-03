@@ -19,13 +19,17 @@ MOVIE_APIS:
     API_KEY: "72b05171afec3bc193323f47ee8368b8"
   OMDB:
     API_KEY: ""
+  SUBDL:
+    API_KEY: ""
 DOWNLOADS:
-  DIRECTORY: "/home/ayuup/downloads"
+  DIRECTORY: "/app/downloads"
 STREAMING:
   DOWNLOAD_DIR: "/app/downloads"
+  HLS_OUTPUT_DIR: "/app/hls_output"
+  SUBTITLES_DIR: "/app/subtitles"
   TMDB_API_KEY: ""
-  MIN_BYTES_FOR_TRANSCODING: 5242880 # 5MB in bytes (5 * 1024 * 1024)
-  MIN_PERCENT_FOR_TRANSCODING: 0.5 # 0.5% of total file size
+  MIN_BYTES_FOR_TRANSCODING: 104857600 # 100MB in bytes (100 * 1024 * 1024)
+  MIN_PERCENT_FOR_TRANSCODING: 25.0 # 25% of total file size
 ui:
   address: http://localhost:4200
   Reset_Password_Route: reset_password

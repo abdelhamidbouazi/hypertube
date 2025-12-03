@@ -17,6 +17,7 @@ type VideoTranscoderConfig struct {
 		SCThreshold     int    `mapstructure:"sc_threshold"`
 		AudioBitrate    string `mapstructure:"audio_bitrate"`
 		AudioSampleRate int    `mapstructure:"audio_sample_rate"`
+		AudioChannels   int    `mapstructure:"audio_channels"`
 	} `mapstructure:"encoding"`
 
 	Qualities []struct {

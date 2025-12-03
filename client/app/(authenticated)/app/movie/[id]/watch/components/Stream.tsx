@@ -88,17 +88,23 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
 
       // Try common qualities
       const qualities = ["1080p", "720p", "480p"];
-      
+
       for (const quality of qualities) {
         try {
-          const response = await api.get<DownloadProgress>("/torrents/progress", {
-            params: { movie_id: movieId, quality },
-          });
-          
+          const response = await api.get<DownloadProgress>(
+            "/torrents/progress",
+            {
+              params: { movie_id: movieId, quality },
+            }
+          );
+
           if (response.data) {
             setDownloadProgress(response.data);
             // If download is completed or streaming, stop polling
-            if (response.data.status === "completed" || response.data.stream_ready) {
+            if (
+              response.data.status === "completed" ||
+              response.data.stream_ready
+            ) {
               shouldContinuePolling = false;
               return;
             }
@@ -158,43 +164,50 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
   return (
     <div className="max-w-7xl mx-auto text-center">
       {/* Download Progress */}
-      {downloadProgress && downloadProgress.status !== "completed" && !downloadProgress.stream_ready && (
-        <div className="mb-4 p-4 rounded-lg bg-content2 dark:bg-slate-800">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-foreground-500 dark:text-slate-200">
-              {getStatusLabel(downloadProgress.status)}
-            </span>
-            <span className="text-sm text-foreground-500 dark:text-slate-200">
-              {downloadProgress.progress.toFixed(1)}%
-            </span>
+      {downloadProgress &&
+        downloadProgress.status !== "completed" &&
+        !downloadProgress.stream_ready && (
+          <div className="mb-4 p-4 rounded-lg bg-content2 dark:bg-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-foreground-500 dark:text-slate-200">
+                {getStatusLabel(downloadProgress.status)}
+              </span>
+              <span className="text-sm text-foreground-500 dark:text-slate-200">
+                {downloadProgress.progress.toFixed(1)}%
+              </span>
+            </div>
+            <Progress
+              value={downloadProgress.progress}
+              color="primary"
+              className="w-full"
+              aria-label="Download progress"
+            />
+            {downloadProgress.quality && (
+              <span className="text-xs text-foreground-400 mt-1 block">
+                Quality: {downloadProgress.quality}
+              </span>
+            )}
           </div>
-          <Progress
-            value={downloadProgress.progress}
-            color="primary"
-            className="w-full"
-            aria-label="Download progress"
-          />
-          {downloadProgress.quality && (
-            <span className="text-xs text-foreground-400 mt-1 block">
-              Quality: {downloadProgress.quality}
-            </span>
-          )}
-        </div>
-      )}
+        )}
 
       {levels.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-start font-bold w-full items-start text-xl text-foreground-500 dark:text-slate-200">{movieTitle && movieTitle}</span>
+          <span className="text-start font-bold w-full items-start text-xl text-foreground-500 dark:text-slate-200">
+            {movieTitle && movieTitle}
+          </span>
           <div className="flex w-full justify-end">
             <div
               className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
               role="radiogroup"
               aria-label="Select playback quality"
             >
-            <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">Quality</span>
+              <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">
+                Quality
+              </span>
               {levels.map((lvl) => {
                 const isActive = currentLevel === lvl.index;
-                const shortLabel = lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
+                const shortLabel =
+                  lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
                 return (
                   <Button
                     className="min-w-14 my-auto"
@@ -222,9 +235,7 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         controls
         autoPlay
         style={{ width: "100%", borderRadius: 10 }}
-      >
-        <track default kind="captions" label="English" src="/subs/en.vtt" srcLang="en" />
-      </video>
+      ></video>
     </div>
   );
 }
