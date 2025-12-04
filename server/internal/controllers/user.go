@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"server/internal/controllers/auth"
 	"server/internal/models"
 	"server/internal/services/users"
 	"strconv"
@@ -69,6 +70,15 @@ func UpdateUser(c echo.Context) error {
 		foundUser.Email = user.Email
 	}
 	if user.Username != "" {
+		if foundUser.Username != user.Username {
+			isTaken, err := auth.IsUserNameAlreadyTaken(user.Username)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			}
+			if isTaken {
+				return echo.NewHTTPError(http.StatusBadRequest, "username is already taken")
+			}
+		}
 		foundUser.Username = user.Username
 	}
 	if user.FirstName != "" {
