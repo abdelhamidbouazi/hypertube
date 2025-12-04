@@ -13,7 +13,7 @@ type RegisterUserType struct {
 	FirstName string `validate:"required,min=4" example:"Alan"`
 	LastName  string `validate:"required,min=4" example:"Turing"`
 	Email     string `validate:"required,email" example:"example@email.com"`
-	Password  string `validate:"required,min=8" example:"j8Kt603ql0RV"`
+	Password  string `example:"j8Kt603ql0RV"`
 	Username  string `validate:"required" example:"fturing"`
 }
 
@@ -45,6 +45,11 @@ func Register(c echo.Context) error {
 	user.Username = newUser.Username
 
 	err = services.ValidateStruct(newUser)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	err = services.ValidatePassword(newUser.Password)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
