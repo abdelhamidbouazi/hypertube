@@ -81,12 +81,10 @@ type AppConfig struct {
 	} `mapstructure:"DOWNLOADS"`
 
 	STREAMING struct {
-		DownloadDir              string  `mapstructure:"DOWNLOAD_DIR"`
-		HLSOutputDir             string  `mapstructure:"HLS_OUTPUT_DIR"`
-		SubtitlesDir             string  `mapstructure:"SUBTITLES_DIR"`
-		TMDBAPIKey               string  `mapstructure:"TMDB_API_KEY"`
-		MinBytesForTranscoding   int64   `mapstructure:"MIN_BYTES_FOR_TRANSCODING"`
-		MinPercentForTranscoding float64 `mapstructure:"MIN_PERCENT_FOR_TRANSCODING"`
+		DownloadDir  string `mapstructure:"DOWNLOAD_DIR"`
+		HLSOutputDir string `mapstructure:"HLS_OUTPUT_DIR"`
+		SubtitlesDir string `mapstructure:"SUBTITLES_DIR"`
+		TMDBAPIKey   string `mapstructure:"TMDB_API_KEY"`
 	} `mapstructure:"STREAMING"`
 }
 
@@ -107,14 +105,6 @@ func LoadConfig(config string) {
 	err = viper.Unmarshal(&Conf)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if Conf.STREAMING.MinBytesForTranscoding < 1*1024*1024 {
-		log.Fatal("MinBytesForTranscoding should be greater or equal than 1MB")
-	}
-
-	if Conf.STREAMING.MinPercentForTranscoding < 0.1 {
-		log.Fatal("MinPercentForTranscoding should be greater or equal than 0.1 percent")
 	}
 
 	setupExtra()

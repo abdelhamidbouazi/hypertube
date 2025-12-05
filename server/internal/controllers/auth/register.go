@@ -6,7 +6,6 @@ import (
 	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 type RegisterUserType struct {
@@ -49,17 +48,16 @@ func Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	err = services.ValidatePassword(newUser.Password)
+	isTaken, err := IsUserNameAlreadyTaken(user.Username)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-
-	_, err = users.GetUserByUsername(user.Username)
-	if err == nil {
+	if isTaken {
 		return echo.NewHTTPError(http.StatusBadRequest, "username is already taken")
 	}
 
-	if err != gorm.ErrRecordNotFound {
+	err = services.ValidatePassword(newUser.Password)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -68,4 +66,15 @@ func Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return c.String(http.StatusOK, "success")
+}
+
+func IsUserNameAlreadyTaken(username string) (bool, error) {
+	_, err := users.GetUserByUsername(username)
+	if err == nil {
+		return true, nil
+	}
+	if err.Error() == "record not found" {
+		return false, nil
+	}
+	return false, err
 }

@@ -465,33 +465,6 @@ func (c *MovieController) waitUntilVideoFileIsReady(
 
 			<-ticker.C
 		}
-
-		minBytesForTranscoding := services.Conf.STREAMING.MinBytesForTranscoding
-		minPercentForTranscoding := services.Conf.STREAMING.MinPercentForTranscoding
-
-		for {
-			filePath, videoFile, _, progress := c.getTorrentMovieDetails(activeDownload)
-
-			if videoFile != nil {
-				totalSize := videoFile.Length()
-				var downloadedBytes int64
-
-				if totalSize > 0 {
-					downloadedBytes = int64(float64(totalSize) * progress / 100.0)
-				} else {
-					partPath := filePath + ".part"
-					if fi, err := os.Stat(partPath); err == nil {
-						downloadedBytes = fi.Size()
-					}
-				}
-
-				if downloadedBytes >= minBytesForTranscoding || progress >= minPercentForTranscoding {
-					break
-				}
-			}
-
-			<-ticker.C
-		}
 	}
 }
 
@@ -506,15 +479,21 @@ func (c *MovieController) tryFFmpegTranscoding(
 
 	for {
 		attempt++
-		inputFile := activeDownload.FilePath
-		if _, err := os.Stat(inputFile); os.IsNotExist(err) {
-			partFile := inputFile + ".part"
-			if _, err := os.Stat(partFile); err == nil {
-				inputFile = partFile
-			}
+
+		_, videoFile, _, _ := c.getTorrentMovieDetails(activeDownload)
+
+		if videoFile == nil {
+			time.Sleep(retryDelay)
+			continue
 		}
 
-		err := c.runFFmpegTranscoding(inputFile, hlsOutputDir)
+		reader := videoFile.NewReader()
+		reader.SetResponsive()                // Blocks until pieces are complete
+		reader.SetReadahead(10 * 1024 * 1024) // 10MB read-ahead
+
+		err := c.runFFmpegTranscoding(reader, hlsOutputDir)
+		reader.Close()
+
 		if err == nil {
 			var downloadedMovie models.DownloadedMovie
 			if err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error; err == nil {
@@ -523,7 +502,6 @@ func (c *MovieController) tryFFmpegTranscoding(
 			c.updateStreamStatus(movieID, "ready", "Stream is ready to play", map[string]interface{}{
 				"transcodingStatus": "ready",
 			})
-			*shouldchange = false
 			break
 		}
 
@@ -804,13 +782,13 @@ func parseBandwidth(bitrate string) uint32 {
 	return 0
 }
 
-func (c *MovieController) runFFmpegTranscoding(inputFile string, hlsOutputDir string) error {
+func (c *MovieController) runFFmpegTranscoding(reader io.Reader, hlsOutputDir string) error {
 	var args []string
 
 	args = append(args,
 		"-fflags", "+genpts+igndts+discardcorrupt",
 		"-err_detect", "ignore_err",
-		"-i", inputFile)
+		"-i", "pipe:0")
 
 	args = append(args,
 		"-c:v", "libx264",
@@ -889,6 +867,7 @@ func (c *MovieController) runFFmpegTranscoding(inputFile string, hlsOutputDir st
 	args = append(args, outputPattern)
 
 	cmd := exec.Command("ffmpeg", args...)
+	cmd.Stdin = reader
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
