@@ -1,29 +1,45 @@
+import {heroui} from "@heroui/theme"
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ['./src/**/*.{html,ts}'],
+const config = {
+  content: [
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}"
+  ],
   theme: {
     extend: {
-      colors: {
-        // HyperTybe custom color palette
-        'ht-darkest': '#595959',
-        'ht-dark': '#7f7f7f',
-        'ht-medium': '#a5a5a5',
-        'ht-light': '#cccccc',
-        'ht-lightest': '#f2f2f2',
-
-        // Semantic color aliases
-        'text-primary': '#595959',
-        'text-secondary': '#7f7f7f',
-        'text-muted': '#a5a5a5',
-
-        'bg-primary': '#ffffff',
-        'bg-secondary': '#f2f2f2',
-        'bg-muted': '#cccccc',
-
-        'border-primary': '#cccccc',
-        'border-secondary': '#a5a5a5',
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
       },
     },
   },
-  plugins: [],
-};
+  darkMode: "class",
+  plugins: [
+    heroui({
+      themes: {
+        dark: {
+          colors: {
+            background: "#0f172a", // slate-900
+            foreground: "#e2e8f0", // slate-200
+            content1: "#0b1220", // deep surface
+            content2: "#111827", // slate-900/800 blend
+            content3: "#0b1220",
+            default: {
+              DEFAULT: "#111827",
+              foreground: "#e5e7eb",
+            },
+            primary: {
+              DEFAULT: "#ef4444", // red-500 accent
+              foreground: "#ffffff",
+            },
+            focus: "#fca5a5", // red-300 focus ring
+          },
+        },
+      },
+    }),
+  ],
+}
+
+module.exports = config;

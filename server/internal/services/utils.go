@@ -3,7 +3,10 @@ package services
 import (
 	"context"
 	"html/template"
+	"io/fs"
 	"log"
+	"path/filepath"
+	"strings"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -60,4 +63,26 @@ func LoadAWSBucket() {
 
 func AWS_Client() *s3.Client {
 	return aws_client
+}
+
+func FindFilesWithExtension(path string, ext string) ([]string, error) {
+	var srtFiles []string
+
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		if strings.ToLower(filepath.Ext(path)) == "."+ext {
+			srtFiles = append(srtFiles, path)
+		}
+
+		return nil
+	})
+
+	return srtFiles, err
 }

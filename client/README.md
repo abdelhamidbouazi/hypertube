@@ -1,59 +1,53 @@
-# HypertybeLearning
+# Next.js & HeroUI Template
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.0.
+This is a template for creating applications using Next.js 14 (app directory) and HeroUI (v2).
 
-## Development server
+[Try it on CodeSandbox](https://githubbox.com/heroui-inc/heroui/next-app-template)
 
-To start a local development server, run:
+## Technologies Used
 
-```bash
-ng serve
-```
+- [Next.js 14](https://nextjs.org/docs/getting-started)
+- [HeroUI v2](https://heroui.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Tailwind Variants](https://tailwind-variants.org)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Framer Motion](https://www.framer.com/motion/)
+- [next-themes](https://github.com/pacocoursey/next-themes)
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## How to Use
 
-## Code scaffolding
+### Use the template with create-next-app
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+To create a new project based on this template using `create-next-app`, run the following command:
 
 ```bash
-ng generate --help
+npx create-next-app -e https://github.com/heroui-inc/next-app-template
 ```
 
-## Building
+### Install dependencies
 
-To build the project run:
+You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
 
 ```bash
-ng build
+npm install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+### Run the development server
 
 ```bash
-ng test
+npm run dev
 ```
 
-## Running end-to-end tests
+### Setup pnpm (optional)
 
-For end-to-end (e2e) testing, run:
+If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
 
 ```bash
-ng e2e
+public-hoist-pattern[]=*@heroui/*
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
 
-## Additional Resources
+## License
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Licensed under the [MIT license](https://github.com/heroui-inc/next-app-template/blob/main/LICENSE).

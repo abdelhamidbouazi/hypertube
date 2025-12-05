@@ -59,7 +59,33 @@ type AppConfig struct {
 		FortyTwo struct {
 			Redirect string `mapstructure:"REDIRECT"`
 		} `mapstructure:"FORTYTWO"`
+		Github struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"GITHUB"`
 	} `mapstructure:"OAUTH"`
+
+	MOVIE_APIS struct {
+		TMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"TMDB"`
+		OMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"OMDB"`
+		SUBDL struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"SUBDL"`
+	} `mapstructure:"MOVIE_APIS"`
+
+	DOWNLOADS struct {
+		Directory string `mapstructure:"DIRECTORY"`
+	} `mapstructure:"DOWNLOADS"`
+
+	STREAMING struct {
+		DownloadDir  string `mapstructure:"DOWNLOAD_DIR"`
+		HLSOutputDir string `mapstructure:"HLS_OUTPUT_DIR"`
+		SubtitlesDir string `mapstructure:"SUBTITLES_DIR"`
+		TMDBAPIKey   string `mapstructure:"TMDB_API_KEY"`
+	} `mapstructure:"STREAMING"`
 }
 
 func LoadConfig(config string) {

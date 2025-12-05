@@ -34,3 +34,13 @@ func GetUserByEmail(email string) (models.User, error) {
 	}
 	return user, nil
 }
+
+func GetUserByUsername(username string) (models.User, error) {
+	db := services.PostgresDB()
+	var user models.User
+	res := db.Where("provider = ?", "").First(&user, "username = ?", username)
+	if res.Error != nil {
+		return user, res.Error
+	}
+	return user, nil
+}
