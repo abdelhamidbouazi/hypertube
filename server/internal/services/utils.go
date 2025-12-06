@@ -1,12 +1,15 @@
 package services
 
 import (
+	"context"
 	"html/template"
 	"io/fs"
 	"log"
 	"path/filepath"
 	"strings"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/viper"
 	gomail "gopkg.in/mail.v2"
 )
@@ -14,6 +17,9 @@ import (
 var (
 	_reset_password_template *template.Template
 	dialer                   *gomail.Dialer
+	aws_client               *s3.Client
+	AWSBucketRegion          = "eu-north-1"
+	AWSBucketName            = "hypertube-users-pictures"
 )
 
 func LoadTemplateConfig() {
@@ -36,6 +42,27 @@ func LoadMailDialer() {
 
 func MailDialer() *gomail.Dialer {
 	return dialer
+}
+
+func LoadAWSBucket() {
+	if viper.GetString("AWS_ACCESS_KEY_ID") == "" {
+		log.Fatal("AWS_ACCESS_KEY_ID was not read")
+	}
+
+	if viper.GetString("AWS_SECRET_ACCESS_KEY") == "" {
+		log.Fatal("AWS_SECRET_ACCESS_KEY was not read")
+	}
+
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion("eu-north-1"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	aws_client = s3.NewFromConfig(cfg)
+}
+
+func AWS_Client() *s3.Client {
+	return aws_client
 }
 
 func FindFilesWithExtension(path string, ext string) ([]string, error) {

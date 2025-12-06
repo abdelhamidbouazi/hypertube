@@ -13,6 +13,8 @@ func AddUserRouter(usersRouter *echo.Group) {
 	usersRouter.PATCH("", controllers.UpdateUser, middlewares.Authenticated, middlewares.AttachUser)
 
 	usersRouter.GET("/me", controllers.GetMe, middlewares.Authenticated, middlewares.AttachUser)
+
+	usersRouter.POST("/me/upload-avatar", controllers.UploadPicture, middlewares.Authenticated, middlewares.AttachUser)
 	usersRouter.PATCH("/me", controllers.UpdateUser, middlewares.Authenticated, middlewares.AttachUser)
 	usersRouter.GET("/stats", controllers.GetUserStats, middlewares.Authenticated, middlewares.AttachUser)
 

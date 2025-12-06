@@ -26,7 +26,7 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	auth.RevokeTokenRes
-//	@Router			/oauth2/fortytwo [post]
+//	@Router			/oauth2/google [post]
 func Google(c echo.Context) error {
 	config := oauthService.Providers()["google"]
 	if config == nil {
@@ -64,9 +64,7 @@ func GoogleCallback(c echo.Context) error {
 
 	err := c.Bind(&body)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	token, err := config.Exchange(context.Background(), body.Code)

@@ -64,6 +64,7 @@ func Init(config string) {
 	services.LoadTemplateConfig()
 	services.LoadMailDialer()
 	services.LoadValidator()
+	services.LoadAWSBucket()
 	services.LoadDatabase()
 	oauth2.LoadConfig()
 	services.LoadValidator()

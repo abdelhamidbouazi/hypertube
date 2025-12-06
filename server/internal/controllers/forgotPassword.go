@@ -44,7 +44,7 @@ func ForgotPassword(c echo.Context) error {
 
 	err := c.Bind(&body)
 	if err != nil {
-		return echo.ErrBadRequest
+		return err
 	}
 
 	err = services.ValidateStruct(body)
