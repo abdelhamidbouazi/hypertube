@@ -41,6 +41,7 @@ function FortyTwoIcon() {
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -66,10 +67,8 @@ export default function RegisterPage() {
     }
 
     try {
-      // 1. Register the user
-      await registerUser(username, password, firstName, lastName);
+      await registerUser(username, email, password, firstName, lastName);
 
-      // 2. Auto-login to get tokens
       const response = await loginUser(username, password);
 
       if (response.AccessToken) {
@@ -105,7 +104,6 @@ export default function RegisterPage() {
 
         router.push("/app/discover");
       } else {
-        // Fallback if no token returned (shouldn't happen if login succeeds)
         router.push("/auth/login");
       }
     } catch (err: any) {
@@ -123,7 +121,7 @@ export default function RegisterPage() {
     }
   };
 
-  const redirectToOAuth = (provider: "google" | "fortytwo") => {
+  const redirectToOAuth = (provider: "google" | "fortytwo" | "github") => {
     const base = process.env.NEXT_PUBLIC_API_URL || "/api";
     const form = document.createElement("form");
 
@@ -135,18 +133,12 @@ export default function RegisterPage() {
 
   return (
     <div className="rounded-3xl border border-white/15 bg-white/10 p-8 text-white shadow-2xl backdrop-blur-md">
-      <h1 className="text-4xl font-extrabold tracking-tight text-white/95">
+      <h1 className="text-center text-4xl font-extrabold tracking-tight text-white/95">
         Create account
       </h1>
-      <p className="mt-2 text-sm text-white/85">
+      <p className="mt-2 text-center text-sm text-white/85">
         Join Cinéthos and start exploring instantly.
       </p>
-
-      {error && (
-        <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
-          {getErrorMessage(error)}
-        </div>
-      )}
 
       <div className="mt-6 grid grid-cols-1 gap-2">
         <Button
@@ -171,13 +163,7 @@ export default function RegisterPage() {
           fullWidth
           className="justify-center bg-white text-gray-900 font-medium hover:brightness-95"
           radius="sm"
-          onPress={() =>
-            addToast({
-              title: "Unavailable",
-              description: "GitHub OAuth isn't configured on the server.",
-              severity: "warning",
-            })
-          }
+          onPress={() => redirectToOAuth("github")}
         >
           <span className="ml-2">Continue with</span>
           <GithubIcon />
@@ -213,6 +199,16 @@ export default function RegisterPage() {
             onChange={(e) => setLastName(e.target.value)}
           />
         </div>
+        <Input
+          type="email"
+          label="Email"
+          placeholder="john.doe@example.com"
+          variant="faded"
+          radius="sm"
+          isRequired
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <Input
           type="text"
           label="Username"

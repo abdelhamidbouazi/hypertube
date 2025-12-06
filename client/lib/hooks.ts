@@ -127,12 +127,14 @@ export const loginUser = async (username: string, password: string) => {
 // register new user account
 export const registerUser = async (
   username: string,
+  email: string,
   password: string,
   firstName: string,
   lastName: string
 ) => {
   const response = await api.post("/auth/register", {
     username,
+    email,
     password,
     FirstName: firstName,
     LastName: lastName,
@@ -285,6 +287,7 @@ export const updateUser = async (data: {
   firstname?: string;
   lastname?: string;
   email?: string;
+  username?: string;
   password?: string;
   preferred_language?: string;
 }) => {

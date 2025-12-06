@@ -11,21 +11,13 @@ import (
 )
 
 type UpdateUserRequest struct {
-	FirstName         string `json:"firstname" validate:"omitempty,min=4"`
-	LastName          string `json:"lastname" validate:"omitempty,min=4"`
-	Email             string `json:"email" validate:"omitempty,email"`
+	FirstName         string `json:"firstname" validate:"omitempty,min=4" example:"Alan"`
+	LastName          string `json:"lastname" validate:"omitempty,min=4" example:"Turing"`
+	Email             string `json:"email" validate:"omitempty,email" example:"example@email.com"`
+	Username          string `json:"username" validate:"omitempty" example:"fturing"`
 	Password          string `json:"password" validate:"omitempty,min=8"`
-	PreferredLanguage string `json:"preferred_language" validate:"omitempty,len=2"`
+	PreferredLanguage string `json:"preferred_language" validate:"omitempty,len=2" example:"en"`
 }
-
-type UpdateUserRequest struct {
-	FirstName         string `validate:"min=4" example:"Alan"`
-	LastName          string `validate:"min=4" example:"Turing"`
-	Email             string `validate:"email" example:"example@email.com"`
-	Username          string `validate:"" example:"fturing"`
-	PreferredLanguage string `validate:"max=10,omitempty" default:"en" json:"preferred_language" example:"en"`
-}
-
 
 // Update user info godoc
 //
@@ -58,6 +50,9 @@ func UpdateUser(c echo.Context) error {
 	}
 	if req.Email != "" {
 		userModel.Email = req.Email
+	}
+	if req.Username != "" {
+		userModel.Username = req.Username
 	}
 	if req.PreferredLanguage != "" {
 		userModel.PreferredLanguage = req.PreferredLanguage
@@ -104,55 +99,7 @@ func GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-type UpdateUserRequest struct {
-	FirstName         string `validate:"min=4" example:"Alan"`
-	LastName          string `validate:"min=4" example:"Turing"`
-	Email             string `validate:"email" example:"example@email.com"`
-	Username          string `validate:"" example:"fturing"`
-	PreferredLanguage string `validate:"max=10,omitempty" default:"en" json:"preferred_language" example:"en"`
-}
 
-// Update users info godoc
-//
-//	@Summary		Update a user
-//	@Description	update a user
-//	@Tags			users
-//	@Produce		json
-//	@Param		UpdateUserRequest body UpdateUserRequest true "update user info"
-//	@Success		200	{array}		models.User
-//	@Failure 400 {object} utils.HTTPError
-//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
-//	@Security		JWT
-//	@Router			/users [patch]
-func UpdateUser(c echo.Context) error {
-	var user UpdateUserRequest
-
-	err := c.Bind(&user)
-	if err != nil {
-		return echo.ErrBadRequest
-	}
-
-	foundUser := c.Get("model").(models.User)
-
-	if user.Email != "" {
-		foundUser.Email = user.Email
-	}
-	if user.Username != "" {
-		foundUser.Username = user.Username
-	}
-	if user.FirstName != "" {
-		foundUser.FirstName = user.FirstName
-	}
-	if user.LastName != "" {
-		foundUser.LastName = user.LastName
-	}
-	if user.PreferredLanguage != "" {
-		foundUser.PreferredLanguage = user.PreferredLanguage
-	}
-
-	users.UpdateUser(foundUser)
-	return c.JSON(http.StatusOK, foundUser)
-}
 
 // Get user info godoc
 //

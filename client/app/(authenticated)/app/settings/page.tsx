@@ -18,6 +18,7 @@ export default function SettingsPage() {
   // Profile State
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [language, setLanguage] = useState("en");
 
@@ -31,6 +32,7 @@ export default function SettingsPage() {
     if (user) {
       setFirstName(user.firstname || "");
       setLastName(user.lastname || "");
+      setUsername(user.username || "");
       setEmail(user.email || "");
       setLanguage(user.preferred_language || "en");
     }
@@ -44,6 +46,7 @@ export default function SettingsPage() {
       await updateUser({
         firstname: firstName,
         lastname: lastName,
+        username: username,
         email: email,
         preferred_language: language,
       });
@@ -124,15 +127,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 pb-8 max-w-7xl">
       <h1 className="text-3xl font-bold mb-8 text-foreground">Settings</h1>
 
-      <div className="grid gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Profile Settings */}
-        <Card className="p-4">
+        <Card className="p-4 h-full">
           <CardHeader className="flex gap-3">
             <User size={24} className="text-primary" />
-            <div className="flex flex-col">
+            <div className="flex flex-col items-start">
               <p className="text-md font-bold">Profile Information</p>
               <p className="text-small text-default-500">
                 Update your personal details
@@ -158,6 +161,14 @@ export default function SettingsPage() {
                   variant="bordered"
                 />
               </div>
+
+              <Input
+                label="Username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                variant="bordered"
+              />
 
               <Input
                 label="Email"
@@ -194,20 +205,22 @@ export default function SettingsPage() {
         </Card>
 
         {/* Password Settings */}
-        <Card className="p-4">
+        <Card className="p-4 h-full">
           <CardHeader className="flex gap-3">
             <Lock size={24} className="text-primary" />
-            <div className="flex flex-col">
+            <div className="flex flex-col items-start">
               <p className="text-md font-bold">Change Password</p>
               <p className="text-small text-default-500">
-                Ensure your account is using a long, random password to stay
-                secure
+                Ensure your account is using a long password.
               </p>
             </div>
           </CardHeader>
           <Divider />
           <CardBody>
-            <form onSubmit={handlePasswordUpdate} className="space-y-6">
+            <form
+              onSubmit={handlePasswordUpdate}
+              className="space-y-6 h-full flex flex-col justify-between"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="New Password"

@@ -9,6 +9,7 @@ import (
 func AddOAuthRouter(oauthRouter *echo.Group) {
 	addGoogleOAuthRouter(oauthRouter.Group("/google"))
 	addFortyTwoOAuthRouter(oauthRouter.Group("/fortytwo"))
+	addGithubOAuthRouter(oauthRouter.Group("/github"))
 }
 
 func addGoogleOAuthRouter(oauthRouter *echo.Group) {
@@ -19,4 +20,9 @@ func addGoogleOAuthRouter(oauthRouter *echo.Group) {
 func addFortyTwoOAuthRouter(oauthRouter *echo.Group) {
 	oauthRouter.POST("", oauth.FortyTwo)
 	oauthRouter.GET("/callback", oauth.FortyTwoCallback)
+}
+
+func addGithubOAuthRouter(oauthRouter *echo.Group) {
+	oauthRouter.POST("", oauth.Github)
+	oauthRouter.GET("/callback", oauth.GithubCallback)
 }

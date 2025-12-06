@@ -47,7 +47,7 @@ export default function LoginPage() {
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
-  const redirectToOAuth = (provider: "google" | "fortytwo") => {
+  const redirectToOAuth = (provider: "google" | "fortytwo" | "github") => {
     const base = process.env.NEXT_PUBLIC_API_URL || "/api";
     const form = document.createElement("form");
 
@@ -213,13 +213,7 @@ export default function LoginPage() {
           fullWidth
           className="justify-center bg-white text-gray-900 font-medium hover:brightness-95"
           radius="sm"
-          onPress={() =>
-            addToast({
-              title: "Unavailable",
-              description: "GitHub OAuth isn't configured on the server.",
-              severity: "warning",
-            })
-          }
+          onPress={() => redirectToOAuth("github")}
         >
           <span className="ml-2">Continue with</span>
           <GithubIcon />

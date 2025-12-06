@@ -283,20 +283,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {userLoading
                         ? "Loading..."
                         : user
-                          ? `${user.firstname} ${user.lastname}`
+                          ? user.username
                           : "User Name"}
-                    </span>
-                    <span className="text-xs text-default-500 truncate w-full">
-                      {userLoading
-                        ? "Loading..."
-                        : user?.email || "user@example.com"}
                     </span>
                   </div>
                 )}
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu" className="min-w-[200px]">
-              <DropdownItem
+              {/* <DropdownItem
                 key="profile"
                 startContent={<User className="w-4 h-4" />}
                 as={NextLink}
@@ -304,7 +299,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="rounded-lg"
               >
                 My Profile
-              </DropdownItem>
+              </DropdownItem> */}
               <DropdownItem
                 key="theme"
                 startContent={

@@ -4,40 +4,21 @@ import {
   NavbarContent,
   NavbarMenu,
   NavbarMenuToggle,
-  NavbarBrand,
-  NavbarItem,
   NavbarMenuItem,
+  NavbarItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
-import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
-import { Avatar } from "@heroui/avatar";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-} from "@heroui/dropdown";
-import { link as linkStyles } from "@heroui/theme";
+import { Kbd } from "@heroui/kbd";
 import NextLink from "next/link";
-import clsx from "clsx";
+import NextImage from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { SearchIcon } from "@/components/icons";
 
 import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
-import { logoutUser, useSearchMovies } from "@/lib/hooks";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  SearchIcon,
-  Logo,
-  LoginIcon,
-} from "@/components/icons";
-import { useEffect, useState, useRef } from "react";
-import { User, Settings, LogOut, Bookmark, History, Menu } from "lucide-react";
+import { useSearchMovies } from "@/lib/hooks";
 import { Movie } from "./movies/MoviesCard";
-import NextImage from "next/image";
 
 const MovieSearchCard = ({ movie }: { movie: Movie }) => {
   return (
@@ -88,6 +69,7 @@ export const Navbar = ({
   onSidebarCollapseToggle?: () => void;
   isSidebarCollapsed?: boolean;
 }) => {
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -121,9 +103,7 @@ export const Navbar = ({
   // Handle Cmd+K / Ctrl+K keyboard shortcut to focus search
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-        // Don't trigger if user is typing in an input, textarea, or contenteditable element
         const target = event.target as HTMLElement;
         const isInputFocused =
           target.tagName === "INPUT" ||
@@ -132,7 +112,6 @@ export const Navbar = ({
 
         if (!isInputFocused) {
           event.preventDefault();
-
           if (searchContainerRef.current) {
             const inputElement = searchContainerRef.current.querySelector(
               'input[type="search"]'
@@ -152,8 +131,8 @@ export const Navbar = ({
 
   const showResults = isSearchFocused && debouncedQuery.trim().length > 0;
   const hasResults = movies.length > 0;
+  const isDiscoverPage = pathname === "/app/discover";
 
-  // search input component
   const searchInput = (
     <div ref={searchContainerRef} className="relative w-full max-w-md">
       <Input
@@ -185,7 +164,6 @@ export const Navbar = ({
         type="search"
       />
 
-      {/* Search Results Dropdown */}
       {showResults && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-content1 border border-default-200 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
           <div className="overflow-y-auto">
@@ -224,10 +202,10 @@ export const Navbar = ({
         <NavbarItem></NavbarItem>
       </NavbarContent>
 
-      {/* center - search input */}
+      {/* center - search input (only on discover page) */}
       <NavbarContent justify="center">
         <NavbarItem className="hidden md:flex w-full max-w-md">
-          {searchInput}
+          {isDiscoverPage && searchInput}
         </NavbarItem>
       </NavbarContent>
 
@@ -243,7 +221,7 @@ export const Navbar = ({
 
       {/* mobile menu content */}
       <NavbarMenu>
-        {searchInput}
+        {isDiscoverPage && searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
           {siteConfig.navMenuItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
