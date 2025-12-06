@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"server/internal/services"
 	resetpassword "server/internal/services/reset-password"
+	"server/internal/services/users"
 
 	"github.com/labstack/echo/v4"
 	gomail "gopkg.in/mail.v2"
@@ -51,7 +52,7 @@ func ForgotPassword(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	user, err := services.GetUserByEmail(body.Email)
+	user, err := users.GetUserByEmail(body.Email)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

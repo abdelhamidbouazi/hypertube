@@ -1,26 +1,28 @@
-import axios from 'axios';
+import axios from "axios";
 
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   withCredentials: false,
 });
 
 api.interceptors.request.use(
   (config) => {
-    if (typeof window !== 'undefined') {
-      let token = localStorage.getItem('token');
+    if (typeof window !== "undefined") {
+      let token = localStorage.getItem("token");
 
       if (!token) {
-        const cookies = document.cookie.split(';');
-        const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('token='));
+        const cookies = document.cookie.split(";");
+        const tokenCookie = cookies.find((cookie) =>
+          cookie.trim().startsWith("token=")
+        );
         if (tokenCookie) {
-          token = tokenCookie.split('=')[1];
+          token = tokenCookie.split("=")[1];
         }
       }
 
@@ -36,10 +38,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Clear tokens on 401 - middleware will handle redirect
-      localStorage.removeItem('token');
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      if (!window.location.pathname.includes("/auth/login")) {
+        window.location.href = "/auth/login";
+      }
     }
     return Promise.reject(error);
   }

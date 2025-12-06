@@ -1,42 +1,28 @@
-'use client'
+"use client";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
   NavbarMenu,
   NavbarMenuToggle,
-  NavbarBrand,
-  NavbarItem,
   NavbarMenuItem,
+  NavbarItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
-import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
-import { Avatar } from "@heroui/avatar";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
-import { link as linkStyles } from "@heroui/theme";
+import { Kbd } from "@heroui/kbd";
 import NextLink from "next/link";
-import clsx from "clsx";
+import NextImage from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { SearchIcon } from "@/components/icons";
 
 import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
-import { logoutUser, useSearchMovies } from "@/lib/hooks";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  SearchIcon,
-  Logo,
-  LoginIcon,
-} from "@/components/icons";
-import { useEffect, useState, useRef } from "react";
-import { User, Settings, LogOut, Bookmark, History, Menu } from "lucide-react";
+import { useSearchMovies } from "@/lib/hooks";
 import { Movie } from "./movies/MoviesCard";
-import NextImage from "next/image";
 
 const MovieSearchCard = ({ movie }: { movie: Movie }) => {
   return (
-    <NextLink 
+    <NextLink
       href={`/app/movie/${movie.id}`}
       className="flex gap-3 p-3 hover:bg-default-100 dark:hover:bg-default-50 transition-colors rounded-lg cursor-pointer group"
     >
@@ -74,27 +60,25 @@ const MovieSearchCard = ({ movie }: { movie: Movie }) => {
   );
 };
 
-
-export const Navbar = ({ 
-  onSidebarToggle, 
-  onSidebarCollapseToggle, 
-  isSidebarCollapsed 
+export const Navbar = ({
+  onSidebarToggle,
+  onSidebarCollapseToggle,
+  isSidebarCollapsed,
 }: {
-  onSidebarToggle?: () => void
-  onSidebarCollapseToggle?: () => void
-  isSidebarCollapsed?: boolean
+  onSidebarToggle?: () => void;
+  onSidebarCollapseToggle?: () => void;
+  isSidebarCollapsed?: boolean;
 }) => {
-
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const pathname = usePathname();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500); 
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -104,31 +88,34 @@ export const Navbar = ({
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setIsSearchFocused(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle Cmd+K / Ctrl+K keyboard shortcut to focus search
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-        // Don't trigger if user is typing in an input, textarea, or contenteditable element
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
         const target = event.target as HTMLElement;
-        const isInputFocused = target.tagName === 'INPUT' || 
-                              target.tagName === 'TEXTAREA' || 
-                              target.isContentEditable;
-        
+        const isInputFocused =
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable;
+
         if (!isInputFocused) {
           event.preventDefault();
-          
           if (searchContainerRef.current) {
-            const inputElement = searchContainerRef.current.querySelector('input[type="search"]') as HTMLInputElement;
+            const inputElement = searchContainerRef.current.querySelector(
+              'input[type="search"]'
+            ) as HTMLInputElement;
             if (inputElement) {
               inputElement.focus();
               setIsSearchFocused(true);
@@ -138,14 +125,14 @@ export const Navbar = ({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const showResults = isSearchFocused && debouncedQuery.trim().length > 0;
   const hasResults = movies.length > 0;
+  const isDiscoverPage = pathname === "/app/discover";
 
-  // search input component
   const searchInput = (
     <div ref={searchContainerRef} className="relative w-full max-w-md">
       <Input
@@ -157,11 +144,15 @@ export const Navbar = ({
         onValueChange={setSearchQuery}
         onFocus={() => setIsSearchFocused(true)}
         classNames={{
-          inputWrapper: "bg-content1/50 backdrop-blur-sm border-primary/20 hover:border-primary/40 focus-within:border-primary shadow-sm",
-          input: "text-foreground placeholder:text-default-500"
+          inputWrapper:
+            "bg-content1/50 backdrop-blur-sm border-primary/20 hover:border-primary/40 focus-within:border-primary shadow-sm",
+          input: "text-foreground placeholder:text-default-500",
         }}
         endContent={
-          <Kbd className="hidden lg:inline-block bg-primary/10 text-primary border-primary/20" keys={["command"]}>
+          <Kbd
+            className="hidden lg:inline-block bg-primary/10 text-primary border-primary/20"
+            keys={["command"]}
+          >
             K
           </Kbd>
         }
@@ -172,8 +163,7 @@ export const Navbar = ({
         }
         type="search"
       />
-      
-      {/* Search Results Dropdown */}
+
       {showResults && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-content1 border border-default-200 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
           <div className="overflow-y-auto">
@@ -209,21 +199,19 @@ export const Navbar = ({
     <HeroUINavbar position="sticky">
       {/* left side - empty for balance */}
       <NavbarContent justify="start">
-        <NavbarItem>
-        </NavbarItem>
+        <NavbarItem></NavbarItem>
       </NavbarContent>
 
-      {/* center - search input */}
+      {/* center - search input (only on discover page) */}
       <NavbarContent justify="center">
-        <NavbarItem className="hidden md:flex">
-          {searchInput}
+        <NavbarItem className="hidden md:flex w-full max-w-md">
+          {isDiscoverPage && searchInput}
         </NavbarItem>
       </NavbarContent>
 
       {/* right side - empty for balance */}
       <NavbarContent justify="end">
-        <NavbarItem>
-        </NavbarItem>
+        <NavbarItem></NavbarItem>
       </NavbarContent>
 
       {/* mobile menu toggle */}
@@ -233,7 +221,7 @@ export const Navbar = ({
 
       {/* mobile menu content */}
       <NavbarMenu>
-        {searchInput}
+        {isDiscoverPage && searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
           {siteConfig.navMenuItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>

@@ -13,7 +13,71 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 )
+
+type UpdateUserRequest struct {
+	FirstName         string `json:"firstname" validate:"omitempty,min=4" example:"Alan"`
+	LastName          string `json:"lastname" validate:"omitempty,min=4" example:"Turing"`
+	Email             string `json:"email" validate:"omitempty,email" example:"example@email.com"`
+	Username          string `json:"username" validate:"omitempty" example:"fturing"`
+	Password          string `json:"password" validate:"omitempty,min=8"`
+	PreferredLanguage string `json:"preferred_language" validate:"omitempty,len=2" example:"en"`
+}
+
+// Update user info godoc
+//
+//	@Summary		Update user info
+//	@Description	update current user info
+//	@Tags			users
+//	@Security		JWT
+//	@Accept			json
+//	@Produce		json
+//	@Param			UpdateUserRequest	body		UpdateUserRequest	true	"user info to update"
+//	@Success		200	{object}	models.User
+//	@Failure		400	{object}	utils.HTTPError
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Router			/users/me [patch]
+func UpdateUser(c echo.Context) error {
+	var req UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
+	}
+
+	// Get current user from context
+	userModel := c.Get("model").(models.User)
+
+	// Update fields if provided
+	if req.FirstName != "" {
+		userModel.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		userModel.LastName = req.LastName
+	}
+	if req.Email != "" {
+		userModel.Email = req.Email
+	}
+	if req.Username != "" {
+		userModel.Username = req.Username
+	}
+	if req.PreferredLanguage != "" {
+		userModel.PreferredLanguage = req.PreferredLanguage
+	}
+	if req.Password != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), 8)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to hash password")
+		}
+		userModel.Password = string(hashed)
+	}
+
+	// Save changes
+	if err := users.UpdateUser(userModel); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update user")
+	}
+
+	return c.JSON(http.StatusOK, userModel)
+}
 
 // Get users info godoc
 //
@@ -41,13 +105,6 @@ func GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-type UpdateUserRequest struct {
-	FirstName         string `validate:"min=4" example:"Alan"`
-	LastName          string `validate:"min=4" example:"Turing"`
-	Email             string `validate:"email" example:"example@email.com"`
-	Username          string `validate:"" example:"fturing"`
-	PreferredLanguage string `validate:"max=10,omitempty" default:"en" json:"preferred_language" example:"en"`
-}
 
 // Update users info godoc
 //

@@ -1,26 +1,21 @@
-'use client'
-import React, { useState, useEffect } from 'react'
-import NextLink from 'next/link'
-import { usePathname } from 'next/navigation'
-import clsx from 'clsx'
-import { Button } from '@heroui/button'
-import { Avatar } from '@heroui/avatar'
-import { Divider } from '@heroui/divider'
+"use client";
+import React, { useState, useEffect } from "react";
+import NextLink from "next/link";
+import { usePathname } from "next/navigation";
+import clsx from "clsx";
+import { Button } from "@heroui/button";
+import { Avatar } from "@heroui/avatar";
+import { Divider } from "@heroui/divider";
 import {
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-} from '@heroui/dropdown'
-import { logoutUser, useMe, useUserStats, useWatchHistory } from '@/lib/hooks'
-import { ThemeSwitch } from '@/components/theme-switch'
-import { useTheme } from 'next-themes'
-import {
-  Logo,
-  GithubIcon,
-  TwitterIcon,
-  DiscordIcon,
-} from '@/components/icons'
+} from "@heroui/dropdown";
+import { logoutUser, useMe, useUserStats, useWatchHistory } from "@/lib/hooks";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { useTheme } from "next-themes";
+import { Logo, GithubIcon, TwitterIcon, DiscordIcon } from "@/components/icons";
 import {
   Menu,
   X,
@@ -39,13 +34,13 @@ import {
   TrendingUp,
   Sun,
   Moon,
-} from 'lucide-react'
+} from "lucide-react";
 
 interface SidebarProps {
-  isOpen: boolean
-  onToggle: () => void
-  isCollapsed: boolean
-  onCollapseToggle: () => void
+  isOpen: boolean;
+  onToggle: () => void;
+  isCollapsed: boolean;
+  onCollapseToggle: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -54,103 +49,111 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onCollapseToggle,
 }) => {
-  const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
-  const { user, isLoading: userLoading } = useMe()
-  const { stats, isLoading: statsLoading } = useUserStats()
-  const { continueWatching, isLoading: watchHistoryLoading } = useWatchHistory()
+  const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const { user, isLoading: userLoading } = useMe();
+  const { stats, isLoading: statsLoading } = useUserStats();
+  const { continueWatching, isLoading: watchHistoryLoading } =
+    useWatchHistory();
 
   // main navigation items
   const navigation = [
-    { name: 'Discover', href: '/app/discover', icon: Compass },
-    { name: 'Watch Later', href: '/app/watch-later', icon: Clock },
-    { name: 'Watch History', href: '/app/history', icon: History },
-    { name: 'Settings', href: '/app/settings', icon: Settings },
-  ]
+    { name: "Discover", href: "/app/discover", icon: Compass },
+    { name: "Watch Later", href: "/app/watch-later", icon: Clock },
+    { name: "Watch History", href: "/app/history", icon: History },
+    { name: "Settings", href: "/app/settings", icon: Settings },
+  ];
 
   // user dropdown menu items
   const userMenuItems = [
-    { key: 'profile', label: 'My Profile', icon: User, href: '/app/profile' },
-  ]
+    { key: "profile", label: "My Profile", icon: User, href: "/app/profile" },
+  ];
 
   // check if current route is active
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) => pathname === href;
 
   // toggle between light and dark theme
   const toggleTheme = () => {
-    // setTheme(theme === 'light' ? 'dark' : 'light')
-    setTheme(theme === 'light' ? 'dark' : 'dark')
-  }
+    setTheme(theme === "light" ? "dark" : "light");
+  };
 
   // close sidebar on mobile route change
   useEffect(() => {
     if (window.innerWidth < 1024) {
-      onToggle()
+      onToggle();
     }
-  }, [pathname])
+  }, [pathname]);
 
   return (
     <>
       {/* mobile overlay for sidebar */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onToggle}
         />
       )}
 
       {/* main sidebar container */}
-      <aside className={clsx(
-        'fixed left-0 top-0 z-50 flex flex-col bg-content1 border-r border-divider transition-all duration-300 ease-in-out min-h-screen',
-        isOpen ? 'translate-x-0' : '-translate-x-full',
-        'lg:translate-x-0',
-        isCollapsed ? 'lg:w-16' : 'lg:w-56'
-      )}>
+      <aside
+        className={clsx(
+          "fixed left-0 top-0 z-50 flex flex-col bg-content1 border-r border-divider transition-all duration-300 ease-in-out min-h-screen",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:translate-x-0",
+          isCollapsed ? "lg:w-16" : "lg:w-56"
+        )}
+      >
         {/* sidebar header with logo */}
         <div className="flex items-center justify-between p-3 border-b border-divider">
           {!isCollapsed && (
             <NextLink href="/app/discover" className="flex items-center gap-2">
               <Logo />
-              <span className="text-lg font-light text-foreground">CINÉTHOS</span>
+              <span className="text-lg font-light text-foreground">
+                CINÉTHOS
+              </span>
             </NextLink>
           )}
           {isCollapsed && (
-            <NextLink href="/app/discover" className="flex justify-center w-full">
+            <NextLink
+              href="/app/discover"
+              className="flex justify-center w-full"
+            >
               <Logo />
             </NextLink>
           )}
-          
         </div>
 
         {/* main navigation menu */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.href)
-            
+            const Icon = item.icon;
+            const active = isActive(item.href);
+
             return (
               <NextLink
                 key={item.name}
                 href={item.href}
                 className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   active
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-foreground hover:bg-content2 hover:text-primary',
-                  isCollapsed && 'justify-center px-2'
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground hover:bg-content2 hover:text-primary",
+                  isCollapsed && "justify-center px-2"
                 )}
               >
-                <Icon className={clsx(
-                  'w-5 h-5 flex-shrink-0 transition-transform',
-                  active && 'scale-105'
-                )} />
+                <Icon
+                  className={clsx(
+                    "w-5 h-5 flex-shrink-0 transition-transform",
+                    active && "scale-105"
+                  )}
+                />
                 {!isCollapsed && (
                   <span className="transition-opacity duration-200">
                     {item.name}
                   </span>
                 )}
               </NextLink>
-            )
+            );
           })}
         </nav>
 
@@ -176,8 +179,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-3 border border-primary/20">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <img 
-                      src={continueWatching.posterPath || "/placeholder-poster.jpg"} 
+                    <img
+                      src={
+                        continueWatching.posterPath || "/placeholder-poster.jpg"
+                      }
                       alt={`${continueWatching.title} poster`}
                       className="w-12 h-16 object-cover rounded-lg"
                     />
@@ -235,13 +240,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Movies Watched</span>
                 <span className="font-semibold text-primary">
-                  {statsLoading ? '...' : stats.moviesWatched}
+                  {statsLoading ? "..." : stats.moviesWatched}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
                 <span className="text-default-500">Hours</span>
                 <span className="font-semibold text-primary">
-                  {statsLoading ? '...' : stats.hoursWatched}
+                  {statsLoading ? "..." : stats.hoursWatched}
                 </span>
               </div>
               {/* <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
@@ -263,8 +268,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Button
                 variant="flat"
                 className={clsx(
-                  'w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2',
-                  isCollapsed && 'justify-center px-2'
+                  "w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2",
+                  isCollapsed && "justify-center px-2"
                 )}
               >
                 <Avatar
@@ -273,19 +278,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="flex-shrink-0 ring-2 ring-primary/20"
                 />
                 {!isCollapsed && (
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-semibold">
-                      {userLoading ? 'Loading...' : user ? `${user.firstname} ${user.lastname}` : 'User Name'}
-                    </span>
-                    <span className="text-xs text-default-500">
-                      {userLoading ? 'Loading...' : user?.email || 'user@example.com'}
+                  <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                    <span className="text-sm font-semibold truncate w-full">
+                      {userLoading
+                        ? "Loading..."
+                        : user
+                          ? user.username
+                          : "User Name"}
                     </span>
                   </div>
                 )}
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu" className="min-w-[200px]">
-              <DropdownItem
+              {/* <DropdownItem
                 key="profile"
                 startContent={<User className="w-4 h-4" />}
                 as={NextLink}
@@ -293,14 +299,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="rounded-lg"
               >
                 My Profile
-              </DropdownItem>
+              </DropdownItem> */}
               <DropdownItem
                 key="theme"
-                startContent={theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                startContent={
+                  theme === "light" ? (
+                    <Sun className="w-4 h-4" />
+                  ) : (
+                    <Moon className="w-4 h-4" />
+                  )
+                }
                 onPress={toggleTheme}
                 className="rounded-lg"
               >
-                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                {theme === "light" ? "Dark Mode" : "Light Mode"}
               </DropdownItem>
               <DropdownItem
                 key="logout"
@@ -355,5 +367,5 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </aside>
     </>
-  )
-}
+  );
+};

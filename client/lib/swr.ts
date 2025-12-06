@@ -1,13 +1,18 @@
-import useSWR from 'swr';
-import api from './api';
+import useSWR from "swr";
+
+import api from "./api";
 
 const fetcher = (url: string) => {
-  return api.get(url).then(res => {
-    return res.data;
-  }).catch(err => {
-    console.error('SWR Error:', url, err);
-    throw err;
-  });
+  return api
+    .get(url)
+    .then((res) => {
+      return res.data;
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("SWR Error:", url, err);
+      throw err;
+    });
 };
 
 export const useApi = (url: string | null) => {
