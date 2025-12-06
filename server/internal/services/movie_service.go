@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"server/internal/models"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -406,17 +407,48 @@ func (ms *MovieService) GetRandomMovies(page int, pageSize int) ([]models.Movie,
 	return movies, nil
 }
 
-func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails) ([]models.TorrentResult, error) {
+// movieMetaGetter implements imdb2torrent.MetaGetter
+type movieMetaGetter struct {
+	movie models.MovieDetails
+}
+
+// GetMovieSimple implements imdb2torrent.MetaGetter
+func (m *movieMetaGetter) GetMovieSimple(ctx context.Context, imdbID string) (imdb2torrent.Meta, error) {
+	year := 0
+	if len(m.movie.ReleaseDate) >= 4 {
+		y, err := strconv.Atoi(m.movie.ReleaseDate[:4])
+		if err == nil {
+			year = y
+		}
+	}
+
+	Logger.Info(fmt.Sprintf("MetaGetter: Title='%s', Year=%d for IMDb ID %s", m.movie.Title, year, imdbID))
+
+	return imdb2torrent.Meta{
+		Title: m.movie.Title,
+		Year:  year,
+	}, nil
+}
+
+// GetTVShowSimple implements imdb2torrent.MetaGetter
+func (m *movieMetaGetter) GetTVShowSimple(ctx context.Context, imdbID string, season int, episode int) (imdb2torrent.Meta, error) {
+	return imdb2torrent.Meta{}, nil
+}
+
+func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadataTimeout time.Duration) ([]models.TorrentResult, error) {
 	imdbID := movie.IMDbID
-	Logger.Info(fmt.Sprintf("Searching torrents for IMDb ID %s", imdbID))
 	var results []models.TorrentResult
 
 	logger := zap.NewNop()
 	cache := imdb2torrent.NewInMemoryCache()
 
+	metaGetter := &movieMetaGetter{
+		movie: movie,
+	}
+
 	ytsOptions := imdb2torrent.DefaultYTSclientOpts
 
-	ytsOptions.BaseURL = "https://yts.lt"
+	ytsOptions.BaseURL = "https://yts.gg"
 
 	ytsClient := imdb2torrent.NewYTSclient(
 		ytsOptions,
@@ -425,13 +457,47 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails) ([]model
 		false,
 	)
 
+	ibitOptions := imdb2torrent.DefaultIbitClientOpts
+
+	ibitOptions.BaseURL = "https://ibit.unblockedproxy.biz"
+
+	ibitClient := imdb2torrent.NewIbitClient(
+		ibitOptions,
+		cache,
+		logger,
+		false,
+	)
+
+	tpbClient, _ := imdb2torrent.NewTPBclient(
+		imdb2torrent.DefaultTPBclientOpts,
+		cache,
+		metaGetter,
+		logger,
+		false,
+	)
+
+	leetxClient := imdb2torrent.NewLeetxClient(
+		imdb2torrent.DefaultLeetxClientOpts,
+		cache,
+		metaGetter,
+		logger,
+		false,
+	)
+
+	rarbgClient := imdb2torrent.NewRARBGclient(
+		imdb2torrent.DefaultRARBGclientOpts, cache, logger, false)
+
 	siteClients := map[string]imdb2torrent.MagnetSearcher{
-		"YTS": ytsClient,
+		"YTS":   ytsClient,
+		"ibit":  ibitClient,
+		"TPB":   tpbClient,
+		"1337x": leetxClient,
+		"rarbg": rarbgClient,
 	}
 
 	client := imdb2torrent.NewClient(
 		siteClients,
-		5*time.Second,
+		15*time.Second,
 		logger,
 	)
 
@@ -445,6 +511,10 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails) ([]model
 	}
 
 	Logger.Info(fmt.Sprintf("Found %d torrents for IMDb ID %s", len(torrents), imdbID))
+
+	if len(torrents) == 0 {
+		return results, nil
+	}
 
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = "/tmp/torrent-metadata"
@@ -460,20 +530,71 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails) ([]model
 		}
 	}()
 
-	for _, t := range torrents {
+	type metadataResult struct {
+		index    int
+		size     string
+		seeders  int
+		leechers int
+	}
+	resultChan := make(chan metadataResult, len(torrents))
+	metaCtx, metaCancel := context.WithTimeout(context.Background(), metadataTimeout)
+	defer metaCancel()
+
+	for i, t := range torrents {
+		go func(idx int, torr imdb2torrent.Result) {
+			if torrentClient != nil {
+				sizeBytes, s, l, err := fetchTorrentMetadata(metaCtx, torrentClient, torr.MagnetURL)
+				if err == nil {
+					resultChan <- metadataResult{
+						index:    idx,
+						size:     formatBytes(sizeBytes),
+						seeders:  s,
+						leechers: l,
+					}
+				} else {
+					Logger.Error(fmt.Sprintf("Failed to fetch metadata for torrent %s: %v", torr.Title, err))
+				}
+			}
+		}(i, t)
+	}
+
+	metadataMap := make(map[int]metadataResult)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	var firstResultReceived bool
+
+collectLoop:
+	for {
+		select {
+		case result := <-resultChan:
+			metadataMap[result.index] = result
+
+			if !firstResultReceived {
+				firstResultReceived = true
+			}
+
+			if len(metadataMap) == len(torrents) {
+				break collectLoop
+			}
+		case <-ticker.C:
+		case <-metaCtx.Done():
+			if firstResultReceived {
+				break collectLoop
+			}
+		}
+	}
+
+	// Build results with metadata
+	for i, t := range torrents {
 		size := ""
 		seeders := 0
 		leechers := 0
 
-		if torrentClient != nil {
-			sizeBytes, s, l, err := fetchTorrentMetadata(torrentClient, t.MagnetURL)
-			if err == nil {
-				size = formatBytes(sizeBytes)
-				seeders = s
-				leechers = l
-			} else {
-				Logger.Error(fmt.Sprintf("Failed to fetch metadata for torrent %s: %v", t.Title, err))
-			}
+		if metadata, ok := metadataMap[i]; ok {
+			size = metadata.size
+			seeders = metadata.seeders
+			leechers = metadata.leechers
 		}
 
 		result := models.TorrentResult{
@@ -488,16 +609,17 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails) ([]model
 		results = append(results, result)
 	}
 
+	sortTorrentsByRatio(results)
+
 	return results, nil
 }
 
-// fetchTorrentMetadata fetches size and peer info from magnet link
-func fetchTorrentMetadata(client *torrent.Client, magnetURL string) (int64, int, int, error) {
+func fetchTorrentMetadata(ctx context.Context, client *torrent.Client, magnetURL string) (int64, int, int, error) {
 	t, err := client.AddMagnet(magnetURL)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to add magnet: %w", err)
 	}
-	defer t.Drop() // Remove torrent from client when done
+	defer t.Drop()
 
 	// Wait for metadata with timeout
 	select {
@@ -510,7 +632,7 @@ func fetchTorrentMetadata(client *torrent.Client, magnetURL string) (int64, int,
 		leechers := stats.ActivePeers - stats.ConnectedSeeders
 
 		return size, seeders, leechers, nil
-	case <-time.After(30 * time.Second):
+	case <-ctx.Done():
 		return 0, 0, 0, fmt.Errorf("timeout fetching metadata")
 	}
 }
@@ -527,6 +649,26 @@ func formatBytes(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.2f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func sortTorrentsByRatio(torrents []models.TorrentResult) {
+	sort.Slice(torrents, func(i, j int) bool {
+		if torrents[i].Seeders == 0 && torrents[i].Leechers == 0 {
+			return false
+		}
+		if torrents[j].Seeders == 0 && torrents[j].Leechers == 0 {
+			return true
+		}
+
+		ratioI := float64(torrents[i].Seeders) / float64(torrents[i].Leechers+1)
+		ratioJ := float64(torrents[j].Seeders) / float64(torrents[j].Leechers+1)
+
+		if ratioI == ratioJ {
+			return torrents[i].Seeders > torrents[j].Seeders
+		}
+
+		return ratioI > ratioJ
+	})
 }
 
 func (ms *MovieService) GetIMDbIDFromTMDb(movieID int) (*models.MovieDetails, error) {
@@ -683,73 +825,4 @@ func (ms *MovieService) getOMDBData(imdbID string) map[string]interface{} {
 	var data map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&data)
 	return data
-}
-
-// Helper function to get movie info from IMDb ID
-func (ms *MovieService) getMovieInfoByIMDb(imdbID string) (*struct {
-	Title string
-	Year  int
-}, error,
-) {
-	// Use OMDb API (you can replace with your existing movie service)
-	apiURL := fmt.Sprintf("https://www.omdbapi.com/?i=%s&apikey=YOUR_OMDB_KEY", imdbID)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := ms.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var omdbResp struct {
-		Title string `json:"Title"`
-		Year  string `json:"Year"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&omdbResp); err != nil {
-		return nil, err
-	}
-
-	year, _ := strconv.Atoi(omdbResp.Year)
-
-	return &struct {
-		Title string
-		Year  int
-	}{
-		Title: omdbResp.Title,
-		Year:  year,
-	}, nil
-}
-
-// Helper function to extract quality from torrent name
-func (ms *MovieService) extractQuality(name string) string {
-	name = strings.ToUpper(name)
-	qualities := []string{"2160P", "4K", "1080P", "720P", "480P", "BLURAY", "WEBRIP", "HDTV"}
-	for _, q := range qualities {
-		if strings.Contains(name, q) {
-			return q
-		}
-	}
-	return "Unknown"
-}
-
-// Helper function to format bytes to human readable size
-func (ms *MovieService) formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

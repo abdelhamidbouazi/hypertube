@@ -19,13 +19,13 @@ import (
 var Server *echo.Echo
 
 var (
-	movieService       *services.MovieService
-	torrentService     *services.TorrentService
-	transcodingService *services.TranscodingService
-	movieController    *controllers.MovieController
-	torrentController  *controllers.TorrentController
-	subtitleController *controllers.SubtitleController
-	commentController  *controllers.CommentController
+	movieService        *services.MovieService
+	torrentService      *services.TorrentService
+	movieController     *controllers.MovieController
+	torrentController   *controllers.TorrentController
+	subtitleController  *controllers.SubtitleController
+	commentController   *controllers.CommentController
+	websocketController *controllers.WebSocketController
 )
 
 func InitServices() {
@@ -39,13 +39,13 @@ func InitServices() {
 		services.PostgresDB(),
 	)
 
-	transcodingService = services.NewTranscodingService()
+	websocketController = controllers.NewWebSocketController()
 
 	movieController = controllers.NewMovieController(
 		movieService,
 		torrentService,
-		transcodingService,
 		services.PostgresDB(),
+		websocketController,
 	)
 
 	torrentController = controllers.NewTorrentController(
@@ -120,6 +120,8 @@ func LoadServer() {
 	subtitleGroup.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
 	subtitleGroup.GET("/languages", subtitleController.GetAvailableLanguages, middlewares.Authenticated, middlewares.AttachUser)
 	subtitleGroup.GET("/recommendations", subtitleController.GetSubtitleRecommendations, middlewares.Authenticated, middlewares.AttachUser)
+
+	Server.GET("/ws/:movieId", websocketController.HandleWebSocket)
 }
 
 func setupSwagger(s *echo.Echo) {

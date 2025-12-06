@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"server/internal/controllers/auth"
 	"server/internal/models"
 	"server/internal/services/users"
 	"strconv"
@@ -100,6 +101,56 @@ func GetUsers(c echo.Context) error {
 }
 
 
+// Update users info godoc
+//
+//	@Summary		Update a user
+//	@Description	update a user
+//	@Tags			users
+//	@Produce		json
+//	@Param		UpdateUserRequest body UpdateUserRequest true "update user info"
+//	@Success		200	{array}		models.User
+//	@Failure 400 {object} utils.HTTPError
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Security		JWT
+//	@Router			/users [patch]
+func UpdateUser(c echo.Context) error {
+	var user UpdateUserRequest
+
+	err := c.Bind(&user)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+
+	foundUser := c.Get("model").(models.User)
+
+	if user.Email != "" {
+		foundUser.Email = user.Email
+	}
+	if user.Username != "" {
+		if foundUser.Username != user.Username {
+			isTaken, err := auth.IsUserNameAlreadyTaken(user.Username)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			}
+			if isTaken {
+				return echo.NewHTTPError(http.StatusBadRequest, "username is already taken")
+			}
+		}
+		foundUser.Username = user.Username
+	}
+	if user.FirstName != "" {
+		foundUser.FirstName = user.FirstName
+	}
+	if user.LastName != "" {
+		foundUser.LastName = user.LastName
+	}
+	if user.PreferredLanguage != "" {
+		foundUser.PreferredLanguage = user.PreferredLanguage
+	}
+
+	users.UpdateUser(foundUser)
+	return c.JSON(http.StatusOK, foundUser)
+}
 
 // Get user info godoc
 //

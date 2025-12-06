@@ -15,10 +15,6 @@ func AddMovieRouter(movieRouter *echo.Group, movieController *controllers.MovieC
 	movieRouter.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
 }
 
-func AddStreamRouter(streamRouter *echo.Group, movieController *controllers.MovieController) {
-	streamRouter.GET("/:id", movieController.StreamMovie, middlewares.Authenticated, middlewares.AttachUser)
-}
-
 func AddTorrentRouter(torrentRouter *echo.Group, torrentController *controllers.TorrentController) {
 	torrentRouter.POST("/download", torrentController.StartDownload, middlewares.Authenticated, middlewares.AttachUser)
 	torrentRouter.GET("/progress", torrentController.GetDownloadProgress, middlewares.Authenticated, middlewares.AttachUser)

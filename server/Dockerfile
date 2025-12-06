@@ -5,6 +5,9 @@ WORKDIR /app
 # Install FFmpeg for video transcoding
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
+# Create directories for volumes
+RUN mkdir -p /app/downloads /app/hls_output /app/subtitles
+
 RUN go install github.com/air-verse/air@latest
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest
