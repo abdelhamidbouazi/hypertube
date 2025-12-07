@@ -12,7 +12,7 @@ type RegisterUserType struct {
 	FirstName string `validate:"required,min=4" example:"Alan"`
 	LastName  string `validate:"required,min=4" example:"Turing"`
 	Email     string `validate:"required,email" example:"example@email.com"`
-	Password  string `validate:"required,min=8" example:"j8Kt603ql0RV"`
+	Password  string `example:"j8Kt603ql0RV"`
 	Username  string `validate:"required" example:"fturing"`
 }
 
@@ -54,6 +54,11 @@ func Register(c echo.Context) error {
 	}
 	if isTaken {
 		return echo.NewHTTPError(http.StatusBadRequest, "username is already taken")
+	}
+
+	err = services.ValidatePassword(newUser.Password)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	_, err = users.CreateUser(user)

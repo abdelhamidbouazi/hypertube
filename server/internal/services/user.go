@@ -27,7 +27,7 @@ type CreateUserType struct {
 	FirstName string `validate:"required,min=4"`
 	LastName  string `validate:"required,min=4"`
 	Email     string `validate:"required,email"`
-	Password  string `validate:"required,min=8"`
+	Password  string
 }
 
 func CreateUser(newUser CreateUserType) error {

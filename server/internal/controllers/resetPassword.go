@@ -13,7 +13,7 @@ import (
 type ResetPasswordPayload struct {
 	Token       string `json:"token" validate:"required,uuid" example:"3c38d605-200e-413c-9cc6-08d73290e642"`
 	Email       string `json:"email" validate:"required,email" example:"example@email.com"`
-	NewPassword string `json:"password" validate:"required,min=8" example:"aK62p1HYiC1f"`
+	NewPassword string `json:"password" example:"aK62p1HYiC1f"`
 }
 
 type ResetPasswordRes struct {
@@ -41,6 +41,11 @@ func ResetPassword(c echo.Context) error {
 	}
 
 	err = services.ValidateStruct(body)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	err = services.ValidatePassword(body.NewPassword)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
