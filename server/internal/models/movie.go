@@ -18,6 +18,7 @@ type DownloadedMovie struct {
 	LastWatched  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"last_watched"`
 	FileSize     int64     `gorm:"default:0" json:"file_size"`
 	Transcoded   bool      `gorm:"default:false" json:"transcoded"`
+	LastSegment  string    `gorm:"size:50" json:"last_segment"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -89,13 +90,16 @@ type Comment struct {
 
 type WatchHistory struct {
 	gorm.Model
-	UserID       uint      `gorm:"not null;index" json:"user_id"`
-	MovieID      int       `gorm:"not null" json:"movie_id"`
-	MovieTitle   string    `gorm:"size:500" json:"movie_title"`
-	PosterPath   string    `gorm:"size:500" json:"poster_path"`
-	WatchedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"watched_at"`
-	Duration     int       `json:"duration"`
-	LastPosition int       `json:"last_position"`
+	UserID        uint      `gorm:"not null;index" json:"user_id"`
+	MovieID       int       `gorm:"not null" json:"movie_id"`
+	MovieTitle    string    `gorm:"size:500" json:"movie_title"`
+	PosterPath    string    `gorm:"size:500" json:"poster_path"`
+	WatchedAt     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"watched_at"`
+	Duration      int       `json:"duration"`
+	LastPosition  int       `json:"last_position"`
+	LastSegment   string    `gorm:"size:50" json:"last_segment"`
+	WatchProgress float64   `gorm:"type:decimal(5,2);default:0" json:"watch_progress"`
+	WatchCount    int       `gorm:"default:0" json:"watch_count"`
 }
 
 type TorrentResult struct {
@@ -110,17 +114,18 @@ type TorrentResult struct {
 type TorrentDownload struct {
 	Torrent        *torrent.Torrent `json:"-"`
 	VideoFile      *torrent.File    `json:"-"`
-	MovieID        int              `json:"movie_id"`
-	Quality        string           `json:"quality"`
-	Progress       float64          `json:"progress"`
-	Status         string           `json:"status"`
-	StreamReady    bool             `json:"stream_ready"`
-	StreamingReady bool             `json:"streaming_ready"`
-	FilePath       string           `json:"file_path"`
-	SubtitlePath   string           `json:"subtitle_path"`
-	StartedAt      time.Time        `json:"started_at"`
-	CompletedAt    *time.Time       `json:"completed_at,omitempty"`
-	Mu             sync.RWMutex     `json:"-"`
+	RootDir        string
+	MovieID        int          `json:"movie_id"`
+	Quality        string       `json:"quality"`
+	Progress       float64      `json:"progress"`
+	Status         string       `json:"status"`
+	StreamReady    bool         `json:"stream_ready"`
+	StreamingReady bool         `json:"streaming_ready"`
+	FilePath       string       `json:"file_path"`
+	SubtitlePath   string       `json:"subtitle_path"`
+	StartedAt      time.Time    `json:"started_at"`
+	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
+	Mu             sync.RWMutex `json:"-"`
 }
 
 type TranscodeJob struct {
