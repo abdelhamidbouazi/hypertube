@@ -21,7 +21,7 @@ import (
 //	@Description	get users info
 //	@Tags			users
 //	@Produce		json
-//	@Success		200	{array}		models.User
+//	@Success		200	{array}		models.UserPublicInfo
 //	@Failure		401	{object}	utils.HTTPErrorUnauthorized
 //	@Security		JWT
 //	@Router			/users [get]
@@ -34,8 +34,13 @@ func GetUsers(c echo.Context) error {
 		return c.JSON(http.StatusOK, response)
 	}
 
+	publicUsers := make([]models.UserPublicInfo, len(users))
+	for i, user := range users {
+		publicUsers[i] = user.UserPublicInfo
+	}
+
 	response := echo.Map{
-		"data": users,
+		"data": publicUsers,
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -112,6 +117,34 @@ func UpdateUser(c echo.Context) error {
 //	@Router			/users/me [get]
 func GetMe(c echo.Context) error {
 	return c.JSON(http.StatusOK, c.Get("model"))
+}
+
+// Get user by username godoc
+//
+//	@Summary		Get user by username
+//	@Description	get user information by username
+//	@Tags			users
+//	@Security		JWT
+//	@Produce		json
+//	@Param			username	path		string	true	"Username"
+//	@Success		200			{object}	models.UserPublicInfo
+//	@Failure		400			{object}	utils.HTTPError
+//	@Failure		401			{object}	utils.HTTPErrorUnauthorized
+//	@Failure		404			{object}	utils.HTTPError
+//	@Router			/users/{username} [get]
+func GetUserByUsername(c echo.Context) error {
+	username := c.Param("username")
+
+	if username == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "username parameter is required")
+	}
+
+	user, err := users.GetUserByUsername(username)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "user not found")
+	}
+
+	return c.JSON(http.StatusOK, user.UserPublicInfo)
 }
 
 type UploadPictureReq struct {
