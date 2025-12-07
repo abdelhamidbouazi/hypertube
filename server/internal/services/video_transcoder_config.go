@@ -30,11 +30,12 @@ type VideoTranscoderConfig struct {
 	} `mapstructure:"qualities"`
 
 	Output struct {
-		Directory         string `mapstructure:"directory"`
-		SegmentTime       int    `mapstructure:"segment_time"`
-		PlaylistType      string `mapstructure:"playlist_type"`
-		UseTemporaryFiles bool   `mapstructure:"use_temporary_files"`
-		DeleteOldSegments bool   `mapstructure:"delete_old_segments"`
+		Directory             string `mapstructure:"directory"`
+		SegmentTime           int    `mapstructure:"segment_time"`
+		SegmentFilenameFormat string `mapstructure:"segment_filename_format"`
+		PlaylistType          string `mapstructure:"playlist_type"`
+		UseTemporaryFiles     bool   `mapstructure:"use_temporary_files"`
+		DeleteOldSegments     bool   `mapstructure:"delete_old_segments"`
 	} `mapstructure:"output"`
 }
 

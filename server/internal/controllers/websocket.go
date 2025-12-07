@@ -12,9 +12,8 @@ import (
 
 type WebSocketController struct {
 	upgrader     websocket.Upgrader
-	subscribers  map[int][]*websocket.Conn      // movieID -> list of websocket connections
-	streamStates map[int]map[string]interface{} // movieID -> last stream state
-	mu           sync.RWMutex                   // protects subscribers and streamStates
+	subscribers  sync.Map // map[int][]*websocket.Conn - movieID -> list of websocket connections
+	streamStates sync.Map // map[int]map[string]interface{} - movieID -> last stream state
 }
 
 func NewWebSocketController() *WebSocketController {
@@ -25,8 +24,6 @@ func NewWebSocketController() *WebSocketController {
 				return true
 			},
 		},
-		subscribers:  make(map[int][]*websocket.Conn),
-		streamStates: make(map[int]map[string]interface{}),
 	}
 }
 
@@ -55,13 +52,11 @@ func (wc *WebSocketController) HandleWebSocket(c echo.Context) error {
 
 	wc.addSubscriber(movieID, ws)
 
-	wc.mu.RLock()
-	if lastState, exists := wc.streamStates[movieID]; exists {
+	if lastState, exists := wc.streamStates.Load(movieID); exists {
 		if stateJSON, err := json.Marshal(lastState); err == nil {
 			ws.WriteMessage(websocket.TextMessage, stateJSON)
 		}
 	}
-	wc.mu.RUnlock()
 
 	for {
 		_, _, err := ws.ReadMessage()
@@ -74,39 +69,41 @@ func (wc *WebSocketController) HandleWebSocket(c echo.Context) error {
 }
 
 func (wc *WebSocketController) addSubscriber(movieID int, ws *websocket.Conn) {
-	wc.mu.Lock()
-	defer wc.mu.Unlock()
-
-	if wc.subscribers[movieID] == nil {
-		wc.subscribers[movieID] = make([]*websocket.Conn, 0)
+	var subscribers []*websocket.Conn
+	if val, exists := wc.subscribers.Load(movieID); exists {
+		subscribers = val.([]*websocket.Conn)
+	} else {
+		subscribers = make([]*websocket.Conn, 0)
 	}
-	wc.subscribers[movieID] = append(wc.subscribers[movieID], ws)
+	subscribers = append(subscribers, ws)
+	wc.subscribers.Store(movieID, subscribers)
 }
 
 func (wc *WebSocketController) removeSubscriber(movieID int, ws *websocket.Conn) {
-	wc.mu.Lock()
-	defer wc.mu.Unlock()
-
-	if subscribers, exists := wc.subscribers[movieID]; exists {
+	if val, exists := wc.subscribers.Load(movieID); exists {
+		subscribers := val.([]*websocket.Conn)
 		for i, conn := range subscribers {
 			if conn == ws {
-				wc.subscribers[movieID] = append(subscribers[:i], subscribers[i+1:]...)
+				subscribers = append(subscribers[:i], subscribers[i+1:]...)
 				break
 			}
 		}
 
-		if len(wc.subscribers[movieID]) == 0 {
-			delete(wc.subscribers, movieID)
+		if len(subscribers) == 0 {
+			wc.subscribers.Delete(movieID)
+		} else {
+			wc.subscribers.Store(movieID, subscribers)
 		}
 	}
 }
 
 func (wc *WebSocketController) UpdateStreamState(movieID int, state map[string]interface{}) {
-	wc.mu.Lock()
-	wc.streamStates[movieID] = state
+	wc.streamStates.Store(movieID, state)
 
-	subscribers := wc.subscribers[movieID]
-	wc.mu.Unlock()
+	var subscribers []*websocket.Conn
+	if val, exists := wc.subscribers.Load(movieID); exists {
+		subscribers = val.([]*websocket.Conn)
+	}
 
 	if len(subscribers) > 0 {
 		stateJSON, err := json.Marshal(state)
@@ -114,10 +111,8 @@ func (wc *WebSocketController) UpdateStreamState(movieID int, state map[string]i
 			return
 		}
 
-		wc.mu.RLock()
 		for _, ws := range subscribers {
 			ws.WriteMessage(websocket.TextMessage, stateJSON)
 		}
-		wc.mu.RUnlock()
 	}
 }

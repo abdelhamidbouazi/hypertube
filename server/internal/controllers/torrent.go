@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"server/internal/models"
 	"server/internal/services"
 
 	"github.com/labstack/echo/v4"
@@ -101,13 +102,11 @@ func (c *TorrentController) GetDownloadProgress(ctx echo.Context) error {
 
 	downloadKey := fmt.Sprintf("%s-%s", movieID, quality)
 
-	c.torrentService.Mu.RLock()
-	dl, exists := c.torrentService.Downloads[downloadKey]
-	c.torrentService.Mu.RUnlock()
-
+	val, exists := c.torrentService.Downloads.Load(downloadKey)
 	if !exists {
 		return echo.NewHTTPError(http.StatusNotFound, "Download not found")
 	}
+	dl := val.(*models.TorrentDownload)
 
 	return ctx.JSON(http.StatusOK, DownloadProgressResponse{
 		Status:      dl.Status,

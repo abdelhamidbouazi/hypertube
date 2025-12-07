@@ -43,7 +43,7 @@ type CommentResponse struct {
 //	@Produce      json
 //	@Security     JWT
 //	@Param        body  body      AddCommentRequest  true  "Comment body"
-	//	@Success      200   {object}  controllers.CommentResponse
+//	@Success      200   {object}  controllers.CommentResponse
 //	@Failure      400   {object}  utils.HTTPError
 //	@Failure      401   {object}  utils.HTTPErrorUnauthorized
 //	@Failure      500   {object}  utils.HTTPError
