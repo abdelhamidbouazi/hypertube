@@ -122,7 +122,7 @@ func GoogleCallback(c echo.Context) error {
 			Email:      GoogleUserRes["email"].(string),
 			FirstName:  GoogleUserRes["name"].(string),
 			Avatar:     GoogleUserRes["picture"].(string),
-			Username:   fmt.Sprintf("%s%d", GoogleUserRes["name"].(string), providerId),
+			Username:   fmt.Sprintf("%s%s", GoogleUserRes["name"].(string), providerId),
 		}
 		createdUser, err := users.CreateUser(newUser)
 		if err != nil {
