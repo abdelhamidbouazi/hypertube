@@ -974,7 +974,7 @@ func (ms *MovieService) cleanupOldHLSFiles(hlsDir string) {
 	}
 
 	var oldMovies []MovieLastWatched
-	oneMonthAgo := time.Now().AddDate(0, 0, 0).Add(-10 * time.Hour)
+	oneMonthAgo := time.Now().AddDate(0, -1, 0)
 
 	err := db.Model(&models.WatchHistory{}).
 		Select("movie_id, MAX(watched_at) as watched_at").
