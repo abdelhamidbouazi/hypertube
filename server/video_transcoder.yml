@@ -47,5 +47,6 @@ qualities:
 output:
   directory: "./hls_output"
   segment_time: 4 # Seconds per segment
+  segment_filename_format: "segment%d.ts"
   use_temporary_files: true # Write to .tmp first
   delete_old_segments: false # Keep all segments for VOD
