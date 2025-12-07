@@ -460,12 +460,37 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadata
 		movie: movie,
 	}
 
-	ytsOptions := imdb2torrent.DefaultYTSclientOpts
+	ytsGGOptions := imdb2torrent.DefaultYTSclientOpts
+	ytsGGOptions.BaseURL = "https://yts.gg"
+	ytsGGClient := imdb2torrent.NewYTSclient(
+		ytsGGOptions,
+		cache,
+		logger,
+		false,
+	)
 
-	ytsOptions.BaseURL = "https://yts.gg"
+	ytsLTOptions := imdb2torrent.DefaultYTSclientOpts
+	ytsLTOptions.BaseURL = "https://yts.lt"
+	ytsLTClient := imdb2torrent.NewYTSclient(
+		ytsLTOptions,
+		cache,
+		logger,
+		false,
+	)
 
-	ytsClient := imdb2torrent.NewYTSclient(
-		ytsOptions,
+	ytsAMOptions := imdb2torrent.DefaultYTSclientOpts
+	ytsAMOptions.BaseURL = "https://yts.am"
+	ytsAMClient := imdb2torrent.NewYTSclient(
+		ytsAMOptions,
+		cache,
+		logger,
+		false,
+	)
+
+	ytsAGOptions := imdb2torrent.DefaultYTSclientOpts
+	ytsAGOptions.BaseURL = "https://yts.ag"
+	ytsAGClient := imdb2torrent.NewYTSclient(
+		ytsAGOptions,
 		cache,
 		logger,
 		false,
@@ -502,20 +527,23 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadata
 		imdb2torrent.DefaultRARBGclientOpts, cache, logger, false)
 
 	siteClients := map[string]imdb2torrent.MagnetSearcher{
-		"YTS":   ytsClient,
-		"ibit":  ibitClient,
-		"TPB":   tpbClient,
-		"1337x": leetxClient,
-		"rarbg": rarbgClient,
+		"YTS-GG": ytsGGClient,
+		"YTS-LT": ytsLTClient,
+		"YTS-AM": ytsAMClient,
+		"YTS-AG": ytsAGClient,
+		"ibit":   ibitClient,
+		"TPB":    tpbClient,
+		"1337x":  leetxClient,
+		"rarbg":  rarbgClient,
 	}
 
 	client := imdb2torrent.NewClient(
 		siteClients,
-		15*time.Second,
+		5*time.Minute,
 		logger,
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	torrents, err := client.FindMovie(ctx, imdbID)
