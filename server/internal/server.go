@@ -89,7 +89,12 @@ func LoadServer() {
 		SigningKey: []byte(services.Conf.JWT.SigningKey),
 	}
 
-	middlewares.SetupJWT(config)
+	refreshTokenConfig := echojwt.Config{
+		SigningKey:  []byte(services.Conf.JWT.SigningKey),
+		TokenLookup: "header:RefreshToken",
+	}
+
+	middlewares.SetupJWT(config, refreshTokenConfig)
 	setupSwagger(Server)
 
 	Server.POST("/forgot-password", controllers.ForgotPassword)

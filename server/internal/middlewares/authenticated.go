@@ -9,11 +9,22 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var Authenticated echo.MiddlewareFunc
+var (
+	Authenticated         echo.MiddlewareFunc
+	RefreshTokenExtractor echo.MiddlewareFunc
+)
 
-func SetupJWT(config echojwt.Config) {
+func SetupJWT(config, refreshTokenConfig echojwt.Config) {
 	Authenticated = func(next echo.HandlerFunc) echo.HandlerFunc {
 		return echojwt.WithConfig(config)(func(c echo.Context) error {
+			data := c.Get("user").(*jwt.Token).Claims.(jwt.MapClaims)
+			c.Set("data", data)
+			return next(c)
+		})
+	}
+
+	RefreshTokenExtractor = func(next echo.HandlerFunc) echo.HandlerFunc {
+		return echojwt.WithConfig(refreshTokenConfig)(func(c echo.Context) error {
 			data := c.Get("user").(*jwt.Token).Claims.(jwt.MapClaims)
 			c.Set("data", data)
 			return next(c)
