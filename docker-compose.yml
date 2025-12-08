@@ -61,8 +61,6 @@ services:
       - hypertube
     depends_on:
       - server
-    volumes:
-      - ./client/:/app
 
   nginx:
     image: nginx:1.27-alpine
