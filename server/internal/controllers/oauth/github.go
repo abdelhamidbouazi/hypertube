@@ -127,7 +127,7 @@ func GithubCallback(c echo.Context) error {
 			FirstName:  APIUserRes.FirstName,
 			LastName:   APIUserRes.LastName,
 			Avatar:     APIUserRes.Avatar,
-			Username:   APIUserRes.Login,
+			Username:   fmt.Sprintf("gh-%s", APIUserRes.Login),
 		}
 		createdUser, err := users.CreateUser(newUser)
 		if err != nil {

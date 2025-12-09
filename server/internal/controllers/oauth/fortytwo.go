@@ -126,7 +126,7 @@ func FortyTwoCallback(c echo.Context) error {
 			FirstName:  APIUserRes.FirstName,
 			LastName:   APIUserRes.LastName,
 			Avatar:     APIUserRes.Avatar.Link,
-			Username:   fmt.Sprintf("%s%s", APIUserRes.FirstName, provideId),
+			Username:   fmt.Sprintf("ft-%s", APIUserRes.FirstName),
 		}
 		createdUser, err := users.CreateUser(newUser)
 		if err != nil {
