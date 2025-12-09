@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"mime/multipart"
 	"net/http"
 	"server/internal/services"
 	"server/internal/services/users"
@@ -9,11 +10,12 @@ import (
 )
 
 type RegisterUserType struct {
-	FirstName string `validate:"required,min=4" example:"Alan"`
-	LastName  string `validate:"required,min=4" example:"Turing"`
-	Email     string `validate:"required,email" example:"example@email.com"`
-	Password  string `example:"j8Kt603ql0RV"`
-	Username  string `validate:"required" example:"fturing"`
+	FirstName string                `form:"firstname" validate:"required,min=4" example:"Alan"`
+	LastName  string                `form:"lastname" validate:"required,min=4" example:"Turing"`
+	Email     string                `form:"email" validate:"required,email" example:"example@email.com"`
+	Password  string                `form:"password" example:"j8Kt603ql0RV"`
+	Username  string                `form:"username" validate:"required" example:"fturing"`
+	Picture   *multipart.FileHeader `form:"picture"`
 }
 
 // Register godoc
@@ -42,6 +44,13 @@ func Register(c echo.Context) error {
 	user.LastName = newUser.LastName
 	user.Password = newUser.Password
 	user.Username = newUser.Username
+	if newUser.Picture != nil {
+		avatarUrl, err := services.UploadPicture(newUser.Picture, user.Username)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+		user.Avatar = avatarUrl
+	}
 
 	err = services.ValidateStruct(newUser)
 	if err != nil {
