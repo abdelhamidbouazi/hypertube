@@ -175,7 +175,7 @@ func UploadPicture(c echo.Context) error {
 
 	user := c.Get("model").(models.User)
 
-	key := user.FirstName + ".png"
+	key := user.Username + ".png"
 
 	input := &s3.PutObjectInput{
 		Bucket: aws.String(services.AWSBucketName),
