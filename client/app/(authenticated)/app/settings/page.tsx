@@ -2,14 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
+import { Avatar } from "@heroui/avatar";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
 import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
-import { useMe, updateUser } from "@/lib/hooks";
+import { useMe, updateUser, uploadAvatar } from "@/lib/hooks";
 import { getErrorMessage } from "@/lib/error-utils";
-import { Eye, EyeOff, Save, User, Lock } from "lucide-react";
+import { Eye, EyeOff, Save, User, Lock, Camera, Edit2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, isLoading: isUserLoading, refetch } = useMe();
@@ -122,6 +123,32 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      await uploadAvatar(file);
+      addToast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+        severity: "success",
+        timeout: 3000,
+      });
+      refetch();
+    } catch (error) {
+      addToast({
+        title: "Upload failed",
+        description: getErrorMessage(error),
+        severity: "danger",
+        timeout: 4000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isUserLoading) {
     return <div className="p-8 text-center">Loading settings...</div>;
   }
@@ -207,16 +234,53 @@ export default function SettingsPage() {
         {/* Password Settings */}
         <Card className="p-4 h-full">
           <CardHeader className="flex gap-3">
-            <Lock size={24} className="text-primary" />
+            <User size={24} className="text-primary" />
             <div className="flex flex-col items-start">
-              <p className="text-md font-bold">Change Password</p>
+              <p className="text-md font-bold">Change Avatar</p>
               <p className="text-small text-default-500">
-                Ensure your account is using a long password.
+                Upload a new avatar image.
               </p>
             </div>
           </CardHeader>
           <Divider />
           <CardBody>
+            <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="relative group cursor-pointer">
+                <Avatar
+                  src={user?.avatar}
+                  className="w-24 h-24 text-large"
+                  isBordered
+                  color="primary"
+                />
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <Edit2 className="text-white w-6 h-6" />
+                </label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-small text-default-500">
+                Click to change avatar
+              </p>
+            </div>
+            <CardHeader className="flex gap-3">
+              <Lock size={24} className="text-primary" />
+              <div className="flex flex-col items-start">
+                <p className="text-md font-bold">Change Password</p>
+                <p className="text-small text-default-500">
+                  Ensure your account is using a long password.
+                </p>
+              </div>
+            </CardHeader>
+            <Divider className="mb-6" />
             <form
               onSubmit={handlePasswordUpdate}
               className="space-y-6 h-full flex flex-col justify-between"

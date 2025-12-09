@@ -295,3 +295,17 @@ export const updateUser = async (data: {
 
   return response.data;
 };
+
+// upload user avatar
+export const uploadAvatar = async (file: File) => {
+  const formData = new FormData();
+  formData.append("picture", file);
+
+  const response = await api.post("/users/me/upload-avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
