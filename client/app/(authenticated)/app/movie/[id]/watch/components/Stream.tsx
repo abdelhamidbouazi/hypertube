@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@heroui/button";
 import { Progress } from "@heroui/progress";
+import { Download, AlertCircle, Loader2, CheckCircle2, Video } from "lucide-react";
 import api, { BASE_URL } from "@/lib/api";
 
 interface HlsPlayerProps {
@@ -193,15 +194,17 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "initializing":
-        return "Initializing download...";
+        return "Initializing...";
       case "downloading":
         return "Downloading...";
+      case "transcoding":
+        return "Transcoding...";
       case "streaming":
         return "Streaming ready";
       case "completed":
-        return "Download completed";
+        return "Completed";
       case "error":
-        return "Error occurred";
+        return "Error";
       default:
         return status;
     }
@@ -209,47 +212,6 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
 
   return (
     <div className="max-w-7xl mx-auto text-center">
-      {/* Download Progress */}
-      {downloadProgress &&
-        downloadProgress.status !== "completed" &&
-        !downloadProgress.stream_ready && (
-          <div className={`mb-4 p-4 rounded-lg ${downloadProgress.status === 'error' ? 'bg-danger-50 dark:bg-danger-900/20' : 'bg-content2 dark:bg-slate-800'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-semibold ${downloadProgress.status === 'error' ? 'text-danger' : 'text-foreground-500 dark:text-slate-200'}`}>
-                {getStatusLabel(downloadProgress.status)}
-              </span>
-              {downloadProgress.status !== 'error' && (
-                <span className="text-sm text-foreground-500 dark:text-slate-200">
-                  {downloadProgress.progress.toFixed(1)}%
-                </span>
-              )}
-            </div>
-
-            {downloadProgress.status === 'error' ? (
-              <div className="text-danger text-sm text-left">
-                <p className="font-medium">{downloadProgress.message || "An unexpected error occurred."}</p>
-                {downloadProgress.error && <p className="mt-1 opacity-80 text-xs">{downloadProgress.error}</p>}
-              </div>
-            ) : (
-              <>
-                <Progress
-                  value={downloadProgress.progress}
-                  color="primary"
-                  className="w-full"
-                  aria-label="Download progress"
-                />
-                {downloadProgress.message && (
-                  <p className="text-xs text-foreground-400 mt-2 text-left">{downloadProgress.message}</p>
-                )}
-                {downloadProgress.quality && (
-                  <span className="text-xs text-foreground-400 mt-1 block text-left">
-                    Quality: {downloadProgress.quality}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
       {levels.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -260,9 +222,9 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
             {/* Subtitle Selector */}
             {subtitleTracks.length > 0 && (
               <div
-                className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
-                role="radiogroup"
-                aria-label="Select subtitles"
+              className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
+              role="radiogroup"
+              aria-label="Select subtitles"
               >
                 <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">
                   Subtitles
@@ -271,17 +233,17 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
                   const isActive = currentSubtitle === track.index;
                   return (
                     <Button
-                      className="min-w-14 my-auto"
-                      color={isActive ? "primary" : "default"}
-                      key={track.index}
-                      radius="lg"
-                      role="radio"
-                      size="sm"
-                      tabIndex={isActive ? 0 : -1}
-                      value={track.index.toString()}
-                      variant={isActive ? "solid" : "light"}
-                      aria-checked={isActive}
-                      onPress={() => handleSubtitleChange(track.index)}
+                    className="min-w-14 my-auto"
+                    color={isActive ? "primary" : "default"}
+                    key={track.index}
+                    radius="lg"
+                    role="radio"
+                    size="sm"
+                    tabIndex={isActive ? 0 : -1}
+                    value={track.index.toString()}
+                    variant={isActive ? "solid" : "light"}
+                    aria-checked={isActive}
+                    onPress={() => handleSubtitleChange(track.index)}
                     >
                       {track.label}
                     </Button>
@@ -295,27 +257,27 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
               className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
               role="radiogroup"
               aria-label="Select playback quality"
-            >
+              >
               <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">
                 Quality
               </span>
               {levels.map((lvl) => {
                 const isActive = currentLevel === lvl.index;
                 const shortLabel =
-                  lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
+                lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
                 return (
                   <Button
-                    className="min-w-14 my-auto"
-                    color={isActive ? "primary" : "default"}
-                    key={lvl.index}
-                    radius="lg"
-                    role="radio"
-                    size="sm"
-                    tabIndex={isActive ? 0 : -1}
-                    value={lvl.index.toString()}
-                    variant={isActive ? "solid" : "light"}
-                    aria-checked={isActive}
-                    onPress={() => handleQualityChange(lvl.index)}
+                  className="min-w-14 my-auto"
+                  color={isActive ? "primary" : "default"}
+                  key={lvl.index}
+                  radius="lg"
+                  role="radio"
+                  size="sm"
+                  tabIndex={isActive ? 0 : -1}
+                  value={lvl.index.toString()}
+                  variant={isActive ? "solid" : "light"}
+                  aria-checked={isActive}
+                  onPress={() => handleQualityChange(lvl.index)}
                   >
                     {shortLabel}
                   </Button>
@@ -330,7 +292,64 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         controls
         autoPlay
         style={{ width: "100%", borderRadius: 10 }}
-      ></video>
+        ></video>
+        {/* Download Progress */}
+        {downloadProgress &&
+          downloadProgress.status !== "completed" &&
+          !downloadProgress.stream_ready && (
+            <div className={`mt-4 p-4 rounded-lg border ${
+              downloadProgress.status === 'error' 
+                ? 'bg-danger-50 dark:bg-danger-950/30 border-danger-200 dark:border-danger-800' 
+                : 'bg-content2 dark:bg-content2 border-default-200 dark:border-default-100'
+            }`}>
+              <div className="flex items-start gap-3">
+                {/* Status Icon */}
+                <div className={`flex-shrink-0 ${
+                  downloadProgress.status === 'error' 
+                    ? 'text-danger dark:text-danger-400' 
+                    : 'text-primary dark:text-primary-400'
+                }`}>
+                  {downloadProgress.status === 'error' ? (
+                    <AlertCircle className="w-5 h-5" />
+                  ) : downloadProgress.status === 'transcoding' ? (
+                    <Video className="w-5 h-5 animate-pulse" />
+                  ) : (
+                    <Download className="w-5 h-5 animate-pulse" />
+                  )}
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 space-y-1.5">
+                  {/* Status & Quality */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-sm font-medium ${
+                      downloadProgress.status === 'error' 
+                        ? 'text-danger dark:text-danger-400' 
+                        : 'text-foreground dark:text-foreground'
+                    }`}>
+                      {getStatusLabel(downloadProgress.status)}
+                    </span>
+                    {downloadProgress.quality && downloadProgress.quality !== 'unknown' && (
+                      <span className="text-xs text-foreground-500 dark:text-foreground-400">
+                        • {downloadProgress.quality}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Message */}
+                  {downloadProgress.message && (
+                    <p className={`text-sm ${
+                      downloadProgress.status === 'error' 
+                        ? 'text-danger-600 dark:text-danger-400' 
+                        : 'text-foreground-600 dark:text-foreground-400'
+                    }`}>
+                      {downloadProgress.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
     </div>
   );
 }
