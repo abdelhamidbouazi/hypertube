@@ -10,9 +10,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useMovieDetails } from "@/components/movies/useMovieDetails";
-// import StreamPlayer from "./components/Stream";
 import HlsPlayer from "./components/Stream";
-// import Image from "next/image";
 import { BASE_URL } from "@/lib/api";
 
 interface WatchPageProps {
@@ -24,11 +22,12 @@ interface WatchPageProps {
 export default function WatchPage({ params }: WatchPageProps) {
   const { id } = use(params);
   const { movie, isLoading, error } = useMovieDetails(id);
+
   useEffect(() => {
     if (movie) {
       console.log("movie", movie);
     }
-  }, [movie])
+  }, [movie]);
 
 
   if (isLoading) {

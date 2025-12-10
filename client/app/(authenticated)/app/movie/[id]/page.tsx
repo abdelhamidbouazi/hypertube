@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use } from "react";
+import React, { use, useState } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
@@ -26,6 +26,8 @@ import { useMovieDetails } from "@/components/movies/useMovieDetails";
 import { getErrorMessage } from "@/lib/error-utils";
 import CommentSection from "@/components/movies/CommentSection";
 import { useMe } from "@/lib/hooks";
+import { useAuthStore } from "@/lib/store";
+import LoginModal from "@/components/LoginModal";
 
 interface MoviePageProps {
   params: Promise<{
@@ -37,9 +39,18 @@ export default function MoviePage({ params }: MoviePageProps) {
   const { id } = use(params);
   const { movie, isLoading, error, refetch } = useMovieDetails(id);
   const { user } = useMe();
+  const { isAuthenticated } = useAuthStore();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const toggleWatched = () => {
     console.log("toggle watched for movie:", movie?.id);
+  };
+
+  const handleWatchClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setIsLoginModalOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -178,28 +189,42 @@ export default function MoviePage({ params }: MoviePageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Link href={`/app/movie/${movie.id}/watch`}>
+              {isAuthenticated ? (
+                <Link href={`/app/movie/${movie.id}/watch`}>
+                  <Button
+                    color="primary"
+                    size="lg"
+                    startContent={<Play size={20} />}
+                    className="flex-1 font-semibold"
+                  >
+                    Watch Now
+                  </Button>
+                </Link>
+              ) : (
                 <Button
                   color="primary"
                   size="lg"
                   startContent={<Play size={20} />}
                   className="flex-1 font-semibold"
+                  onPress={() => setIsLoginModalOpen(true)}
                 >
                   Watch Now
                 </Button>
-              </Link>
-              <Button
-                variant={movie.watched ? "solid" : "bordered"}
-                color={movie.watched ? "success" : "primary"}
-                size="lg"
-                startContent={
-                  movie.watched ? <EyeOff size={20} /> : <Eye size={20} />
-                }
-                onPress={toggleWatched}
-                className={movie.watched ? "font-semibold" : "font-medium"}
-              >
-                {movie.watched ? "Watched" : "Mark as Watched"}
-              </Button>
+              )}
+              {isAuthenticated && (
+                <Button
+                  variant={movie.watched ? "solid" : "bordered"}
+                  color={movie.watched ? "success" : "primary"}
+                  size="lg"
+                  startContent={
+                    movie.watched ? <EyeOff size={20} /> : <Eye size={20} />
+                  }
+                  onPress={toggleWatched}
+                  className={movie.watched ? "font-semibold" : "font-medium"}
+                >
+                  {movie.watched ? "Watched" : "Mark as Watched"}
+                </Button>
+              )}
             </div>
 
             {/* Description */}
@@ -322,6 +347,10 @@ export default function MoviePage({ params }: MoviePageProps) {
           />
         </div>
       </div>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
     </div>
   );
 }

@@ -16,6 +16,8 @@ import { logoutUser, useMe, useUserStats, useWatchHistory } from "@/lib/hooks";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { useTheme } from "next-themes";
 import { Logo, GithubIcon, TwitterIcon, DiscordIcon } from "@/components/icons";
+import { useAuthStore } from "@/lib/store";
+import LoginModal from "@/components/LoginModal";
 import {
   Menu,
   X,
@@ -34,6 +36,7 @@ import {
   TrendingUp,
   Sun,
   Moon,
+  LogIn,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -51,18 +54,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { isAuthenticated } = useAuthStore();
   const { user, isLoading: userLoading } = useMe();
   const { stats, isLoading: statsLoading } = useUserStats();
   const { continueWatching, isLoading: watchHistoryLoading } =
     useWatchHistory();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // main navigation items
-  const navigation = [
+  const allNavigationItems = [
     { name: "Discover", href: "/app/discover", icon: Compass },
     { name: "Watch Later", href: "/app/watch-later", icon: Clock },
     { name: "Watch History", href: "/app/history", icon: History },
     { name: "Settings", href: "/app/settings", icon: Settings },
   ];
+
+  const navigation = isAuthenticated
+    ? allNavigationItems
+    : allNavigationItems.filter((item) => item.name === "Discover");
 
   // user dropdown menu items
   const userMenuItems = [
@@ -160,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Divider />
 
         {/* continue watching section */}
-        {!isCollapsed && (
+        {!isCollapsed && isAuthenticated && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
               Continue Watching
@@ -231,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Divider />
 
         {/* user stats section */}
-        {!isCollapsed && (
+        {!isCollapsed && isAuthenticated && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
               Quick Stats
@@ -261,71 +269,84 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* user profile dropdown */}
+        {/* user profile dropdown or login button */}
         <div className="p-3">
-          <Dropdown placement="top-start">
-            <DropdownTrigger>
-              <Button
-                variant="flat"
-                className={clsx(
-                  "w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2",
-                  isCollapsed && "justify-center px-2"
-                )}
-              >
-                <Avatar
-                  size="sm"
-                  src={user?.avatar || "https://i.pravatar.cc/150?u=user"}
-                  className="flex-shrink-0 ring-2 ring-primary/20"
-                />
-                {!isCollapsed && (
-                  <div className="flex flex-col items-start text-left min-w-0 flex-1">
-                    <span className="text-sm font-semibold truncate w-full">
-                      {userLoading
-                        ? "Loading..."
-                        : user
-                          ? user.username
-                          : "User Name"}
-                    </span>
-                  </div>
-                )}
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu aria-label="User menu" className="min-w-[200px]">
-              {/* <DropdownItem
-                key="profile"
-                startContent={<User className="w-4 h-4" />}
-                as={NextLink}
-                href="/app/profile"
-                className="rounded-lg"
-              >
-                My Profile
-              </DropdownItem> */}
-              <DropdownItem
-                key="theme"
-                startContent={
-                  theme === "light" ? (
-                    <Sun className="w-4 h-4" />
-                  ) : (
-                    <Moon className="w-4 h-4" />
-                  )
-                }
-                onPress={toggleTheme}
-                className="rounded-lg"
-              >
-                {theme === "light" ? "Dark Mode" : "Light Mode"}
-              </DropdownItem>
-              <DropdownItem
-                key="logout"
-                color="danger"
-                startContent={<LogOut className="w-4 h-4" />}
-                onPress={() => logoutUser()}
-                className="rounded-lg"
-              >
-                Log Out
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          {isAuthenticated ? (
+            <Dropdown placement="top-start">
+              <DropdownTrigger>
+                <Button
+                  variant="flat"
+                  className={clsx(
+                    "w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2",
+                    isCollapsed && "justify-center px-2"
+                  )}
+                >
+                  <Avatar
+                    size="sm"
+                    src={user?.avatar || "https://i.pravatar.cc/150?u=user"}
+                    className="flex-shrink-0 ring-2 ring-primary/20"
+                  />
+                  {!isCollapsed && (
+                    <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                      <span className="text-sm font-semibold truncate w-full">
+                        {userLoading
+                          ? "Loading..."
+                          : user
+                            ? user.username
+                            : "User Name"}
+                      </span>
+                    </div>
+                  )}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="User menu" className="min-w-[200px]">
+                <DropdownItem
+                  key="theme"
+                  startContent={
+                    theme === "light" ? (
+                      <Sun className="w-4 h-4" />
+                    ) : (
+                      <Moon className="w-4 h-4" />
+                    )
+                  }
+                  onPress={toggleTheme}
+                  className="rounded-lg"
+                >
+                  {theme === "light" ? "Dark Mode" : "Light Mode"}
+                </DropdownItem>
+                <DropdownItem
+                  key="logout"
+                  color="danger"
+                  startContent={<LogOut className="w-4 h-4" />}
+                  onPress={() => logoutUser()}
+                  className="rounded-lg"
+                >
+                  Log Out
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          ) : (
+            <Button
+              variant="flat"
+              color="primary"
+              className={clsx(
+                "w-full justify-start gap-3 p-3 h-auto rounded-xl transition-all duration-200 hover:bg-content2",
+                isCollapsed && "justify-center px-2"
+              )}
+              onPress={() => setIsLoginModalOpen(true)}
+            >
+              <LogIn className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && (
+                <span className="text-sm font-semibold">Log In</span>
+              )}
+            </Button>
+          )}
         </div>
+
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+        />
 
         {/* social media links */}
         <div className="px-3 pb-4">
