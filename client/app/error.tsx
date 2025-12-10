@@ -5,6 +5,8 @@ import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Alert } from "@heroui/alert";
 import { Chip } from "@heroui/chip";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "@/lib/error-utils";
 import {
   AlertTriangle,
   RefreshCw,
@@ -24,7 +26,12 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    addToast({
+      title: "An error occurred",
+      description: getErrorMessage(error),
+      severity: "danger",
+      timeout: 5000,
+    });
   }, [error]);
 
   const getErrorType = (error: Error) => {

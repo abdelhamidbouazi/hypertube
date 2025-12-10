@@ -56,11 +56,9 @@ export default function OAuthCallbackPage() {
 
           router.push("/app/discover");
         } catch (error) {
-          console.error("Failed to fetch user data", error);
-
           addToast({
             title: "Login failed",
-            description: "Could not retrieve user information.",
+            description: "Could not retrieve user information. Please try again.",
             severity: "danger",
             timeout: 4000,
           });

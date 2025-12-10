@@ -5,6 +5,8 @@ import api from "./api";
 import fetcher from "./swr";
 import { MovieFilters, useAuthStore } from "./store";
 import { ContinueWatchingMovie } from "@/types";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 export const useSearchMovies = (query: string) => {
   const url = query.trim()
@@ -239,7 +241,12 @@ export const logoutUser = async () => {
   try {
     await api.post("/auth/logout");
   } catch (error) {
-    console.error("logout error:", error);
+    addToast({
+      title: "Logout error",
+      description: getErrorMessage(error),
+      severity: "warning",
+      timeout: 3000,
+    });
   } finally {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");

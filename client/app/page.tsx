@@ -52,7 +52,7 @@ export default function LandingPage() {
       </div> */}
 
       {/* Keyframes */}
-      <style jsx global>{`
+      {/* <style jsx global>{`
         @keyframes kenburns {
           0% { transform: scale(1.05) translate3d(0, 0, 0); }
           100% { transform: scale(1.12) translate3d(2%, 2%, 0); }
@@ -60,7 +60,7 @@ export default function LandingPage() {
         .animate-kenburns {
           animation: kenburns 22s ease-in-out infinite alternate;
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 }
