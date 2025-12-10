@@ -853,8 +853,8 @@ func (c *MovieController) runFFmpegTranscoding(reader io.Reader, hlsOutputDir st
 
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdin = reader
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		return err
