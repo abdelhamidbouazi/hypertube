@@ -14,16 +14,16 @@ func AddUsersSeeds() {
 
 	users := []*models.User{
 		{
-			FirstName:  "first",
-			Email: "example@email.org",
+			FirstName: "first",
+			Email:     "example@email.org",
 		},
 		{
-			FirstName:  "second",
-			Email: "second@email.org",
+			FirstName: "second",
+			Email:     "second@email.org",
 		},
 		{
-			FirstName:  "third",
-			Email: "third@email.org",
+			FirstName: "third",
+			Email:     "third@email.org",
 		},
 	}
 

@@ -3,24 +3,27 @@ package auth
 import (
 	"server/internal/models"
 	"server/internal/services"
+	"server/internal/services/users"
 	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
 )
 
 type JwtCustomClaims struct {
 	jwt.RegisteredClaims
-	Email string `json:"email"`
+	ID uint `json:"id"`
 }
 
-func DeleteOldToken() {
+type RevokeTokenRes struct {
+	AccessToken           string `example:"token"`
+	RefreshToken          string `example:"token"`
+	TokenType             string `example:"Bearer"`
+	ExpiresIn             int64  `example:"1757713129"`
+	RefreshTokenExpiresIn int64  `example:"1789248229"`
 }
 
-func RevokeToken(user models.User, userToken string) (echo.Map, error) {
-	var ret echo.Map
-
+func RevokeToken(user models.User, userToken string) (RevokeTokenRes, error) {
 	expiresIn := time.Now().Add(services.Conf.JWT.AccessTkExpiresAt)
 	RefreshExpiresIn := time.Now().Add(services.Conf.JWT.RefreshTkExpiresAt)
 
@@ -28,14 +31,14 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresIn),
 		},
-		user.Email,
+		user.ID,
 	}
 
 	rclaims := &JwtCustomClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(RefreshExpiresIn),
 		},
-		user.Email,
+		user.ID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -43,12 +46,12 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 
 	accessToken, err := token.SignedString([]byte(services.Conf.JWT.SigningKey))
 	if err != nil {
-		return ret, err
+		return RevokeTokenRes{}, err
 	}
 
 	refreshToken, err := rtoken.SignedString([]byte(services.Conf.JWT.SigningKey))
 	if err != nil {
-		return ret, err
+		return RevokeTokenRes{}, err
 	}
 
 	// remove old refresh token if exists
@@ -58,16 +61,17 @@ func RevokeToken(user models.User, userToken string) (echo.Map, error) {
 
 	// store refresh token in database
 	user.Tokens = append(user.Tokens, refreshToken)
-	res := services.UpdateUser(user)
+	res := users.UpdateUser(user)
 
 	if res != nil {
-		return echo.Map{}, res
+		return RevokeTokenRes{}, res
 	}
 
-	return echo.Map{
-		"AccessToken":  accessToken,
-		"RefreshToken": refreshToken,
-		"TokenType":    "Bearer",
-		"ExpiresIn":    expiresIn.Unix(),
+	return RevokeTokenRes{
+		accessToken,
+		refreshToken,
+		"Bearer",
+		expiresIn.Unix(),
+		RefreshExpiresIn.Unix(),
 	}, nil
 }

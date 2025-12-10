@@ -10,7 +10,7 @@
 
 # Test binary, built with `go test -c`
 *.test
-
+.cursorrules
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
@@ -58,3 +58,30 @@ client/.vscode/
 # Temporary files
 client/*.log
 client/*.tmp
+
+# Downloads
+server/downloads/
+/downloads/
+
+# HLS output
+hls_output/
+/hls_output/
+subtitles/
+/subtitles/
+
+# Swagger Docs
+server/docs/docs.go
+server/docs/swagger.json
+server/docs/swagger.yaml
+
+server/hypertube
+server/server
+
+server/tmp/
+
+# Log files
+server/logs/
+/logs/
+*.log
+
+postgres_data/

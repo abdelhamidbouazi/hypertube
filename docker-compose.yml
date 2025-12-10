@@ -18,6 +18,8 @@ services:
     profiles:
       - "default"
       - "prod"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
 
   server:
     depends_on:
@@ -31,6 +33,11 @@ services:
       - hypertube
     volumes:
       - ./server/:/app
+      - ./downloads:/app/downloads
+      - ./hls_output:/app/hls_output
+      - ./subtitles:/app/subtitles
+    env_file:
+      - .env
     environment:
       # HTTP_PORT: 8081
       CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
@@ -47,9 +54,63 @@ services:
       - 8080:8080
     networks:
       - hypertube
+    command: go run ./main.go
+    profiles:
+      - "prod"
     environment:
       CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
-    command: go run ./main.go
+      # CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
+      # UI_ADDRESS: http://localhost:4200
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:4200,http://localhost:8080"
+      UI_ADDRESS: http://localhost:3000
+      MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
+      MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
+      MOVIE_APIS_SUBDL_API_KEY: "${SUBDL_API_KEY}"
+      MOVIE_APIS_WATCHMODE_API_KEY: "${WATCHMODE_API_KEY}"
+      DOWNLOADS_DIRECTORY: "/app/downloads"
+      STREAMING_DOWNLOAD_DIR: "/app/downloads"
+      STREAMING_HLS_OUTPUT_DIR: "/app/hls_output"
+      STREAMING_SUBTITLES_DIR: "/app/subtitles"
+      STREAMING_TMDB_API_KEY: "${TMDB_API_KEY}"
+      WAIT_HOSTS: "postgres:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: "/api"
+      NODE_ENV: "production"
+      WAIT_HOSTS: "server:8080"
+    networks:
+      - hypertube
+    depends_on:
+      - server
+    profiles:
+      - "prod"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: cine_thos_nginx
+    environment:
+      WAIT_HOSTS: "server:8080,client:3000"
+    depends_on:
+      - client
+      - server
+    ports:
+      - "80:80"
+    networks:
+      - hypertube
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     profiles:
       - "prod"
 

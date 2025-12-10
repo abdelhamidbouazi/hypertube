@@ -10,3 +10,37 @@ JWT:
   SECRET_KEY: "dsa2n1n32j1k"
   ACCESS_TOKEN_EXPIRES_AT: "15m"
   REFRESH_TOKEN_EXPIRES_AT: "1y"
+SMTP:
+  Gmail:
+    Host: smtp.gmail.com
+    Port: 465
+MOVIE_APIS:
+  TMDB:
+    API_KEY: "72b05171afec3bc193323f47ee8368b8"
+  OMDB:
+    API_KEY: ""
+  SUBDL:
+    API_KEY: ""
+  WATCHMODE:
+    API_KEY: ""
+DOWNLOADS:
+  DIRECTORY: "/app/downloads"
+STREAMING:
+  DOWNLOAD_DIR: "/app/downloads"
+  HLS_OUTPUT_DIR: "/app/hls_output"
+  SUBTITLES_DIR: "/app/subtitles"
+  TMDB_API_KEY: ""
+  MIN_BYTES_FOR_TRANSCODING: 104857600 # 100MB in bytes (100 * 1024 * 1024)
+  MIN_PERCENT_FOR_TRANSCODING: 25.0 # 25% of total file size
+ui:
+  address: http://localhost:4200
+  Reset_Password_Route: reset_password
+  Reset_Password_Token_Query: token
+  oauth_callback_route: oauth-callback
+OAUTH:
+  Google:
+    Redirect: "http://localhost:8080/oauth2/google/callback"
+  FortyTwo:
+    Redirect: "http://localhost:8080/oauth2/fortytwo/callback"
+  Github:
+    Redirect: "http://localhost:8080/oauth2/github/callback"

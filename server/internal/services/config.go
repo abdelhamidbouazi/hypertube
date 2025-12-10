@@ -35,6 +35,60 @@ type AppConfig struct {
 	CORS struct {
 		Origins []string `mapstructure:"ORIGINS"`
 	} `mapstructure:"CORS"`
+
+	SMTP struct {
+		Gmail struct {
+			Mail     string `mapstructure:"MAIL"`
+			Password string `mapstructure:"PASSWORD"`
+			Host     string `mapstructure:"HOST"`
+			Port     int    `mapstructure:"PORT"`
+		} `mapstructure:"GMAIL"`
+	} `mapstructure:"SMTP"`
+
+	UI struct {
+		Address                 string `mapstructure:"ADDRESS"`
+		ResetPasswordRoute      string `mapstructure:"RESET_PASSWORD_ROUTE"`
+		ResetPasswordTokenQuery string `mapstructure:"RESET_PASSWORD_TOKEN_QUERY"`
+		OauthCallbackRoute      string `mapstructure:"OAUTH_CALLBACK_ROUTE"`
+	}
+
+	OAUTH struct {
+		Google struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"GOOGLE"`
+		FortyTwo struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"FORTYTWO"`
+		Github struct {
+			Redirect string `mapstructure:"REDIRECT"`
+		} `mapstructure:"GITHUB"`
+	} `mapstructure:"OAUTH"`
+
+	MOVIE_APIS struct {
+		TMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"TMDB"`
+		OMDB struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"OMDB"`
+		SUBDL struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"SUBDL"`
+		WATCHMODE struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"WATCHMODE"`
+	} `mapstructure:"MOVIE_APIS"`
+
+	DOWNLOADS struct {
+		Directory string `mapstructure:"DIRECTORY"`
+	} `mapstructure:"DOWNLOADS"`
+
+	STREAMING struct {
+		DownloadDir  string `mapstructure:"DOWNLOAD_DIR"`
+		HLSOutputDir string `mapstructure:"HLS_OUTPUT_DIR"`
+		SubtitlesDir string `mapstructure:"SUBTITLES_DIR"`
+		TMDBAPIKey   string `mapstructure:"TMDB_API_KEY"`
+	} `mapstructure:"STREAMING"`
 }
 
 func LoadConfig(config string) {
@@ -56,6 +110,10 @@ func LoadConfig(config string) {
 		log.Fatal(err)
 	}
 
+	setupExtra()
+}
+
+func setupExtra() {
 	Conf.CORS.Origins = strings.Split(viper.GetString("CORS_ORIGINS"), ",")
 
 	expAt, err := utils.ParseDuration(Conf.JWT.AccessTkExpiresAtRaw)

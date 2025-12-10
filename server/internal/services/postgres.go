@@ -44,4 +44,29 @@ func loadMigrations(db *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&models.ResetPassword{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.Comment{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.DownloadedMovie{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.Subtitle{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.AutoMigrate(&models.WatchHistory{})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
