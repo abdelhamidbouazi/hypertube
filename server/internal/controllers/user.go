@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"mime/multipart"
 	"net/http"
 	"server/internal/controllers/auth"
@@ -10,8 +9,6 @@ import (
 	"server/internal/services/users"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
 )
 
@@ -168,29 +165,13 @@ func UploadPicture(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	file, err := form.Picture.Open()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
 	user := c.Get("model").(models.User)
 
-	key := user.FirstName + ".png"
-
-	input := &s3.PutObjectInput{
-		Bucket: aws.String(services.AWSBucketName),
-		Key:    aws.String(key),
-		Body:   file,
-	}
-
-	scv := services.AWS_Client()
-
-	_, err = scv.PutObject(context.TODO(), input)
+	avatarUrl, err := services.UploadPicture(form.Picture, user.Username)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
-
-	user.Avatar = "https://" + services.AWSBucketName + ".s3." + services.AWSBucketRegion + ".amazonaws.com/" + key
+	user.Avatar = avatarUrl
 
 	err = users.UpdateUser(user)
 	if err != nil {

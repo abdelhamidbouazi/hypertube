@@ -38,7 +38,7 @@ func GetUserByEmail(email string) (models.User, error) {
 func GetUserByUsername(username string) (models.User, error) {
 	db := services.PostgresDB()
 	var user models.User
-	res := db.Where("provider = ?", "").First(&user, "username = ?", username)
+	res := db.First(&user, "username = ?", username)
 	if res.Error != nil {
 		return user, res.Error
 	}

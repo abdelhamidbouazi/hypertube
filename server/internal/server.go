@@ -99,6 +99,11 @@ func LoadServer() {
 
 	Server.POST("/forgot-password", controllers.ForgotPassword)
 	Server.POST("/reset-password", controllers.ResetPassword)
+	Server.GET("/healthcheck", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "success",
+		})
+	})
 	routes.AddAuthRouter(Server.Group("/auth"))
 	routes.AddOAuthRouter(Server.Group("/oauth2"))
 	routes.AddUserRouter(Server.Group("/users"))

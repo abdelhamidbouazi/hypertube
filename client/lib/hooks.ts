@@ -65,7 +65,7 @@ export const useMovies = (filters?: MovieFilters) => {
       }
     }
 
-    return `/movies?${params.toString()}`;
+    return `/movies/popular?${params.toString()}`;
   };
 
   const { data, error, isLoading, size, setSize, mutate } = useSWRInfinite(
@@ -187,26 +187,44 @@ export const useWatchHistory = () => {
   const apiResponse = data as WatchHistoryResponse | undefined;
   const history = apiResponse?.history || [];
 
-  const continueWatching =
-    history.length > 0
-      ? (() => {
-          const item = history[0];
-          const watchedDate = item.watched_at
-            ? new Date(item.watched_at)
-            : null;
-          const year = watchedDate
-            ? watchedDate.getFullYear()
-            : new Date().getFullYear();
+  const firstItem = history.length > 0 ? history[0] : null;
+  const movieId = firstItem?.movie_id;
+  const { movie: movieData } = useMovieDetailsReq(
+    movieId && (!firstItem.movie_title || firstItem.movie_title.trim() === "")
+      ? movieId.toString()
+      : ""
+  );
 
-          return {
-            id: item.movie_id,
-            title: item.movie_title || "Unknown Movie",
-            posterPath: item.poster_path || undefined,
-            genre: "Movie",
-            year: year,
-          } as ContinueWatchingMovie;
-        })()
-      : null;
+  const continueWatching = firstItem
+    ? (() => {
+        const watchedDate = firstItem.watched_at
+          ? new Date(firstItem.watched_at)
+          : null;
+        const year = watchedDate
+          ? watchedDate.getFullYear()
+          : new Date().getFullYear();
+
+        const title =
+          firstItem.movie_title && firstItem.movie_title.trim() !== ""
+            ? firstItem.movie_title
+            : movieData?.title || "Unknown title";
+
+        const rawPosterPath = firstItem.poster_path || movieData?.poster_path;
+        const posterPath = rawPosterPath
+          ? rawPosterPath.startsWith("http")
+            ? rawPosterPath
+            : `https://image.tmdb.org/t/p/w185${rawPosterPath}`
+          : undefined;
+
+        return {
+          id: firstItem.movie_id,
+          title: title,
+          posterPath: posterPath,
+          genre: "Movie",
+          year: year,
+        } as ContinueWatchingMovie;
+      })()
+    : null;
 
   return {
     watchHistory: history,
@@ -291,5 +309,11 @@ export const uploadAvatar = async (file: File) => {
     },
   });
 
+  return response.data;
+};
+
+// get user public info by username
+export const getUserPublicInfo = async (username: string) => {
+  const response = await api.get(`/users/${encodeURIComponent(username)}`);
   return response.data;
 };

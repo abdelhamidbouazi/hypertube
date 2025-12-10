@@ -7,6 +7,7 @@ import { Divider } from "@heroui/divider";
 import { Send, MessageSquare } from "lucide-react";
 import { addComment } from "@/lib/hooks";
 import { formatDistanceToNow } from "date-fns";
+import PublicProfile from "@/components/PublicProfile";
 
 // Backend returns gorm.Model fields with PascalCase (ID, CreatedAt)
 // and custom fields with snake_case (movie_id, user_id, username, content, avatar)
@@ -22,6 +23,7 @@ interface Comment {
 }
 
 interface User {
+  username?: string;
   firstname: string;
   lastname: string;
   avatar?: string;
@@ -43,6 +45,8 @@ export default function CommentSection({
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [displayComments, setDisplayComments] = useState<Comment[]>(comments);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
 
   // Sync local state with props when they change
   React.useEffect(() => {
@@ -63,6 +67,7 @@ export default function CommentSection({
     setIsSubmitting(true);
     try {
       const username =
+        currentUser.username ||
         `${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim();
       const apiResponse = await addComment(movieId, newComment, username);
 
@@ -96,6 +101,11 @@ export default function CommentSection({
     } catch (e) {
       return dateString;
     }
+  };
+
+  const handleUserClick = (username: string) => {
+    setSelectedUsername(username);
+    setIsProfileModalOpen(true);
   };
 
   return (
@@ -160,7 +170,7 @@ export default function CommentSection({
         {/* Comments List */}
         <div className="space-y-6 mt-4">
           {displayComments.length === 0 ? (
-            <div className="text-center text-default-500 py-8">
+            <div className="text-center text-default-500 py-8" key={movieId}>
               No comments yet. Be the first to share your thoughts!
             </div>
           ) : (
@@ -169,13 +179,17 @@ export default function CommentSection({
                 <Avatar
                   src={comment.avatar}
                   name={comment.username}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                   size="sm"
                   showFallback
+                  onClick={() => handleUserClick(comment.username)}
                 />
                 <div className="flex-grow">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-semibold text-small">
+                    <span
+                      className="font-semibold text-small cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => handleUserClick(comment.username)}
+                    >
                       {comment.username}
                     </span>
                     <span className="text-tiny text-default-400">
@@ -193,6 +207,14 @@ export default function CommentSection({
           )}
         </div>
       </CardBody>
+      <PublicProfile
+        username={selectedUsername}
+        isOpen={isProfileModalOpen}
+        onClose={() => {
+          setIsProfileModalOpen(false);
+          setSelectedUsername(null);
+        }}
+      />
     </Card>
   );
 }

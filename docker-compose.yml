@@ -48,6 +48,14 @@ services:
       STREAMING_HLS_OUTPUT_DIR: "/app/hls_output"
       STREAMING_SUBTITLES_DIR: "/app/subtitles"
       STREAMING_TMDB_API_KEY: "${TMDB_API_KEY}"
+      WAIT_HOSTS: "postgres:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthcheck || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   client:
     build:
       context: ./client
@@ -57,6 +65,7 @@ services:
     environment:
       NEXT_PUBLIC_API_BASE: "/api"
       NODE_ENV: "production"
+      WAIT_HOSTS: "server:8080"
     networks:
       - hypertube
     depends_on:
@@ -65,6 +74,8 @@ services:
   nginx:
     image: nginx:1.27-alpine
     container_name: cine_thos_nginx
+    environment:
+      WAIT_HOSTS: "server:8080,client:3000"
     depends_on:
       - client
       - server
