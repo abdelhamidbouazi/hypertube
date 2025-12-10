@@ -177,6 +177,7 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
+//	@Param        source        query    string     false  "Source of Movie"
 //	@Param        page        query    int     false  "Page number (default 1)"
 //	@Param        genres      query    string  false  "Comma-separated genre names or IDs (e.g., Action,Drama or 28,18)"
 //	@Param        yearFrom    query    int     false  "Release year from (inclusive)"
@@ -185,8 +186,9 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 //	@Param        sort        query    string  false  "Sort by: year, year_asc, year_desc, rating (default popularity)"
 //	@Success      200  {array}   models.Movie
 //	@Failure      500  {object}  utils.HTTPError
-//	@Router       /movies [get]
+//	@Router       /movies/popular [get]
 func (c *MovieController) GetMovies(ctx echo.Context) error {
+	source := ctx.QueryParam("source")
 	page := 1
 	if p := ctx.QueryParam("page"); p != "" {
 		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
@@ -237,9 +239,9 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 		Page:      page,
 	}
 
-	movies, err := c.movieService.DiscoverMovies(params)
+	movies, err := c.movieService.DiscoverMovies(params, source)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies with filters")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to fetch movies with filters %s", err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, movies)
 }

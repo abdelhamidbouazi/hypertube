@@ -50,7 +50,7 @@ func NewMovieService(tmdbKey, omdbKey, watchModeKey string) *MovieService {
 
 	ms.SearchSources = map[string]Source{
 		"tmdb": NewTMDB(tmdbKey, omdbKey, ms.genreCacheTime, ms.client),
-		// "watchmode": NewWatchMode(watchModeKey, ms.genreCacheTime),
+		"omdb": NewOMDB(omdbKey, ms.genreCacheTime, ms.client),
 	}
 
 	go ms.persistWatchHistoryWorker()
@@ -68,20 +68,24 @@ func (ms *MovieService) GetSource(key string) (Source, error) {
 }
 
 // DiscoverMovies calls TMDB discover endpoint with filters
-func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
-	fmt.Printf("Fetching Discover movies")
+func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams, source string) ([]models.Movie, error) {
 	var movies []models.Movie
 	var err error
 
+	if source != "" {
+		src, err := ms.GetSource(source)
+		if err != nil {
+			return nil, err
+		}
+		return src.DiscoverMovies(p)
+	}
+
 	for _, s := range ms.SearchSources {
 		movies, err = s.DiscoverMovies(p)
-		if err == nil {
-			fmt.Printf("Found discover %d movies", len(movies))
+		if err == nil && len(movies) > 0 {
 			return movies, nil
 		}
 	}
-
-	fmt.Printf("Found 0 discover movies")
 
 	return movies, err
 }
