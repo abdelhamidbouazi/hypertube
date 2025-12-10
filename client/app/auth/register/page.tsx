@@ -15,17 +15,8 @@ import { setTokens } from "@/lib/auth";
 import api from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { getErrorMessage } from "@/lib/error-utils";
+import { GoogleIcon, GithubIcon } from "@/components/icons";
 
-function GoogleIcon() {
-  return (
-    <Image alt="Google" height={20} src="/icons/google-icon.png" width={20} />
-  );
-}
-function GithubIcon() {
-  return (
-    <Image alt="GitHub" height={20} src="/icons/github-icon.png" width={20} />
-  );
-}
 function FortyTwoIcon() {
   return (
     <Image
@@ -159,7 +150,7 @@ export default function RegisterPage() {
           onPress={() => redirectToOAuth("google")}
         >
           <span className="ml-2">Continue with</span>
-          <GoogleIcon />
+          <GoogleIcon size={20} className="ml-2" />
         </Button>
         <Button
           fullWidth
@@ -168,7 +159,7 @@ export default function RegisterPage() {
           onPress={() => redirectToOAuth("github")}
         >
           <span className="ml-2">Continue with</span>
-          <GithubIcon />
+          <GithubIcon size={20} className="ml-2" />
         </Button>
       </div>
 

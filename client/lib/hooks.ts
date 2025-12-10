@@ -41,7 +41,7 @@ export const useMovies = (filters?: MovieFilters) => {
     const hasFilters =
       (filters?.selectedGenres && filters.selectedGenres.length > 0) ||
       (filters?.minRating && filters.minRating > 0) ||
-      (filters?.sort && filters.sort !== "name") ||
+      (filters?.sort && filters.sort !== "popularity") ||
       (filters?.yearRange &&
         (filters.yearRange[0] !== 2000 ||
           filters.yearRange[1] !== new Date().getFullYear()));
@@ -52,7 +52,6 @@ export const useMovies = (filters?: MovieFilters) => {
     }
 
     const params = new URLSearchParams();
-
     params.set("page", (pageIndex + 1).toString());
 
     if (filters) {
@@ -60,7 +59,8 @@ export const useMovies = (filters?: MovieFilters) => {
         params.set("genres", filters.selectedGenres.join(","));
       if (filters.minRating > 0)
         params.set("minRating", filters.minRating.toString());
-      if (filters.sort) params.set("sort", filters.sort);
+      if (filters.sort && filters.sort !== "popularity")
+        params.set("sort", filters.sort);
       if (filters.yearRange) {
         params.set("yearFrom", filters.yearRange[0].toString());
         params.set("yearTo", filters.yearRange[1].toString());

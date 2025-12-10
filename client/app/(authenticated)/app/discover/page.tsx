@@ -18,8 +18,9 @@ import { useMovies } from "@/lib/hooks";
 import { useFilterStore } from "@/lib/store";
 import { getErrorMessage } from "@/lib/error-utils";
 
-type SortKey = "name" | "year" | "rating";
+type SortKey = "popularity" | "name" | "year" | "rating";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "popularity", label: "Popularity" },
   { key: "name", label: "Name (A→Z)" },
   { key: "year", label: "Year (newest)" },
   { key: "rating", label: "IMDb (high→low)" },
@@ -89,7 +90,7 @@ export default function DiscoverPage() {
     filters.minRating > 0 ||
     filters.yearRange[0] !== 2000 ||
     filters.yearRange[1] !== new Date().getFullYear() ||
-    filters.sort !== "name";
+    filters.sort !== "popularity";
 
   const isSearchActive = filters.query.trim().length > 0;
 
@@ -192,11 +193,12 @@ export default function DiscoverPage() {
                   startContent={<SearchIcon size={16} />}
                   value={filters.query}
                   variant="flat"
+                  color="secondary"
                   onValueChange={setQuery}
                   description={
                     isSearchActive ? "Filters are disabled while searching" : ""
                   }
-                />
+                  />
               </div>
 
               {/* 2. Sort */}
@@ -205,8 +207,10 @@ export default function DiscoverPage() {
                   aria-label="Sort by"
                   label="Sort"
                   labelPlacement="outside-left"
-                  selectedKeys={[filters.sort]}
+                  selectedKeys={[filters.sort || "popularity"]}
+                  defaultSelectedKeys={["popularity"]}
                   startContent={<SlidersHorizontal size={14} />}
+                  color="secondary"
                   variant="flat"
                   isDisabled={isSearchActive}
                   onSelectionChange={(keys) => {
@@ -379,7 +383,7 @@ export default function DiscoverPage() {
                     {filters.yearRange[0]}–{filters.yearRange[1]}
                   </Chip>
                 )}
-                {filters.sort !== "name" && (
+                {filters.sort !== "popularity" && (
                   <Chip
                     className="text-tiny"
                     color="default"
@@ -387,7 +391,7 @@ export default function DiscoverPage() {
                       <X
                         size={12}
                         className="cursor-pointer"
-                        onClick={() => setSort("name")}
+                        onClick={() => setSort("popularity")}
                       />
                     }
                     radius="sm"
