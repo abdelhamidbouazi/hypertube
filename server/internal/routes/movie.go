@@ -10,7 +10,6 @@ import (
 func AddMovieRouter(movieRouter *echo.Group, movieController *controllers.MovieController) {
 	movieRouter.GET("", movieController.GetMovies)
 	movieRouter.GET("/search", movieController.SearchMovies)
-	movieRouter.GET("/popular", movieController.PopularMovies)
 	movieRouter.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
 }
 

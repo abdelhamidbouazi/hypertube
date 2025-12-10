@@ -306,61 +306,6 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 	return movies, nil
 }
 
-// GetMovies returns a default list of movies (popular page 1)
-func (ms *MovieService) GetMovies() ([]models.Movie, error) {
-	return ms.GetPopularMovies(1)
-}
-
-// GetPopularMovies fetches a paginated list of popular movies from TMDB
-func (ms *MovieService) GetPopularMovies(page int) ([]models.Movie, error) {
-	if page < 1 {
-		page = 1
-	}
-	baseURL := "https://api.themoviedb.org/3/movie/popular"
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	params.Add("page", strconv.Itoa(page))
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var tmdbResp struct {
-		Results []struct {
-			ID          int     `json:"id"`
-			Title       string  `json:"title"`
-			ReleaseDate string  `json:"release_date"`
-			PosterPath  string  `json:"poster_path"`
-			Overview    string  `json:"overview"`
-			VoteAverage float64 `json:"vote_average"`
-			GenreIDs    []int   `json:"genre_ids"`
-		} `json:"results"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
-	}
-
-	var movies []models.Movie
-	for _, result := range tmdbResp.Results {
-		movies = append(movies, models.Movie{
-			ID:          result.ID,
-			Title:       result.Title,
-			ReleaseDate: result.ReleaseDate,
-			PosterPath:  result.PosterPath,
-			Overview:    result.Overview,
-			VoteAverage: result.VoteAverage,
-			GenreIDs:    result.GenreIDs,
-		})
-	}
-
-	return movies, nil
-}
-
 // movieMetaGetter implements imdb2torrent.MetaGetter
 type movieMetaGetter struct {
 	movie models.MovieDetails

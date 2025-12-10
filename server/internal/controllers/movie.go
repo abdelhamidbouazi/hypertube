@@ -192,15 +192,6 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 	minRatingParam := ctx.QueryParam("minRating") // float
 	sortParam := ctx.QueryParam("sort")           // year|year_asc|year_desc|rating
 
-	// If no filters at all, keep existing behavior (popular)
-	if genresParam == "" && yearFromParam == "" && yearToParam == "" && minRatingParam == "" && sortParam == "" {
-		movies, err := c.movieService.GetPopularMovies(page)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies")
-		}
-		return ctx.JSON(http.StatusOK, movies)
-	}
-
 	var yearFromPtr, yearToPtr *int
 	if yearFromParam != "" {
 		if v, err := strconv.Atoi(yearFromParam); err == nil && v > 1800 && v < 3000 {
@@ -240,31 +231,6 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 	movies, err := c.movieService.DiscoverMovies(params)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies with filters")
-	}
-	return ctx.JSON(http.StatusOK, movies)
-}
-
-// PopularMovies godoc
-//
-//	@Summary      Popular movies
-//	@Description  Get a list of popular movies from TMDB
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Success      200   {array}   models.Movie
-//	@Failure      400   {object}  utils.HTTPError
-//	@Failure      500   {object}  utils.HTTPError
-//	@Router       /movies/popular [get]
-func (c *MovieController) PopularMovies(ctx echo.Context) error {
-	page := 1
-	if p := ctx.QueryParam("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
-	}
-	movies, err := c.movieService.GetPopularMovies(page)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch popular movies")
 	}
 	return ctx.JSON(http.StatusOK, movies)
 }
