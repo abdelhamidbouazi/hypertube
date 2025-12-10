@@ -86,6 +86,7 @@ type MovieDetailsDoc struct {
 	Producer     []models.Person   `json:"producer"`
 	Genres       []models.Genre    `json:"genres"`
 	Comments     []CommentResponse `json:"comments"`
+	IsWatched    bool              `json:"isWatched"`
 }
 
 // GetMovieDetails godoc
@@ -117,6 +118,11 @@ func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Movie not found")
 	}
+
+	user := ctx.Get("model").(models.User)
+	var watchHistory models.WatchHistory
+	err = c.db.Model(&models.WatchHistory{}).Where("user_id = ? AND movie_id = ?", user.ID, movieID).First(&watchHistory).Error
+	details.IsWatched = err == nil
 
 	c.loadComments(details)
 
