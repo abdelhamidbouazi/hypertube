@@ -21,6 +21,8 @@ MOVIE_APIS:
     API_KEY: ""
   SUBDL:
     API_KEY: ""
+  WATCHMODE:
+    API_KEY: ""
 DOWNLOADS:
   DIRECTORY: "/app/downloads"
 STREAMING:

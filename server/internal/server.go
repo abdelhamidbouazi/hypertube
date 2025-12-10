@@ -32,6 +32,7 @@ func InitServices() {
 	movieService = services.NewMovieService(
 		services.Conf.MOVIE_APIS.TMDB.APIKey,
 		services.Conf.MOVIE_APIS.OMDB.APIKey,
+		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
 	)
 
 	torrentService = services.NewTorrentService(

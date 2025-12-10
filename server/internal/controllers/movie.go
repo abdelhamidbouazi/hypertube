@@ -95,7 +95,8 @@ type MovieDetailsDoc struct {
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
-//	@Param        id   path     string  true  "Movie ID"
+//	@Param        id       path   string  true   "Movie ID"
+//	@Param        source   query  string  false  "Source (default: tmdb)"
 //	@Security     JWT
 //	@Success      200  {object} controllers.MovieDetailsDoc
 //	@Failure      401  {object} utils.HTTPErrorUnauthorized
@@ -103,8 +104,16 @@ type MovieDetailsDoc struct {
 //	@Router       /movies/{id} [get]
 func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	movieID := ctx.Param("id")
+	source := ctx.QueryParam("source")
 
-	details, err := c.movieService.GetMovieDetails(movieID)
+	source = "tmdb"
+
+	s, err := c.movieService.GetSource(source)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	details, err := s.GetMovieDetails(movieID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Movie not found")
 	}
@@ -872,7 +881,9 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		"step": "fetch_details",
 	})
 
-	details, err := c.movieService.GetIMDbIDFromTMDb(movieID)
+	s, _ := c.movieService.GetSource("tmdb")
+
+	details, err := s.GetIMDbID(movieID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch movie details: %w", err)
 	}
