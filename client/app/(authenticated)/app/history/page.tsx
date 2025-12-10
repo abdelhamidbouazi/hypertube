@@ -12,18 +12,15 @@ export default function History() {
   const { watchHistory, isLoading: historyLoading, error: historyError } = useWatchHistory();
   const { movies: allMovies, isLoading: moviesLoading, error: moviesError } = useMovies();
 
-  // Get movie IDs from watch history
   const historyMovieIds = useMemo(() => {
     if (!watchHistory || watchHistory.length === 0) return [];
     return watchHistory.map((item: any) => item.movie_id);
   }, [watchHistory]);
 
-  // Match watch history movies with full movie details, preserving order (most recent first)
   const historyMovies = useMemo(() => {
     if (!watchHistory || watchHistory.length === 0) return [];
     
     if (!allMovies || allMovies.length === 0) {
-      // Fallback: use watch history data if movies aren't loaded yet
       return watchHistory.map((item: any) => ({
         id: item.movie_id,
         title: item.movie_title,
@@ -36,23 +33,20 @@ export default function History() {
       } as Movie));
     }
     
-    // Create a map of movie ID to full movie details for quick lookup
     const moviesMap = new Map<number, Movie>();
     allMovies.forEach((movie: Movie) => {
       moviesMap.set(movie.id, movie);
     });
     
-    // Match history IDs with full movie details, preserving watch history order
     return watchHistory
       .map((item: any): Movie | null => {
         const fullMovie = moviesMap.get(item.movie_id);
         if (fullMovie) {
           return {
             ...fullMovie,
-            watched: true, // All items in history are watched
+            watched: true,
           };
         }
-        // Fallback if movie not found in allMovies
         return {
           id: item.movie_id,
           title: item.movie_title,

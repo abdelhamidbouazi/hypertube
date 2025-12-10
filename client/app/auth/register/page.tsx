@@ -140,8 +140,8 @@ export default function RegisterPage() {
           radius="sm"
           onPress={() => redirectToOAuth("fortytwo")}
         >
-          <span className="ml-2">Continue with</span>
           <FortyTwoIcon />
+          <span className="ml-2">Continue with Intra</span>
         </Button>
         <Button
           fullWidth
@@ -149,8 +149,8 @@ export default function RegisterPage() {
           radius="sm"
           onPress={() => redirectToOAuth("google")}
         >
-          <span className="ml-2">Continue with</span>
           <GoogleIcon size={20} className="ml-2" />
+          <span className="ml-2">Continue with Google</span>
         </Button>
         <Button
           fullWidth
@@ -158,8 +158,8 @@ export default function RegisterPage() {
           radius="sm"
           onPress={() => redirectToOAuth("github")}
         >
-          <span className="ml-2">Continue with</span>
           <GithubIcon size={20} className="ml-2" />
+          <span className="ml-2">Continue with Github</span>
         </Button>
       </div>
 
@@ -263,7 +263,7 @@ export default function RegisterPage() {
           type="submit"
           radius="sm"
           fullWidth
-          className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110"
+          color="primary"
           isLoading={isLoading}
         >
           Create Account
@@ -273,7 +273,7 @@ export default function RegisterPage() {
           Already have an account?{" "}
           <Link
             href="/auth/login"
-            className="text-pink-300 hover:text-pink-200 hover:underline"
+            className="text-primary hover:text-pink-200 hover:underline"
           >
             Log in
           </Link>

@@ -29,14 +29,12 @@ export default function MovieCard({ movie }: { movie: Movie }) {
   const { movie: details } = useMovieDetailsReq(shouldFetchDetails ? String(id) : "");
   const year = release_date ? new Date(release_date).getFullYear() : undefined;
 
-  // use existing rating or fetch from details
   const ratingSource = vote_average ?? details?.vote_average;
   const formattedRating = ratingSource !== undefined && ratingSource !== null
     ? Number(ratingSource).toFixed(1)
     : null;
   const inWatchlist = isInWatchlist(id);
 
-  // lazy load movie details when card becomes visible
   React.useEffect(() => {
     if (!cardRef.current || shouldFetchDetails) return;
     const observer = new IntersectionObserver((entries) => {

@@ -16,19 +16,16 @@ export default function SettingsPage() {
   const { user, isLoading: isUserLoading, refetch } = useMe();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Profile State
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [language, setLanguage] = useState("en");
 
-  // Password State
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  // Initialize form with user data
   useEffect(() => {
     if (user) {
       setFirstName(user.firstname || "");

@@ -77,8 +77,6 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       });
 
       hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-        // hls reports the level index (auto resolves to an actual level >=0)
-        // We keep -1 to represent "Auto" when ABR is enabled
         const abrEnabled = hlsInstance.autoLevelEnabled;
         setCurrentLevel(abrEnabled ? -1 : data.level);
       });
@@ -95,10 +93,8 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       video.src = urlWithToken;
     }
 
-    // Cleanup function
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      // Destroy the local instance created in this effect
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -106,7 +102,6 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
     };
   }, [src, token]);
 
-  // Reload stream when status becomes 'transcoding'
   useEffect(() => {
     if (downloadProgress?.status === 'transcoding' && hlsRef.current) {
       console.log("Status is transcoding, reloading stream...");

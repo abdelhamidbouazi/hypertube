@@ -13,7 +13,6 @@ export default function WatchLater() {
   const { movies: allMovies, isLoading, error } = useMovies();
   const { watchlistIds } = useWatchlistStore();
 
-  // Filter movies to only show those in watchlist
   const watchlistMovies = useMemo(() => {
     if (!allMovies || watchlistIds.length === 0) return [];
     return allMovies.filter((movie: Movie) => watchlistIds.includes(movie.id));
