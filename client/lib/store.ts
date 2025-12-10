@@ -26,9 +26,21 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      login: (user, token) => set({ user, token, isAuthenticated: true }),
+      login: (user, token) => {
+        const normalizedUser = {
+          ...user,
+          preferred_language: user.preferred_language || "en",
+        };
+        set({ user: normalizedUser, token, isAuthenticated: true });
+      },
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        const normalizedUser = {
+          ...user,
+          preferred_language: user.preferred_language || "en",
+        };
+        set({ user: normalizedUser });
+      },
     }),
     {
       name: "auth-storage",
