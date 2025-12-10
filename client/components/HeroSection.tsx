@@ -10,7 +10,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import "swiper/css/parallax";
-import { useWatchlistStore } from "@/lib/store";
+import { useWatchlistStore, useAuthStore } from "@/lib/store";
 
 type Slide = {
   id: number;
@@ -21,6 +21,7 @@ type Slide = {
 };
 
 export default function HeroSection({ slides }: { slides: Slide[] }) {
+  const { user } = useAuthStore();
   const { isInWatchlist, toggleWatchlist } = useWatchlistStore();
   return (
     <section className="relative">

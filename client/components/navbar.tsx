@@ -132,6 +132,11 @@ export const Navbar = ({
   const showResults = isSearchFocused && debouncedQuery.trim().length > 0;
   const hasResults = movies.length > 0;
   const isDiscoverPage = pathname === "/app/discover";
+  const isMovieDetailsPage = pathname?.startsWith("/app/movie/") && pathname !== "/app/movie";
+  const isHistoryPage = pathname === "/app/history";
+  const isWatchLaterPage = pathname === "/app/watch-later";
+  const isSettingsPage = pathname === "/app/settings";
+  const shouldShowSearch = isDiscoverPage || isMovieDetailsPage || isHistoryPage || isWatchLaterPage || isSettingsPage;
 
   const searchInput = (
     <div ref={searchContainerRef} className="relative w-full max-w-md">
@@ -202,10 +207,10 @@ export const Navbar = ({
         <NavbarItem></NavbarItem>
       </NavbarContent>
 
-      {/* center - search input (only on discover page) */}
+      {/* center - search input (on discover, movie details, and streaming pages) */}
       <NavbarContent justify="center">
         <NavbarItem className="hidden md:flex w-full max-w-md">
-          {isDiscoverPage && searchInput}
+          {shouldShowSearch && searchInput}
         </NavbarItem>
       </NavbarContent>
 
@@ -221,7 +226,7 @@ export const Navbar = ({
 
       {/* mobile menu content */}
       <NavbarMenu>
-        {isDiscoverPage && searchInput}
+        {shouldShowSearch && searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
           {siteConfig.navMenuItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
