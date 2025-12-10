@@ -291,16 +291,16 @@ func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
 
 	// Sorting
 	sortBy := "popularity.desc"
-	// switch p.Sort {
-	// case "year", "year_desc":
-	// 	sortBy = "primary_release_date.desc"
-	// case "year_asc":
-	// 	sortBy = "primary_release_date.asc"
-	// case "rating":
-	// 	sortBy = "vote_average.desc"
-	// case "name":
-	// 	sortBy = "original_title.asc"
-	// }
+	switch p.Sort {
+	case "year", "year_desc":
+		sortBy = "primary_release_date.desc"
+	case "year_asc":
+		sortBy = "primary_release_date.asc"
+	case "rating":
+		sortBy = "vote_average.desc"
+	case "name":
+		sortBy = "original_title.asc"
+	}
 	params.Add("sort_by", sortBy)
 
 	// Year range via dates
