@@ -2,6 +2,8 @@
 /* eslint-disable */
 
 import api from "./api";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 type RevokeTokenRes = {
   AccessToken: string;
@@ -88,7 +90,12 @@ export async function refreshAccessToken(): Promise<boolean> {
   });
 
   if (!access || !refresh) {
-    console.error("[AUTH] Missing tokens, cannot refresh");
+    addToast({
+      title: "Authentication error",
+      description: "Missing tokens, cannot refresh session",
+      severity: "warning",
+      timeout: 3000,
+    });
     return false;
   }
   try {
@@ -103,7 +110,12 @@ export async function refreshAccessToken(): Promise<boolean> {
     setTokens(data);
     return true;
   } catch (error) {
-    console.error("[AUTH] Refresh failed:", error);
+    addToast({
+      title: "Session expired",
+      description: "Please log in again to continue",
+      severity: "warning",
+      timeout: 4000,
+    });
     clearTokens();
     if (typeof window !== "undefined") {
       console.log("[AUTH] Redirecting to login...");

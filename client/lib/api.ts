@@ -1,4 +1,6 @@
 import axios from "axios";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -77,7 +79,12 @@ api.interceptors.response.use(
     }
 
     if (originalRequest._retry) {
-      console.error("[API] Request already retried, giving up. Logging out...");
+      addToast({
+        title: "Authentication failed",
+        description: "Session expired. Please log in again.",
+        severity: "danger",
+        timeout: 4000,
+      });
       localStorage.removeItem("token");
       document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       document.cookie =
@@ -115,13 +122,23 @@ api.interceptors.response.use(
             processQueue(null, null);
             resolve(api(originalRequest));
           } else {
-            console.error("[API] Token refresh failed");
+            addToast({
+              title: "Authentication failed",
+              description: "Token refresh failed. Please log in again.",
+              severity: "danger",
+              timeout: 4000,
+            });
             processQueue(error, null);
             reject(error);
           }
         })
         .catch((err) => {
-          console.error("[API] Error during refresh flow:", err);
+          addToast({
+            title: "Authentication error",
+            description: getErrorMessage(err),
+            severity: "danger",
+            timeout: 4000,
+          });
           processQueue(err, null);
           reject(err);
         })

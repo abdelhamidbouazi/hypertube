@@ -4,9 +4,11 @@ import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/input";
 import { Avatar } from "@heroui/avatar";
 import { Divider } from "@heroui/divider";
+import { addToast } from "@heroui/toast";
 import { Send, MessageSquare } from "lucide-react";
 import { addComment } from "@/lib/hooks";
 import { formatDistanceToNow } from "date-fns";
+import { getErrorMessage } from "@/lib/error-utils";
 import PublicProfile from "@/components/PublicProfile";
 
 // Backend returns gorm.Model fields with PascalCase (ID, CreatedAt)
@@ -88,7 +90,12 @@ export default function CommentSection({
       setNewComment("");
       onCommentAdded();
     } catch (error) {
-      console.error("Failed to post comment:", error);
+      addToast({
+        title: "Failed to post comment",
+        description: getErrorMessage(error),
+        severity: "danger",
+        timeout: 4000,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -129,15 +136,11 @@ export default function CommentSection({
               src={currentUser.avatar}
               name={`${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim()}
               className="flex-shrink-0"
-              showFallback
-              imgProps={{
-                onError: (e) => {
-                  console.error(
-                    "Avatar image failed to load:",
-                    currentUser.avatar
-                  );
-                },
-              }}
+                  showFallback
+                  imgProps={{
+                    onError: () => {
+                    },
+                  }}
             />
             <div className="flex-grow space-y-2">
               <Textarea

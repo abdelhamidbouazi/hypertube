@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@heroui/button";
 import { Progress } from "@heroui/progress";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "@/lib/error-utils";
 import { Download, AlertCircle, Loader2, CheckCircle2, Video } from "lucide-react";
 import api, { BASE_URL } from "@/lib/api";
 
@@ -111,7 +113,14 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       hlsRef.current.loadSource(src);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(e => console.error("Error playing:", e));
+        videoRef.current.play().catch((e) => {
+          addToast({
+            title: "Playback error",
+            description: "Failed to play video. Please try again.",
+            severity: "warning",
+            timeout: 3000,
+          });
+        });
       }
     }
   }, [downloadProgress?.status, src]);
@@ -162,12 +171,22 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         setDownloadProgress(progressUpdate);
 
       } catch (err) {
-        console.error("Error parsing WebSocket message:", err);
+        addToast({
+          title: "Connection error",
+          description: "Failed to parse server message. Please refresh the page.",
+          severity: "warning",
+          timeout: 4000,
+        });
       }
     };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
+    ws.onerror = () => {
+      addToast({
+        title: "Connection error",
+        description: "Lost connection to server. Please refresh the page.",
+        severity: "warning",
+        timeout: 4000,
+      });
     };
 
     ws.onclose = () => {
