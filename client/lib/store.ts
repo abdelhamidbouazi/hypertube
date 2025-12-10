@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
 // movie filtering options interface
 export interface MovieFilters {
   query: string;
-  sort: "name" | "year" | "rating";
+  sort: "popularity" | "name" | "year" | "rating";
   selectedGenres: string[];
   minRating: number;
   yearRange: [number, number];
@@ -57,7 +57,7 @@ export interface MovieFilters {
 interface FilterState {
   filters: MovieFilters;
   setQuery: (query: string) => void;
-  setSort: (sort: "name" | "year" | "rating") => void;
+  setSort: (sort: "popularity" | "name" | "year" | "rating") => void;
   toggleGenre: (genre: string) => void;
   setMinRating: (rating: number) => void;
   setYearRange: (range: [number, number]) => void;
@@ -70,7 +70,7 @@ export const useFilterStore = create<FilterState>()(
     (set) => ({
       filters: {
         query: "",
-        sort: "name",
+        sort: "popularity",
         selectedGenres: [],
         minRating: 0,
         yearRange: [2000, new Date().getFullYear()],
@@ -96,7 +96,7 @@ export const useFilterStore = create<FilterState>()(
         set({
           filters: {
             query: "",
-            sort: "name",
+            sort: "popularity",
             selectedGenres: [],
             minRating: 0,
             yearRange: [2000, new Date().getFullYear()],
