@@ -11,13 +11,7 @@ func AddMovieRouter(movieRouter *echo.Group, movieController *controllers.MovieC
 	movieRouter.GET("", movieController.GetMovies)
 	movieRouter.GET("/search", movieController.SearchMovies)
 	movieRouter.GET("/popular", movieController.PopularMovies)
-	movieRouter.GET("/random", movieController.RandomMovies)
 	movieRouter.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
-}
-
-func AddTorrentRouter(torrentRouter *echo.Group, torrentController *controllers.TorrentController) {
-	torrentRouter.POST("/download", torrentController.StartDownload, middlewares.Authenticated, middlewares.AttachUser)
-	torrentRouter.GET("/progress", torrentController.GetDownloadProgress, middlewares.Authenticated, middlewares.AttachUser)
 }
 
 func AddCommentRouter(commentRouter *echo.Group, commentController *controllers.CommentController) {
@@ -26,10 +20,4 @@ func AddCommentRouter(commentRouter *echo.Group, commentController *controllers.
 	commentRouter.GET("/:id", commentController.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
 	commentRouter.PATCH("/:id", commentController.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
 	commentRouter.DELETE("/:id", commentController.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
-}
-
-func AddSubtitleRouter(subtitleRouter *echo.Group, subtitleController *controllers.SubtitleController) {
-	subtitleRouter.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
-	subtitleRouter.GET("/languages", subtitleController.GetAvailableLanguages, middlewares.Authenticated, middlewares.AttachUser)
-	subtitleRouter.GET("/recommendations", subtitleController.GetSubtitleRecommendations, middlewares.Authenticated, middlewares.AttachUser)
 }

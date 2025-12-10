@@ -269,37 +269,6 @@ func (c *MovieController) PopularMovies(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, movies)
 }
 
-// RandomMovies godoc
-//
-//	@Summary      Random movies
-//	@Description  Get a random subset of movies from TMDB discover endpoint
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Success      200        {array}   models.Movie
-//	@Failure      400        {object}  utils.HTTPError
-//	@Failure      500        {object}  utils.HTTPError
-//	@Router       /movies/random [get]
-func (c *MovieController) RandomMovies(ctx echo.Context) error {
-	page := 1
-	limit := 20
-	if p := ctx.QueryParam("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
-	}
-	if l := ctx.QueryParam("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
-	movies, err := c.movieService.GetRandomMovies(page, limit)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch random movies")
-	}
-	return ctx.JSON(http.StatusOK, movies)
-}
-
 func validateAndExtractMovieFilePath(path string) (int, error) {
 	var movieId int
 	var err error
