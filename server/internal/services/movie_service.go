@@ -28,9 +28,10 @@ type MovieService struct {
 	UserSegmentTrack   sync.Map // map[string]map[int]string - "userID:movieID" -> last segment visited
 	SegmentFormatParse string
 	SearchSources      map[string]Source
+	db                 *gorm.DB
 }
 
-func NewMovieService(tmdbKey, omdbKey, watchModeKey string) *MovieService {
+func NewMovieService(tmdbKey, omdbKey, watchModeKey string, db *gorm.DB) *MovieService {
 	ms := &MovieService{
 		apiKey:             tmdbKey,
 		omdbKey:            omdbKey,
@@ -40,11 +41,12 @@ func NewMovieService(tmdbKey, omdbKey, watchModeKey string) *MovieService {
 			"1337x",
 			"yts",
 		},
+		db: db,
 	}
 
 	ms.SearchSources = map[string]Source{
 		"tmdb": NewTMDB(tmdbKey, omdbKey, ms.genreCacheTime, ms.client),
-		"omdb": NewOMDB(omdbKey, ms.genreCacheTime, ms.client),
+		// "omdb": NewOMDB(omdbKey, ms.genreCacheTime, ms.client),
 	}
 
 	go ms.persistWatchHistoryWorker()
@@ -61,27 +63,79 @@ func (ms *MovieService) GetSource(key string) (Source, error) {
 	return src, nil
 }
 
+type DiscoverMoviesResp struct {
+	ID          int     `json:"id"`
+	Title       string  `json:"title"`
+	ReleaseDate string  `json:"release_date"`
+	PosterPath  string  `json:"poster_path"`
+	Overview    string  `json:"overview"`
+	Language    string  `json:"original_language,omitempty"`
+	VoteAverage float64 `json:"vote_average"`
+	GenreIDs    []int   `json:"genre_ids,omitempty"`
+	IsWatched   bool    `json:"isWatched"`
+}
+
 // DiscoverMovies calls TMDB discover endpoint with filters
-func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams, source string) ([]models.Movie, error) {
+func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams, userID *uint, source string) ([]DiscoverMoviesResp, error) {
 	var movies []models.Movie
+	var movieIDs []int
 	var err error
 
 	if source != "" {
 		src, err := ms.GetSource(source)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			movies, movieIDs, err = src.DiscoverMovies(p)
+			if err != nil {
+				return nil, err
+			}
 		}
-		return src.DiscoverMovies(p)
+	} else {
+		for _, s := range ms.SearchSources {
+			movies, movieIDs, err = s.DiscoverMovies(p)
+			if err == nil && len(movies) > 0 {
+				break
+			}
+		}
 	}
 
-	for _, s := range ms.SearchSources {
-		movies, err = s.DiscoverMovies(p)
-		if err == nil && len(movies) > 0 {
-			return movies, nil
+	if err != nil {
+		return nil, err
+	}
+	var result []DiscoverMoviesResp
+	var watchHistory []models.WatchHistory
+	watchHistoryMap := make(map[int]bool)
+
+	if userID != nil {
+		err = ms.db.Model(&models.WatchHistory{}).
+			Where("user_id = ?", userID).
+			Where("movie_id IN ?", movieIDs).
+			// Where("watch_count > ?", 0).
+			Find(&watchHistory).Error
+
+		for _, wh := range watchHistory {
+			watchHistoryMap[wh.MovieID] = true
 		}
 	}
 
-	return movies, err
+	for _, m := range movies {
+		isWatched := false
+		if userID != nil {
+			isWatched = watchHistoryMap[m.ID]
+		}
+		result = append(result, DiscoverMoviesResp{
+			ID:          m.ID,
+			Title:       m.Title,
+			ReleaseDate: m.ReleaseDate,
+			PosterPath:  m.PosterPath,
+			Overview:    m.Overview,
+			Language:    m.Language,
+			VoteAverage: m.VoteAverage,
+			GenreIDs:    m.GenreIDs,
+			IsWatched:   isWatched,
+		})
+	}
+
+	return result, err
 }
 
 func normalizeGenreName(name string) string {

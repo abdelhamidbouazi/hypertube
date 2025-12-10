@@ -279,7 +279,7 @@ func (t *TMDB) refreshGenreCache() error {
 	return nil
 }
 
-func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
+func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, []int, error) {
 	if p.Page < 1 {
 		p.Page = 1
 	}
@@ -327,7 +327,7 @@ func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
 
 	resp, err := t.client.Get(fullURL)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
@@ -344,11 +344,14 @@ func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var movies []models.Movie
+	var movieIDs []int
+
 	for _, result := range tmdbResp.Results {
+		movieIDs = append(movieIDs, result.ID)
 		movies = append(movies, models.Movie{
 			ID:          result.ID,
 			Title:       result.Title,
@@ -360,5 +363,5 @@ func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
 		})
 	}
 
-	return movies, nil
+	return movies, movieIDs, nil
 }
