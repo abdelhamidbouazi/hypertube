@@ -65,8 +65,6 @@ func Init(config string) {
 	LoadServer()
 
 	fmt.Println("mail=", services.Conf.SMTP.Gmail.Mail, " password=", services.Conf.SMTP.Gmail.Password)
-
-	// seeds.AddUsersSeeds()
 }
 
 func LoadServer() {
