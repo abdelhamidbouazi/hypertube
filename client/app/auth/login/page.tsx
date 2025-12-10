@@ -78,6 +78,8 @@ export default function LoginPage() {
               id: "unknown",
               email: "unknown", // Fallback if me fails
               username: username,
+              firstname: "",
+              lastname: "",
             },
             response.AccessToken
           );

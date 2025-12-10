@@ -85,6 +85,8 @@ export default function RegisterPage() {
               id: "unknown",
               email: "unknown",
               username: username,
+              firstname: firstName || "",
+              lastname: lastName || "",
             },
             response.AccessToken
           );
