@@ -22,7 +22,6 @@ var (
 	movieService        *services.MovieService
 	torrentService      *services.TorrentService
 	movieController     *controllers.MovieController
-	torrentController   *controllers.TorrentController
 	subtitleController  *controllers.SubtitleController
 	commentController   *controllers.CommentController
 	websocketController *controllers.WebSocketController
@@ -32,6 +31,7 @@ func InitServices() {
 	movieService = services.NewMovieService(
 		services.Conf.MOVIE_APIS.TMDB.APIKey,
 		services.Conf.MOVIE_APIS.OMDB.APIKey,
+		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
 	)
 
 	torrentService = services.NewTorrentService(
@@ -46,11 +46,6 @@ func InitServices() {
 		torrentService,
 		services.PostgresDB(),
 		websocketController,
-	)
-
-	torrentController = controllers.NewTorrentController(
-		torrentService,
-		movieService,
 	)
 
 	subtitleController = controllers.NewSubtitleController(services.PostgresDB())
@@ -107,31 +102,11 @@ func LoadServer() {
 	routes.AddAuthRouter(Server.Group("/auth"))
 	routes.AddOAuthRouter(Server.Group("/oauth2"))
 	routes.AddUserRouter(Server.Group("/users"))
-
-	movieGroup := Server.Group("/movies")
-	movieGroup.GET("/search", movieController.SearchMovies)
-	movieGroup.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
-	routes.AddMovieRouter(movieGroup, movieController)
-
-	torrentGroup := Server.Group("/torrents")
-	torrentGroup.POST("/download", torrentController.StartDownload)
-	torrentGroup.GET("/progress", torrentController.GetDownloadProgress)
+	routes.AddMovieRouter(Server.Group("/movies"), movieController)
+	routes.AddCommentRouter(Server.Group("/comments"), commentController)
 
 	streamGroup := Server.Group("/stream", middlewares.Authenticated, middlewares.AttachUser)
 	streamGroup.GET("/*", movieController.ServeHLSFile)
-
-	commentGroup := Server.Group("/comments")
-	commentGroup.POST("/add", commentController.AddComment, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.GET("", commentController.GetComments, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.GET("/:id", commentController.GetCommentByID, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.PATCH("/:id", commentController.UpdateComment, middlewares.Authenticated, middlewares.AttachUser)
-	commentGroup.DELETE("/:id", commentController.DeleteComment, middlewares.Authenticated, middlewares.AttachUser)
-
-	subtitleGroup := Server.Group("/subtitles")
-	subtitleGroup.GET("", subtitleController.GetSubtitles, middlewares.Authenticated, middlewares.AttachUser)
-	subtitleGroup.GET("/languages", subtitleController.GetAvailableLanguages, middlewares.Authenticated, middlewares.AttachUser)
-	subtitleGroup.GET("/recommendations", subtitleController.GetSubtitleRecommendations, middlewares.Authenticated, middlewares.AttachUser)
-
 	Server.GET("/ws/:movieId", websocketController.HandleWebSocket)
 }
 

@@ -95,7 +95,8 @@ type MovieDetailsDoc struct {
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
-//	@Param        id   path     string  true  "Movie ID"
+//	@Param        id       path   string  true   "Movie ID"
+//	@Param        source   query  string  false  "Source (default: tmdb)"
 //	@Security     JWT
 //	@Success      200  {object} controllers.MovieDetailsDoc
 //	@Failure      401  {object} utils.HTTPErrorUnauthorized
@@ -103,8 +104,16 @@ type MovieDetailsDoc struct {
 //	@Router       /movies/{id} [get]
 func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	movieID := ctx.Param("id")
+	source := ctx.QueryParam("source")
 
-	details, err := c.movieService.GetMovieDetails(movieID)
+	source = "tmdb"
+
+	s, err := c.movieService.GetSource(source)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	details, err := s.GetMovieDetails(movieID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Movie not found")
 	}
@@ -168,6 +177,7 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
+//	@Param        source        query    string     false  "Source of Movie"
 //	@Param        page        query    int     false  "Page number (default 1)"
 //	@Param        genres      query    string  false  "Comma-separated genre names or IDs (e.g., Action,Drama or 28,18)"
 //	@Param        yearFrom    query    int     false  "Release year from (inclusive)"
@@ -176,8 +186,9 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 //	@Param        sort        query    string  false  "Sort by: year, year_asc, year_desc, rating (default popularity)"
 //	@Success      200  {array}   models.Movie
 //	@Failure      500  {object}  utils.HTTPError
-//	@Router       /movies [get]
+//	@Router       /movies/popular [get]
 func (c *MovieController) GetMovies(ctx echo.Context) error {
+	source := ctx.QueryParam("source")
 	page := 1
 	if p := ctx.QueryParam("page"); p != "" {
 		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
@@ -191,15 +202,6 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 	yearToParam := ctx.QueryParam("yearTo")       // int
 	minRatingParam := ctx.QueryParam("minRating") // float
 	sortParam := ctx.QueryParam("sort")           // year|year_asc|year_desc|rating
-
-	// If no filters at all, keep existing behavior (popular)
-	if genresParam == "" && yearFromParam == "" && yearToParam == "" && minRatingParam == "" && sortParam == "" {
-		movies, err := c.movieService.GetPopularMovies(page)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies")
-		}
-		return ctx.JSON(http.StatusOK, movies)
-	}
 
 	var yearFromPtr, yearToPtr *int
 	if yearFromParam != "" {
@@ -237,65 +239,9 @@ func (c *MovieController) GetMovies(ctx echo.Context) error {
 		Page:      page,
 	}
 
-	movies, err := c.movieService.DiscoverMovies(params)
+	movies, err := c.movieService.DiscoverMovies(params, source)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch movies with filters")
-	}
-	return ctx.JSON(http.StatusOK, movies)
-}
-
-// PopularMovies godoc
-//
-//	@Summary      Popular movies
-//	@Description  Get a list of popular movies from TMDB
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Success      200   {array}   models.Movie
-//	@Failure      400   {object}  utils.HTTPError
-//	@Failure      500   {object}  utils.HTTPError
-//	@Router       /movies/popular [get]
-func (c *MovieController) PopularMovies(ctx echo.Context) error {
-	page := 1
-	if p := ctx.QueryParam("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
-	}
-	movies, err := c.movieService.GetPopularMovies(page)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch popular movies")
-	}
-	return ctx.JSON(http.StatusOK, movies)
-}
-
-// RandomMovies godoc
-//
-//	@Summary      Random movies
-//	@Description  Get a random subset of movies from TMDB discover endpoint
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Success      200        {array}   models.Movie
-//	@Failure      400        {object}  utils.HTTPError
-//	@Failure      500        {object}  utils.HTTPError
-//	@Router       /movies/random [get]
-func (c *MovieController) RandomMovies(ctx echo.Context) error {
-	page := 1
-	limit := 20
-	if p := ctx.QueryParam("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
-	}
-	if l := ctx.QueryParam("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
-	movies, err := c.movieService.GetRandomMovies(page, limit)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch random movies")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to fetch movies with filters %s", err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, movies)
 }
@@ -907,8 +853,8 @@ func (c *MovieController) runFFmpegTranscoding(reader io.Reader, hlsOutputDir st
 
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdin = reader
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		return err
@@ -937,7 +883,9 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		"step": "fetch_details",
 	})
 
-	details, err := c.movieService.GetIMDbIDFromTMDb(movieID)
+	s, _ := c.movieService.GetSource("tmdb")
+
+	details, err := s.GetIMDbID(movieID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch movie details: %w", err)
 	}
@@ -964,33 +912,14 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		return nil, fmt.Errorf("no suitable torrent found")
 	}
 
-	c.updateStreamStatus(movieID, "searching", "Analyzing torrents and fetching metadata", map[string]interface{}{
-		"step":          "analyze_torrents",
-		"torrent_count": len(torrents),
-	})
-
 	bestTorrent := &torrents[0]
 
-	quality := bestTorrent.Quality
-	if quality == "" {
-		quality = "720p"
-	}
-
 	c.updateStreamStatus(movieID, "searching", "Selected best torrent", map[string]interface{}{
-		"step":     "torrent_selected",
-		"name":     bestTorrent.Name,
-		"quality":  quality,
-		"size":     bestTorrent.Size,
-		"seeders":  bestTorrent.Seeders,
-		"leechers": bestTorrent.Leechers,
+		"step": "torrent_selected",
+		"name": bestTorrent.Name,
 	})
 
-	c.updateStreamStatus(movieID, "downloading", "Connecting to peers", map[string]interface{}{
-		"step":    "start_download",
-		"quality": quality,
-	})
-
-	download, err := c.torrentService.GetOrStartDownload(movieID, bestTorrent.Magnet, quality)
+	download, err := c.torrentService.GetOrStartDownload(movieID, bestTorrent.InfoHash)
 	if err != nil {
 		c.updateStreamStatus(movieID, "error", "Failed to start download: "+err.Error(), nil)
 		return nil, fmt.Errorf("failed to start download: %w", err)
