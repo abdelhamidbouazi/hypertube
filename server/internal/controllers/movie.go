@@ -330,28 +330,14 @@ func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 	outputDir := services.VideoTranscoderConf.Output.Directory
 	filePath := filepath.Join(outputDir, strings.TrimPrefix(path, "/stream/"))
 
-	err = c.checkFileExits(filePath)
-	if err != nil {
+	if c.checkFileExits(filePath) != nil {
 		err = c.ensureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID, outputDir)
 		if err != nil {
 			return err
 		}
 
-		if err := c.waitForFile(filePath, 5*time.Second); err != nil {
-			var status map[string]interface{}
-			if val, exists := c.movieService.StreamStatus.Load(movieID); exists {
-				status = val.(map[string]interface{})
-			} else {
-				status = map[string]interface{}{
-					"stage":   "initializing",
-					"message": "Stream initialization in progress",
-				}
-			}
-
-			return ctx.JSON(http.StatusAccepted, map[string]interface{}{
-				"error":  status["message"],
-				"status": status,
-			})
+		if err := c.checkFileExits(filePath); err != nil {
+			return ctx.JSON(http.StatusAccepted, echo.Map{})
 		}
 	}
 
@@ -839,7 +825,7 @@ func (c *MovieController) checkFileExits(filePath string) error {
 	return err
 }
 
-func (c *MovieController) waitForFile(filePath string, timeout time.Duration) error {
+func (c *MovieController) waitForFile(filePath string) error {
 	for {
 		if err := c.checkFileExits(filePath); err == nil {
 			time.Sleep(100 * time.Millisecond)
