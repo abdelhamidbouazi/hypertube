@@ -7,7 +7,6 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.1
-	github.com/deflix-tv/imdb2torrent v0.1.0
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -18,7 +17,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/echo-swagger v1.4.1
-	go.uber.org/zap v1.16.0
+	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.44.0
 	golang.org/x/oauth2 v0.25.0
 	gopkg.in/mail.v2 v2.3.1
@@ -29,7 +28,6 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/PuerkitoBio/goquery v1.11.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
@@ -50,7 +48,6 @@ require (
 	github.com/anacrolix/sync v0.5.4 // indirect
 	github.com/anacrolix/upnp v0.1.4 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
-	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.12 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
@@ -137,11 +134,7 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
-	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
-	github.com/tidwall/gjson v1.6.7 // indirect
-	github.com/tidwall/match v1.0.3 // indirect
-	github.com/tidwall/pretty v1.0.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wlynxg/anet v0.0.3 // indirect
