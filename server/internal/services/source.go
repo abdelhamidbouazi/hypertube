@@ -5,7 +5,7 @@ import (
 )
 
 type Source interface {
-	DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error)
+	DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, []int, error)
 	getGenreIDs(genres []string) (string, error)
 	GetIMDbID(movieID int) (*models.MovieDetails, error)
 	GetMovieDetails(movieID string) (*models.MovieDetails, error)

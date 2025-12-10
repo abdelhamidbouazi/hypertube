@@ -8,7 +8,7 @@ import (
 )
 
 func AddMovieRouter(movieRouter *echo.Group, movieController *controllers.MovieController) {
-	movieRouter.GET("/popular", movieController.GetMovies)
+	movieRouter.GET("/popular", movieController.GetMovies, middlewares.AccessTokenExtractor, middlewares.AttachUserOptional)
 	movieRouter.GET("/search", movieController.SearchMovies)
 	movieRouter.GET("/:id", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)
 	movieRouter.GET("/:id/:source", movieController.GetMovieDetails, middlewares.Authenticated, middlewares.AttachUser)

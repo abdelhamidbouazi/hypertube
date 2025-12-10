@@ -32,6 +32,7 @@ func InitServices() {
 		services.Conf.MOVIE_APIS.TMDB.APIKey,
 		services.Conf.MOVIE_APIS.OMDB.APIKey,
 		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
+		services.PostgresDB(),
 	)
 
 	torrentService = services.NewTorrentService(
@@ -89,7 +90,12 @@ func LoadServer() {
 		TokenLookup: "header:RefreshToken",
 	}
 
-	middlewares.SetupJWT(config, refreshTokenConfig)
+	accessTokenConfigExtractor := echojwt.Config{
+		SigningKey:  []byte(services.Conf.JWT.SigningKey),
+		TokenLookup: "header:Authorization:Bearer ",
+	}
+
+	middlewares.SetupJWT(config, refreshTokenConfig, accessTokenConfigExtractor)
 	setupSwagger(Server)
 
 	Server.POST("/forgot-password", controllers.ForgotPassword)
