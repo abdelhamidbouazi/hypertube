@@ -54,18 +54,9 @@ export default function CommentSection({
   const { isAuthenticated } = useAuthStore();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // Sync local state with props when they change
   React.useEffect(() => {
     setDisplayComments(comments);
   }, [comments]);
-
-  // Debug logging for user avatar
-  React.useEffect(() => {
-    if (currentUser) {
-      console.log("Current user data:", currentUser);
-      console.log("Avatar URL:", currentUser.avatar);
-    }
-  }, [currentUser]);
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !currentUser) return;
@@ -77,8 +68,6 @@ export default function CommentSection({
         `${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim();
       const apiResponse = await addComment(movieId, newComment, username);
 
-      // Normalize API response to match Comment interface
-      // The backend returns ID (uppercase) and CreatedAt
       const normalizedComment: Comment = {
         ID: apiResponse.ID || apiResponse.id,
         username: apiResponse.username || username,
@@ -88,7 +77,6 @@ export default function CommentSection({
           apiResponse.CreatedAt || apiResponse.date || new Date().toISOString(),
       };
 
-      // Optimistically update local state
       setDisplayComments((prev) => [normalizedComment, ...prev]);
 
       setNewComment("");
@@ -133,7 +121,6 @@ export default function CommentSection({
       </CardHeader>
       <Divider />
       <CardBody className="px-6 py-6 gap-6">
-        {/* Comment Input */}
         {currentUser ? (
           <div className="flex gap-4">
             <Avatar
@@ -174,7 +161,6 @@ export default function CommentSection({
           </div>
         )}
 
-        {/* Comments List */}
         {isAuthenticated ? (
           <div className="space-y-6 mt-4">
             {displayComments.length === 0 ? (

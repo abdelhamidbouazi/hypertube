@@ -72,20 +72,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? allNavigationItems
     : allNavigationItems.filter((item) => item.name === "Discover");
 
-  // user dropdown menu items
-  const userMenuItems = [
-    { key: "profile", label: "My Profile", icon: User, href: "/app/profile" },
-  ];
-
-  // check if current route is active
   const isActive = (href: string) => pathname === href;
 
-  // toggle between light and dark theme
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  // close sidebar on mobile route change
   useEffect(() => {
     if (window.innerWidth < 1024) {
       onToggle();
@@ -94,7 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* mobile overlay for sidebar */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -102,7 +93,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* main sidebar container */}
       <aside
         className={clsx(
           "fixed left-0 top-0 z-50 flex flex-col bg-content1 border-r border-divider transition-all duration-300 ease-in-out min-h-screen",
@@ -111,7 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isCollapsed ? "lg:w-16" : "lg:w-56"
         )}
       >
-        {/* sidebar header with logo */}
         <div className="flex items-center justify-between p-3 border-b border-divider">
           {!isCollapsed && (
             <NextLink href="/app/discover" className="flex items-center gap-2">
@@ -131,7 +120,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* main navigation menu */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -167,7 +155,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* continue watching section */}
         {!isCollapsed && isAuthenticated && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
@@ -238,7 +225,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <Divider />
 
-        {/* user stats section */}
         {!isCollapsed && isAuthenticated && (
           <div className="px-3 py-4">
             <h3 className="text-xs font-semibold text-default-500 uppercase tracking-wider mb-3">
@@ -257,19 +243,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {statsLoading ? "..." : stats.hoursWatched}
                 </span>
               </div>
-              {/* <div className="flex justify-between items-center text-sm p-2 rounded-lg bg-content2/50">
-                <span className="text-default-500">Favorites</span>
-                <span className="font-semibold text-primary">
-                  {statsLoading ? '...' : stats.favorites}
-                </span>
-              </div> */}
             </div>
           </div>
         )}
 
         <Divider />
 
-        {/* user profile dropdown or login button */}
         <div className="p-3">
           {isAuthenticated ? (
             <Dropdown placement="top-start">

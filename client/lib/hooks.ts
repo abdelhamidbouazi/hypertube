@@ -319,7 +319,6 @@ export const uploadAvatar = async (file: File) => {
   return response.data;
 };
 
-// get user public info by username
 export const getUserPublicInfo = async (username: string) => {
   const response = await api.get(`/users/${encodeURIComponent(username)}`);
   return response.data;

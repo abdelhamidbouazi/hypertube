@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable */
 import Link from "next/link";
 import Image from "next/image";
 import { Input } from "@heroui/input";
@@ -67,7 +66,7 @@ export default function LoginPage() {
           login(
             {
               id: "unknown",
-              email: "unknown", // Fallback if me fails
+              email: "unknown",
               username: username,
               firstname: "",
               lastname: "",
@@ -161,7 +160,6 @@ export default function LoginPage() {
         <Button
           fullWidth
           color="primary"
-          // className="mt-1 bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-semibold shadow-lg transition hover:brightness-110"
           isLoading={isLoading}
           radius="sm"
           type="submit"

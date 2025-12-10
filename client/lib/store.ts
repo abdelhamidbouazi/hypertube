@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// user data interface
 interface User {
   id: string;
   email: string;
@@ -12,7 +11,6 @@ interface User {
   preferred_language?: string;
 }
 
-// authentication state interface
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -22,7 +20,6 @@ interface AuthState {
   setUser: (user: User) => void;
 }
 
-// global authentication store with persistence
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -44,7 +41,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// movie filtering options interface
 export interface MovieFilters {
   query: string;
   sort: "popularity" | "name" | "year" | "rating";
@@ -53,7 +49,6 @@ export interface MovieFilters {
   yearRange: [number, number];
 }
 
-// movie filter state interface
 interface FilterState {
   filters: MovieFilters;
   setQuery: (query: string) => void;
@@ -64,7 +59,6 @@ interface FilterState {
   resetFilters: () => void;
 }
 
-// movie filter store with persistence
 export const useFilterStore = create<FilterState>()(
   persist(
     (set) => ({
@@ -109,7 +103,6 @@ export const useFilterStore = create<FilterState>()(
   )
 );
 
-// watchlist state interface
 interface WatchlistState {
   watchlistIds: number[];
   addToWatchlist: (id: number) => void;
@@ -118,7 +111,6 @@ interface WatchlistState {
   isInWatchlist: (id: number) => boolean;
 }
 
-// watchlist store for managing saved movies
 export const useWatchlistStore = create<WatchlistState>()(
   persist(
     (set, get) => ({
