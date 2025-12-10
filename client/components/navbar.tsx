@@ -7,7 +7,6 @@ import {
   NavbarMenuItem,
   NavbarItem,
 } from "@heroui/navbar";
-import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
 import { Kbd } from "@heroui/kbd";
 import NextLink from "next/link";
@@ -19,6 +18,8 @@ import { SearchIcon } from "@/components/icons";
 import { siteConfig } from "@/config/site";
 import { useSearchMovies } from "@/lib/hooks";
 import { Movie } from "./movies/MoviesCard";
+import { useAuthStore } from "@/lib/store";
+import { logoutUser } from "@/lib/hooks";
 
 const MovieSearchCard = ({ movie }: { movie: Movie }) => {
   return (
@@ -70,6 +71,7 @@ export const Navbar = ({
   isSidebarCollapsed?: boolean;
 }) => {
   const pathname = usePathname();
+  const { isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -85,7 +87,6 @@ export const Navbar = ({
 
   const { movies, isLoading, error } = useSearchMovies(debouncedQuery);
 
-  // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -100,7 +101,6 @@ export const Navbar = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle Cmd+K / Ctrl+K keyboard shortcut to focus search
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
@@ -137,6 +137,15 @@ export const Navbar = ({
   const isWatchLaterPage = pathname === "/app/watch-later";
   const isSettingsPage = pathname === "/app/settings";
   const shouldShowSearch = isDiscoverPage || isMovieDetailsPage || isHistoryPage || isWatchLaterPage || isSettingsPage;
+
+  const navigationItems = isAuthenticated
+    ? [
+        { label: "Discover", href: "/app/discover" },
+        { label: "Watch Later", href: "/app/watch-later" },
+        { label: "Watch History", href: "/app/history" },
+        { label: "Settings", href: "/app/settings" },
+      ]
+    : [{ label: "Discover", href: "/app/discover" }];
 
   const searchInput = (
     <div ref={searchContainerRef} className="relative w-full max-w-md">
@@ -202,49 +211,58 @@ export const Navbar = ({
 
   return (
     <HeroUINavbar position="sticky">
-      {/* left side - empty for balance */}
       <NavbarContent justify="start">
         <NavbarItem></NavbarItem>
       </NavbarContent>
 
-      {/* center - search input (on discover, movie details, and streaming pages) */}
       <NavbarContent justify="center">
-        <NavbarItem className="hidden md:flex w-full max-w-md">
+        <NavbarItem className="hidden lg:flex w-full max-w-md">
           {shouldShowSearch && searchInput}
         </NavbarItem>
       </NavbarContent>
 
-      {/* right side - empty for balance */}
       <NavbarContent justify="end">
         <NavbarItem></NavbarItem>
       </NavbarContent>
 
-      {/* mobile menu toggle */}
-      <NavbarContent className="sm:hidden" justify="end">
+      <NavbarContent className="lg:hidden" justify="end">
         <NavbarMenuToggle />
       </NavbarContent>
 
-      {/* mobile menu content */}
       <NavbarMenu>
-        {shouldShowSearch && searchInput}
+        {shouldShowSearch && (
+          <div className="px-4 pt-4 pb-2">
+            {searchInput}
+          </div>
+        )}
         <div className="mx-4 mt-2 flex flex-col gap-2">
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                color={
-                  index === 2
-                    ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
-                      ? "danger"
-                      : "foreground"
-                }
-                href="#"
-                size="lg"
+          {navigationItems.map((item, index) => {
+            const isActive = pathname === item.href;
+            return (
+              <NavbarMenuItem key={`${item.href}-${index}`}>
+                <NextLink
+                  href={item.href}
+                  className={`w-full text-lg ${
+                    isActive
+                      ? "text-primary font-semibold"
+                      : "text-foreground hover:text-primary"
+                  } transition-colors`}
+                >
+                  {item.label}
+                </NextLink>
+              </NavbarMenuItem>
+            );
+          })}
+          {isAuthenticated && (
+            <NavbarMenuItem>
+              <button
+                onClick={() => logoutUser()}
+                className="w-full text-left text-lg text-danger hover:text-danger-600 transition-colors"
               >
-                {item.label}
-              </Link>
+                Logout
+              </button>
             </NavbarMenuItem>
-          ))}
+          )}
         </div>
       </NavbarMenu>
     </HeroUINavbar>

@@ -96,9 +96,9 @@ type MovieDetailsDoc struct {
 //	@Tags         movies
 //	@Accept       json
 //	@Produce      json
+//	@Param        Authorization header   string     false   "Bearer token"
 //	@Param        id       path   string  true   "Movie ID"
 //	@Param        source   query  string  false  "Source (default: tmdb)"
-//	@Security     JWT
 //	@Success      200  {object} controllers.MovieDetailsDoc
 //	@Failure      401  {object} utils.HTTPErrorUnauthorized
 //	@Failure      404  {object} utils.HTTPError
@@ -119,10 +119,12 @@ func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Movie not found")
 	}
 
-	user := ctx.Get("model").(models.User)
-	var watchHistory models.WatchHistory
-	err = c.db.Model(&models.WatchHistory{}).Where("user_id = ? AND movie_id = ?", user.ID, movieID).First(&watchHistory).Error
-	details.IsWatched = err == nil
+	if ctx.Get("model") != nil {
+		user := ctx.Get("model").(models.User)
+		var watchHistory models.WatchHistory
+		err = c.db.Model(&models.WatchHistory{}).Where("user_id = ? AND movie_id = ?", user.ID, movieID).First(&watchHistory).Error
+		details.IsWatched = err == nil
+	}
 
 	c.loadComments(details)
 

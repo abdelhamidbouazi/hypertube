@@ -14,12 +14,18 @@ export function middleware(request: NextRequest) {
     "/reset_password",
   ];
 
-  const isProtectedRoute = pathname.startsWith("/app");
-
   const isPublicRoute = publicRoutes.some((route) => pathname === route);
+  const isPublicAppRoute = pathname === "/app/discover" || 
+    (pathname.startsWith("/app/movie/") && !pathname.includes("/watch"));
+  const isWatchRoute = pathname.startsWith("/app/movie/") && pathname.includes("/watch");
+  const isProtectedRoute = pathname.startsWith("/app") && !isPublicAppRoute;
 
   if (isPublicRoute && token) {
     return NextResponse.redirect(new URL("/app/discover", request.url));
+  }
+
+  if (isWatchRoute && !token) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   if (isProtectedRoute && !token) {

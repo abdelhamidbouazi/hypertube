@@ -94,7 +94,6 @@ export default function DiscoverPage() {
 
   const isSearchActive = filters.query.trim().length > 0;
 
-  // Infinite scroll observer
   const observerTarget = React.useRef(null);
 
   React.useEffect(() => {
@@ -120,7 +119,6 @@ export default function DiscoverPage() {
 
   return (
     <div className="w-full">
-      {/* Hero section (top picks) – FIRST */}
       {movies.length > 0 && !filters.query && (
         <div className="mb-8">
           <HeroSection
@@ -131,7 +129,6 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Header and Filters */}
       <div className="relative overflow-hidden rounded-3xl  bg-content1/70 p-6 shadow-sm backdrop-blur-md ">
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-40 blur-3xl">
           <div className="absolute -top-24 right-0 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 dark:from-indigo-400 dark:to-pink-400" />

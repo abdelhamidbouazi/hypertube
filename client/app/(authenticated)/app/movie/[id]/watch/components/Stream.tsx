@@ -8,6 +8,7 @@ import { addToast } from "@heroui/toast";
 import { getErrorMessage } from "@/lib/error-utils";
 import { Download, AlertCircle, Loader2, CheckCircle2, Video } from "lucide-react";
 import api, { BASE_URL } from "@/lib/api";
+import { useAuthStore } from "@/lib/store";
 
 interface HlsPlayerProps {
   src: string;
@@ -17,6 +18,7 @@ interface HlsPlayerProps {
   movieId: string;
 }
 
+// download and transcoding progress from websocket
 interface DownloadProgress {
   status: string;
   progress: number;
@@ -35,6 +37,10 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
   const [subtitleTracks, setSubtitleTracks] = useState<{ index: number; label: string; lang: string }[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState<number>(-1);
 
+  const user = useAuthStore.getState().user;
+  const preferredLanguage = user?.preferred_language || "en";
+
+  // initialize hls player and setup quality/subtitle tracks
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -44,20 +50,23 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
       console.log("Video metadata loaded, reset to 0");
     };
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
 
     if (Hls.isSupported()) {
       const hlsInstance = new Hls({
         xhrSetup: (xhr, _url) => {
           if (token) {
-            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
           }
         },
       });
+
       hlsInstance.loadSource(src);
       hlsInstance.attachMedia(video);
 
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+      // parse manifest to get available quality levels and subtitles
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (_, data: any) => {
+        // quality levels
         const lvls = data.levels.map((lvl: any, i: number) => ({
           index: i,
           label: `${lvl.height}p (${Math.round(lvl.bitrate / 1000)} kbps)`,
@@ -65,75 +74,97 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         setLevels([{ index: -1, label: "Auto" }, ...lvls]);
         setCurrentLevel(-1);
 
+        // subtitles
         if (data.subtitleTracks && data.subtitleTracks.length > 0) {
           const subs = data.subtitleTracks.map((track: any, i: number) => ({
-            index: i,
+            index: i, // this matches hls.js subtitleTrack id
             label: track.name || track.lang || `Subtitle ${i + 1}`,
-            lang: track.lang || 'unknown'
+            lang: track.lang || "en",
           }));
-          setSubtitleTracks([{ index: -1, label: "Off", lang: "off" }, ...subs]);
+
+          const offTrack = { index: -1, label: "Off", lang: "off" };
+          setSubtitleTracks([offTrack, ...subs]);
+
+          console.log("Preferred language:", preferredLanguage);
+          console.log("Subtitle tracks:", subs);
+
+          // find preferred language inside subs
+          const preferredIndexInSubs = preferredLanguage
+            ? subs.findIndex((sub: any) => sub.lang === preferredLanguage)
+            : -1;
+
+          // index for hls.js is the same as in subs (0,1,2...), -1 = off
+          const hlsSubtitleIndex = preferredIndexInSubs >= 0 ? preferredIndexInSubs : -1;
+
+          hlsInstance.subtitleTrack = hlsSubtitleIndex; // APPLY INITIAL SUBTITLE
+          setCurrentSubtitle(hlsSubtitleIndex);
+
+          console.log("Initial subtitle index:", hlsSubtitleIndex);
+        } else {
+          setSubtitleTracks([]);
           setCurrentSubtitle(-1);
         }
       });
 
-      hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-        // hls reports the level index (auto resolves to an actual level >=0)
-        // We keep -1 to represent "Auto" when ABR is enabled
+      hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (_, data: any) => {
         const abrEnabled = hlsInstance.autoLevelEnabled;
         setCurrentLevel(abrEnabled ? -1 : data.level);
       });
 
-      hlsInstance.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (_, data) => {
+      hlsInstance.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (_, data: any) => {
+        console.log("Subtitle track switched:", data);
         setCurrentSubtitle(data.id);
       });
 
       hlsRef.current = hlsInstance;
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari native HLS - can't easily add auth headers
-      // You may need to append token as query parameter for Safari
+      // safari native hls - token passed as query param since headers aren't supported
       const urlWithToken = token ? `${src}?token=${token}` : src;
       video.src = urlWithToken;
     }
 
-    // Cleanup function
     return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      // Destroy the local instance created in this effect
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [src, token]);
+  }, [src, token, user, preferredLanguage]);
 
-  // Reload stream when status becomes 'transcoding'
+  // reload stream when transcoding completes
   useEffect(() => {
-    if (downloadProgress?.status === 'transcoding' && hlsRef.current) {
+    if (downloadProgress?.status === "transcoding" && hlsRef.current) {
       console.log("Status is transcoding, reloading stream...");
       hlsRef.current.loadSource(src);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch((e) => {
-          addToast({
-            title: "Playback error",
-            description: "Failed to play video. Please try again.",
-            severity: "warning",
-            timeout: 3000,
+        videoRef.current
+          .play()
+          .catch((e) => {
+            console.error(e);
+            addToast({
+              title: "Playback error",
+              description: "Failed to play video. Please try again.",
+              severity: "warning",
+              timeout: 3000,
+            });
           });
-        });
       }
     }
   }, [downloadProgress?.status, src]);
 
+  // websocket connection for download/transcoding progress updates
   useEffect(() => {
     if (!movieId) return;
 
-    let wsUrl = BASE_URL.replace(/^http/, 'ws');
-    if (wsUrl.startsWith('//')) {
+    // convert http base url to websocket url
+    let wsUrl = BASE_URL.replace(/^http/, "ws");
+    if (wsUrl.startsWith("//")) {
       wsUrl = `ws:${wsUrl}`;
     }
-    if (wsUrl.startsWith('/')) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (wsUrl.startsWith("/")) {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       wsUrl = `${protocol}//${window.location.host}${wsUrl}`;
     }
 
@@ -151,26 +182,26 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
         const data = JSON.parse(event.data);
 
         const progressUpdate: DownloadProgress = {
-          status: data.stage || data.status || 'initializing',
+          status: data.stage || data.status || "initializing",
           progress: data.downloadProgress || data.progress || 0,
-          stream_ready: data.stage === 'ready' || data.streamReady || false,
-          quality: data.quality || 'unknown',
+          stream_ready: data.stage === "ready" || data.streamReady || false,
+          quality: data.quality || "unknown",
           message: data.message,
-          error: data.error
+          error: data.error,
         };
 
         if (data.downloadProgress !== undefined) {
           progressUpdate.progress = data.downloadProgress;
         }
 
-        if (data.stage === 'ready') {
+        if (data.stage === "ready") {
           progressUpdate.stream_ready = true;
-          progressUpdate.status = 'completed';
+          progressUpdate.status = "completed";
         }
 
         setDownloadProgress(progressUpdate);
-
       } catch (err) {
+        console.error(err);
         addToast({
           title: "Connection error",
           description: "Failed to parse server message. Please refresh the page.",
@@ -206,6 +237,7 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
 
   const handleSubtitleChange = (trackIndex: number) => {
     if (!hlsRef.current) return;
+    // -1 means "Off" in hls.js, 0..N are valid tracks
     hlsRef.current.subtitleTrack = trackIndex;
     setCurrentSubtitle(trackIndex);
   };
@@ -231,19 +263,17 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
 
   return (
     <div className="max-w-7xl mx-auto text-center">
-
       {levels.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="text-start font-bold w-full items-start text-xl text-foreground-500 dark:text-slate-200">
             {movieTitle && movieTitle}
           </span>
           <div className="flex w-full justify-end gap-3">
-            {/* Subtitle Selector */}
-            {subtitleTracks.length > 0 && (
+            {/* {subtitleTracks.length > 0 && (
               <div
-              className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
-              role="radiogroup"
-              aria-label="Select subtitles"
+                className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
+                role="radiogroup"
+                aria-label="Select subtitles"
               >
                 <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">
                   Subtitles
@@ -252,51 +282,49 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
                   const isActive = currentSubtitle === track.index;
                   return (
                     <Button
-                    className="min-w-14 my-auto"
-                    color={isActive ? "primary" : "default"}
-                    key={track.index}
-                    radius="lg"
-                    role="radio"
-                    size="sm"
-                    tabIndex={isActive ? 0 : -1}
-                    value={track.index.toString()}
-                    variant={isActive ? "solid" : "light"}
-                    aria-checked={isActive}
-                    onPress={() => handleSubtitleChange(track.index)}
+                      className="min-w-14 my-auto"
+                      color={isActive ? "primary" : "default"}
+                      key={track.index}
+                      radius="lg"
+                      role="radio"
+                      size="sm"
+                      tabIndex={isActive ? 0 : -1}
+                      value={track.index.toString()}
+                      variant={isActive ? "solid" : "light"}
+                      aria-checked={isActive}
+                      onPress={() => handleSubtitleChange(track.index)}
                     >
                       {track.label}
                     </Button>
                   );
                 })}
               </div>
-            )}
+            )} */}
 
-            {/* Quality Selector */}
             <div
               className="inline-flex overflow-x-auto rounded-xl bg-content2 p-1 shadow-sm dark:bg-slate-800"
               role="radiogroup"
               aria-label="Select playback quality"
-              >
+            >
               <span className="text-center my-auto p-2 text-sm text-foreground-500 dark:text-slate-200">
                 Quality
               </span>
               {levels.map((lvl) => {
                 const isActive = currentLevel === lvl.index;
-                const shortLabel =
-                lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
+                const shortLabel = lvl.index === -1 ? "Auto" : `${lvl.label.split(" ")[0]}`;
                 return (
                   <Button
-                  className="min-w-14 my-auto"
-                  color={isActive ? "primary" : "default"}
-                  key={lvl.index}
-                  radius="lg"
-                  role="radio"
-                  size="sm"
-                  tabIndex={isActive ? 0 : -1}
-                  value={lvl.index.toString()}
-                  variant={isActive ? "solid" : "light"}
-                  aria-checked={isActive}
-                  onPress={() => handleQualityChange(lvl.index)}
+                    className="min-w-14 my-auto"
+                    color={isActive ? "primary" : "default"}
+                    key={lvl.index}
+                    radius="lg"
+                    role="radio"
+                    size="sm"
+                    tabIndex={isActive ? 0 : -1}
+                    value={lvl.index.toString()}
+                    variant={isActive ? "solid" : "light"}
+                    aria-checked={isActive}
+                    onPress={() => handleQualityChange(lvl.index)}
                   >
                     {shortLabel}
                   </Button>
@@ -306,69 +334,74 @@ export default function HlsPlayer({ src, token, thumbnail: _thumbnail, movieTitl
           </div>
         </div>
       )}
+
       <video
         ref={videoRef}
         controls
         autoPlay
         style={{ width: "100%", borderRadius: 10 }}
-        ></video>
-        {/* Download Progress */}
-        {downloadProgress &&
-          downloadProgress.status !== "completed" &&
-          !downloadProgress.stream_ready && (
-            <div className={`mt-4 p-4 rounded-lg border ${
-              downloadProgress.status === 'error' 
-                ? 'bg-danger-50 dark:bg-danger-950/30 border-danger-200 dark:border-danger-800' 
-                : 'bg-content2 dark:bg-content2 border-default-200 dark:border-default-100'
-            }`}>
-              <div className="flex items-start gap-3">
-                {/* Status Icon */}
-                <div className={`flex-shrink-0 ${
-                  downloadProgress.status === 'error' 
-                    ? 'text-danger dark:text-danger-400' 
-                    : 'text-primary dark:text-primary-400'
-                }`}>
-                  {downloadProgress.status === 'error' ? (
-                    <AlertCircle className="w-5 h-5" />
-                  ) : downloadProgress.status === 'transcoding' ? (
-                    <Video className="w-5 h-5 animate-pulse" />
-                  ) : (
-                    <Download className="w-5 h-5 animate-pulse" />
-                  )}
-                </div>
-                
-                {/* Content */}
-                <div className="flex-1 space-y-1.5">
-                  {/* Status & Quality */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-medium ${
-                      downloadProgress.status === 'error' 
-                        ? 'text-danger dark:text-danger-400' 
-                        : 'text-foreground dark:text-foreground'
-                    }`}>
-                      {getStatusLabel(downloadProgress.status)}
+      />
+
+      {downloadProgress &&
+        downloadProgress.status !== "completed" &&
+        !downloadProgress.stream_ready && (
+          <div
+            className={`mt-4 p-4 rounded-lg border ${
+              downloadProgress.status === "error"
+                ? "bg-danger-50 dark:bg-danger-950/30 border-danger-200 dark:border-danger-800"
+                : "bg-content2 dark:bg-content2 border-default-200 dark:border-default-100"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`flex-shrink-0 ${
+                  downloadProgress.status === "error"
+                    ? "text-danger dark:text-danger-400"
+                    : "text-primary dark:text-primary-400"
+                }`}
+              >
+                {downloadProgress.status === "error" ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : downloadProgress.status === "transcoding" ? (
+                  <Video className="w-5 h-5 animate-pulse" />
+                ) : (
+                  <Download className="w-5 h-5 animate-pulse" />
+                )}
+              </div>
+
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`text-sm font-medium ${
+                      downloadProgress.status === "error"
+                        ? "text-danger dark:text-danger-400"
+                        : "text-foreground dark:text-foreground"
+                    }`}
+                  >
+                    {getStatusLabel(downloadProgress.status)}
+                  </span>
+                  {downloadProgress.quality && downloadProgress.quality !== "unknown" && (
+                    <span className="text-xs text-foreground-500 dark:text-foreground-400">
+                      • {downloadProgress.quality}
                     </span>
-                    {downloadProgress.quality && downloadProgress.quality !== 'unknown' && (
-                      <span className="text-xs text-foreground-500 dark:text-foreground-400">
-                        • {downloadProgress.quality}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Message */}
-                  {downloadProgress.message && (
-                    <p className={`text-sm ${
-                      downloadProgress.status === 'error' 
-                        ? 'text-danger-600 dark:text-danger-400' 
-                        : 'text-foreground-600 dark:text-foreground-400'
-                    }`}>
-                      {downloadProgress.message}
-                    </p>
                   )}
                 </div>
+
+                {downloadProgress.message && (
+                  <p
+                    className={`text-sm ${
+                      downloadProgress.status === "error"
+                        ? "text-danger-600 dark:text-danger-400"
+                        : "text-foreground-600 dark:text-foreground-400"
+                    }`}
+                  >
+                    {downloadProgress.message}
+                  </p>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
     </div>
   );
 }
