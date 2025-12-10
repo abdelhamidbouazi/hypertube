@@ -140,6 +140,29 @@ func (s *SubtitleService) DownloadSubtitles(tmdbID int, outputDir string) int {
 	return downloadedCount
 }
 
+func ConvertSRTtoVTT(srtPath string, w io.Writer) {
+	file, err := os.Open(srtPath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	fmt.Fprintln(w, "WEBVTT")
+
+	buf := make([]byte, 4096)
+	for {
+		n, err := file.Read(buf)
+		if n > 0 {
+			text := string(buf[:n])
+			text = strings.ReplaceAll(text, ",", ".")
+			w.Write([]byte(text))
+		}
+		if err != nil {
+			break
+		}
+	}
+}
+
 func (s *SubtitleService) downloadFile(url, outputDir, language string) error {
 	resp, err := s.httpClient.Get(url)
 	if err != nil {

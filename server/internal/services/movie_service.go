@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grafov/m3u8"
 	"gorm.io/gorm"
 )
 
@@ -250,54 +249,6 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadata
 	return results, nil
 }
 
-func (ms *MovieService) IsLastSegmentInVariantPlaylist(movieID int, segmentFilename string) bool {
-	if cachedLastSegment, ok := ms.LastSegmentCache.Load(movieID); ok {
-		return cachedLastSegment.(string) == segmentFilename
-	}
-
-	db := PostgresDB()
-	if db == nil {
-		return false
-	}
-
-	var downloadedMovie models.DownloadedMovie
-	if err := db.Where("movie_id = ? AND transcoded = ?", movieID, true).First(&downloadedMovie).Error; err == nil {
-		if downloadedMovie.LastSegment != "" {
-			ms.LastSegmentCache.Store(movieID, downloadedMovie.LastSegment)
-			return downloadedMovie.LastSegment == segmentFilename
-		}
-	}
-
-	return false
-}
-
-func (ms *MovieService) GetLastSegmentFromPlaylist(playlistPath string) string {
-	file, err := os.Open(playlistPath)
-	if err != nil {
-		return ""
-	}
-	defer file.Close()
-
-	playlist, listType, err := m3u8.DecodeFrom(file, true)
-	if err != nil || listType != m3u8.MEDIA {
-		return ""
-	}
-
-	mediaPlaylist, ok := playlist.(*m3u8.MediaPlaylist)
-	if !ok {
-		return ""
-	}
-
-	var lastSegmentURI string
-	for _, segment := range mediaPlaylist.Segments {
-		if segment != nil && segment.URI != "" {
-			lastSegmentURI = segment.URI
-		}
-	}
-
-	return lastSegmentURI
-}
-
 func (ms *MovieService) TrackUserSegment(userID uint, movieID int, segmentFilename string) {
 	key := fmt.Sprintf("%d:%d", userID, movieID)
 	ms.UserSegmentTrack.Store(key, segmentFilename)
@@ -310,18 +261,12 @@ func (ms *MovieService) persistWatchHistoryWorker() {
 	for range ticker.C {
 		ms.UserSegmentTrack.Range(func(key, value interface{}) bool {
 			keyStr := key.(string)
-			segmentFilename := value.(string)
 
 			var userID uint
 			var movieID int
 			if _, err := fmt.Sscanf(keyStr, "%d:%d", &userID, &movieID); err != nil {
 				return true
 			}
-
-			isLastSegment := ms.IsLastSegmentInVariantPlaylist(movieID, segmentFilename)
-			lastSegmentFilename := ms.getLastSegmentFilename(movieID)
-
-			progress := ms.calculateWatchProgress(movieID, segmentFilename, lastSegmentFilename, isLastSegment)
 
 			db := PostgresDB()
 			if db == nil {
@@ -333,28 +278,16 @@ func (ms *MovieService) persistWatchHistoryWorker() {
 
 			if result.Error == gorm.ErrRecordNotFound {
 				watchHistory = models.WatchHistory{
-					UserID:        userID,
-					MovieID:       movieID,
-					LastSegment:   segmentFilename,
-					WatchProgress: progress,
-					WatchCount:    0,
-					WatchedAt:     time.Now(),
-				}
-
-				if isLastSegment {
-					watchHistory.WatchCount = 1
+					UserID:     userID,
+					MovieID:    movieID,
+					WatchCount: 0,
+					WatchedAt:  time.Now(),
 				}
 
 				db.Create(&watchHistory)
 			} else if result.Error == nil {
 				updates := map[string]interface{}{
-					"last_segment":   segmentFilename,
-					"watch_progress": progress,
-					"watched_at":     time.Now(),
-				}
-
-				if isLastSegment && watchHistory.LastSegment != segmentFilename {
-					updates["watch_count"] = gorm.Expr("watch_count + 1")
+					"watched_at": time.Now(),
 				}
 
 				db.Model(&watchHistory).Updates(updates)
@@ -421,56 +354,4 @@ func (ms *MovieService) cleanupOldHLSFiles(hlsDir string) {
 			// log.Printf("HLS directory not found for movie %d: %s", movie.MovieID, hlsDir)
 		}
 	}
-}
-
-func (ms *MovieService) getLastSegmentFilename(movieID int) string {
-	if cachedLastSegment, ok := ms.LastSegmentCache.Load(movieID); ok {
-		lastSegment := cachedLastSegment.(string)
-		return lastSegment
-	}
-
-	db := PostgresDB()
-	if db == nil {
-		return ""
-	}
-
-	var downloadedMovie models.DownloadedMovie
-	if err := db.Where("movie_id = ? AND transcoded = ?", movieID, true).First(&downloadedMovie).Error; err != nil {
-		return ""
-	}
-
-	if downloadedMovie.LastSegment == "" {
-		return ""
-	}
-
-	ms.LastSegmentCache.Store(movieID, downloadedMovie.LastSegment)
-
-	return downloadedMovie.LastSegment
-}
-
-func (ms *MovieService) calculateWatchProgress(movieID int, segmentFilename string, lastSegmentFilename string, isLastSegment bool) float64 {
-	if isLastSegment {
-		return 100.0
-	}
-
-	if lastSegmentFilename != "" {
-		segmentNum := 0
-		if _, err := fmt.Sscanf(filepath.Base(segmentFilename), ms.SegmentFormatParse, &segmentNum); err != nil {
-			return 0.0
-		}
-
-		lastSegmentNum := 0
-		if _, err := fmt.Sscanf(filepath.Base(lastSegmentFilename), ms.SegmentFormatParse, &lastSegmentNum); err != nil {
-			return 0.0
-		}
-
-		if lastSegmentNum > 0 {
-			progress := (float64(segmentNum) / float64(lastSegmentNum)) * 100.0
-			if progress > 100.0 {
-				progress = 100.0
-			}
-			return progress
-		}
-	}
-	return 0.0
 }

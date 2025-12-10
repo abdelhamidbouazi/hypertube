@@ -402,42 +402,6 @@ func (c *MovieController) updateStreamStatus(movieID int, stage string, message 
 	}
 }
 
-func (c *MovieController) getLastSegmentFromPlaylist(hlsOutputDir string) string {
-	qualities := []string{"360p", "480p", "720p", "1080p"}
-
-	for _, quality := range qualities {
-		playlistPath := filepath.Join(hlsOutputDir, quality, "playlist.m3u8")
-		file, err := os.Open(playlistPath)
-		if err != nil {
-			continue
-		}
-		defer file.Close()
-
-		playlist, listType, err := m3u8.DecodeFrom(file, true)
-		if err != nil || listType != m3u8.MEDIA {
-			continue
-		}
-
-		mediaPlaylist, ok := playlist.(*m3u8.MediaPlaylist)
-		if !ok {
-			continue
-		}
-
-		var lastSegmentURI string
-		for _, segment := range mediaPlaylist.Segments {
-			if segment != nil && segment.URI != "" {
-				lastSegmentURI = segment.URI
-			}
-		}
-
-		if lastSegmentURI != "" {
-			return lastSegmentURI
-		}
-	}
-
-	return ""
-}
-
 func (c *MovieController) waitUntilVideoFileIsReady(
 	activeDownload *models.TorrentDownload, filePath string,
 	videoFile *torrent.File,
@@ -489,15 +453,6 @@ func (c *MovieController) tryFFmpegTranscodingWithPlaylist(
 		if err == nil {
 			var downloadedMovie models.DownloadedMovie
 			if err := c.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error; err == nil {
-				lastSegment := c.getLastSegmentFromPlaylist(hlsOutputDir)
-				c.db.Model(&downloadedMovie).Updates(map[string]interface{}{
-					"transcoded":   true,
-					"last_segment": lastSegment,
-				})
-
-				if lastSegment != "" {
-					c.movieService.LastSegmentCache.Store(movieID, lastSegment)
-				}
 
 				outputDir := activeDownload.RootDir
 				// log.Printf("Cleaning up torrent files for movie %d dir %s", movieID, outputDir)
@@ -701,7 +656,7 @@ func (c *MovieController) convertSubtitlesToHLS(srtFiles []string, hlsOutputDir 
 			continue
 		}
 
-		convertSRTtoVTT(srtFile, vttFileHandle)
+		services.ConvertSRTtoVTT(srtFile, vttFileHandle)
 		vttFileHandle.Close()
 
 		if _, err := os.Stat(vttFile); os.IsNotExist(err) {
