@@ -85,6 +85,7 @@ type Comment struct {
 	MovieID  int    `json:"movie_id"`
 	UserID   int    `json:"user_id"`
 	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
 	Content  string `json:"content"`
 }
 

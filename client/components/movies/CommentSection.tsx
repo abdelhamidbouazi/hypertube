@@ -8,12 +8,17 @@ import { Send, MessageSquare } from "lucide-react";
 import { addComment } from "@/lib/hooks";
 import { formatDistanceToNow } from "date-fns";
 
+// Backend returns gorm.Model fields with PascalCase (ID, CreatedAt)
+// and custom fields with snake_case (movie_id, user_id, username, content, avatar)
 interface Comment {
-  id: number;
+  id?: number;
+  ID?: number; // Backend returns ID (uppercase) from gorm.Model
   username: string;
+  avatar?: string; // User's profile picture URL
   content: string;
-  date?: string; // Backend sends 'date' but sometimes we might want to handle it differently
-  created_at?: string; // Fallback
+  date?: string;
+  created_at?: string;
+  CreatedAt?: string; // Backend returns CreatedAt from gorm.Model
 }
 
 interface User {
@@ -44,16 +49,36 @@ export default function CommentSection({
     setDisplayComments(comments);
   }, [comments]);
 
+  // Debug logging for user avatar
+  React.useEffect(() => {
+    if (currentUser) {
+      console.log("Current user data:", currentUser);
+      console.log("Avatar URL:", currentUser.avatar);
+    }
+  }, [currentUser]);
+
   const handleSubmit = async () => {
     if (!newComment.trim() || !currentUser) return;
 
     setIsSubmitting(true);
     try {
-      const username = `${currentUser.firstname} ${currentUser.lastname}`;
-      const addedComment = await addComment(movieId, newComment, username);
+      const username =
+        `${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim();
+      const apiResponse = await addComment(movieId, newComment, username);
+
+      // Normalize API response to match Comment interface
+      // The backend returns ID (uppercase) and CreatedAt
+      const normalizedComment: Comment = {
+        ID: apiResponse.ID || apiResponse.id,
+        username: apiResponse.username || username,
+        avatar: apiResponse.avatar || apiResponse.Avatar || currentUser.avatar,
+        content: apiResponse.content || newComment,
+        CreatedAt:
+          apiResponse.CreatedAt || apiResponse.date || new Date().toISOString(),
+      };
 
       // Optimistically update local state
-      setDisplayComments((prev) => [addedComment, ...prev]);
+      setDisplayComments((prev) => [normalizedComment, ...prev]);
 
       setNewComment("");
       onCommentAdded();
@@ -92,8 +117,17 @@ export default function CommentSection({
           <div className="flex gap-4">
             <Avatar
               src={currentUser.avatar}
-              name={`${currentUser.firstname} ${currentUser.lastname}`}
+              name={`${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim()}
               className="flex-shrink-0"
+              showFallback
+              imgProps={{
+                onError: (e) => {
+                  console.error(
+                    "Avatar image failed to load:",
+                    currentUser.avatar
+                  );
+                },
+              }}
             />
             <div className="flex-grow space-y-2">
               <Textarea
@@ -131,11 +165,13 @@ export default function CommentSection({
             </div>
           ) : (
             displayComments.map((comment) => (
-              <div key={comment.id} className="flex gap-4">
+              <div key={comment.ID} className="flex gap-4">
                 <Avatar
+                  src={comment.avatar}
                   name={comment.username}
                   className="flex-shrink-0"
                   size="sm"
+                  showFallback
                 />
                 <div className="flex-grow">
                   <div className="flex items-baseline gap-2">
@@ -143,7 +179,9 @@ export default function CommentSection({
                       {comment.username}
                     </span>
                     <span className="text-tiny text-default-400">
-                      {formatDate(comment.date || comment.created_at)}
+                      {formatDate(
+                        comment.date || comment.created_at || comment.CreatedAt
+                      )}
                     </span>
                   </div>
                   <p className="text-small text-foreground-600 mt-1">

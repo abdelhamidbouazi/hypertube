@@ -81,7 +81,7 @@ func LoadServer() {
 
 	Server = echo.New()
 	Server.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "RefreshToken"},
 		AllowOrigins: services.Conf.CORS.Origins,
 	}))
 	Server.Use(middleware.Logger())

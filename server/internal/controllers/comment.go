@@ -30,6 +30,7 @@ type AddCommentRequest struct {
 type CommentResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
 	Date     string `json:"date"`
 	Content  string `json:"content"`
 }
@@ -64,6 +65,7 @@ func (c *CommentController) AddComment(ctx echo.Context) error {
 		MovieID:  requestComment.MovieID,
 		UserID:   int(user.ID),
 		Username: requestComment.Username,
+		Avatar:   user.Avatar,
 		Content:  requestComment.Content,
 	}
 
@@ -96,6 +98,7 @@ func (c *CommentController) GetComments(ctx echo.Context) error {
 		response = append(response, CommentResponse{
 			ID:       comment.ID,
 			Username: comment.Username,
+			Avatar:   comment.Avatar,
 			Date:     comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			Content:  comment.Content,
 		})
@@ -137,6 +140,7 @@ func (c *CommentController) GetCommentByID(ctx echo.Context) error {
 	response := CommentResponse{
 		ID:       comment.ID,
 		Username: comment.Username,
+		Avatar:   comment.Avatar,
 		Date:     comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		Content:  comment.Content,
 	}
