@@ -154,7 +154,7 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadata
 	imdbID := movie.IMDbID
 	var results []TorrentSearchResult
 
-	req, err := http.NewRequest("GET", "https://torrentio.strem.fun/providers=yts,eztv,rarbg,thepiratebay%7Csort=qualitysize/stream/movie/"+imdbID+".json", nil)
+	req, err := http.NewRequest("GET", "https://torrentio.strem.fun/sort=seeders%7Cqualityfilter=brremux,hdrall,dolbyvision,4k,2160p,other,scr,cam,unknown/stream/movie/"+imdbID+".json", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for IMDb ID %s: %v", imdbID, err)
 	}
