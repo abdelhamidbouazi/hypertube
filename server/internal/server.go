@@ -22,7 +22,6 @@ var (
 	movieService        *services.MovieService
 	torrentService      *services.TorrentService
 	movieController     *controllers.MovieController
-	torrentController   *controllers.TorrentController
 	subtitleController  *controllers.SubtitleController
 	commentController   *controllers.CommentController
 	websocketController *controllers.WebSocketController
@@ -47,11 +46,6 @@ func InitServices() {
 		torrentService,
 		services.PostgresDB(),
 		websocketController,
-	)
-
-	torrentController = controllers.NewTorrentController(
-		torrentService,
-		movieService,
 	)
 
 	subtitleController = controllers.NewSubtitleController(services.PostgresDB())

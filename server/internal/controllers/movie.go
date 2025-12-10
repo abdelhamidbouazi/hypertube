@@ -912,33 +912,14 @@ func (c *MovieController) findAndDownloadMovie(movieID int) (*models.TorrentDown
 		return nil, fmt.Errorf("no suitable torrent found")
 	}
 
-	c.updateStreamStatus(movieID, "searching", "Analyzing torrents and fetching metadata", map[string]interface{}{
-		"step":          "analyze_torrents",
-		"torrent_count": len(torrents),
-	})
-
 	bestTorrent := &torrents[0]
 
-	quality := bestTorrent.Quality
-	if quality == "" {
-		quality = "720p"
-	}
-
 	c.updateStreamStatus(movieID, "searching", "Selected best torrent", map[string]interface{}{
-		"step":     "torrent_selected",
-		"name":     bestTorrent.Name,
-		"quality":  quality,
-		"size":     bestTorrent.Size,
-		"seeders":  bestTorrent.Seeders,
-		"leechers": bestTorrent.Leechers,
+		"step": "torrent_selected",
+		"name": bestTorrent.Name,
 	})
 
-	c.updateStreamStatus(movieID, "downloading", "Connecting to peers", map[string]interface{}{
-		"step":    "start_download",
-		"quality": quality,
-	})
-
-	download, err := c.torrentService.GetOrStartDownload(movieID, bestTorrent.Magnet, quality)
+	download, err := c.torrentService.GetOrStartDownload(movieID, bestTorrent.InfoHash)
 	if err != nil {
 		c.updateStreamStatus(movieID, "error", "Failed to start download: "+err.Error(), nil)
 		return nil, fmt.Errorf("failed to start download: %w", err)

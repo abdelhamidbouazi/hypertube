@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,16 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"server/internal/models"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/anacrolix/torrent"
-	"github.com/deflix-tv/imdb2torrent"
 	"github.com/grafov/m3u8"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -151,296 +145,55 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 	return movies, nil
 }
 
-// movieMetaGetter implements imdb2torrent.MetaGetter
-type movieMetaGetter struct {
-	movie models.MovieDetails
+type TorrentSearchResult struct {
+	InfoHash string
+	Name     string
 }
 
-// GetMovieSimple implements imdb2torrent.MetaGetter
-func (m *movieMetaGetter) GetMovieSimple(ctx context.Context, imdbID string) (imdb2torrent.Meta, error) {
-	year := 0
-	if len(m.movie.ReleaseDate) >= 4 {
-		y, err := strconv.Atoi(m.movie.ReleaseDate[:4])
-		if err == nil {
-			year = y
-		}
-	}
-
-	Logger.Info(fmt.Sprintf("MetaGetter: Title='%s', Year=%d for IMDb ID %s", m.movie.Title, year, imdbID))
-
-	return imdb2torrent.Meta{
-		Title: m.movie.Title,
-		Year:  year,
-	}, nil
-}
-
-// GetTVShowSimple implements imdb2torrent.MetaGetter
-func (m *movieMetaGetter) GetTVShowSimple(ctx context.Context, imdbID string, season int, episode int) (imdb2torrent.Meta, error) {
-	return imdb2torrent.Meta{}, nil
-}
-
-func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadataTimeout time.Duration) ([]models.TorrentResult, error) {
+func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadataTimeout time.Duration) ([]TorrentSearchResult, error) {
 	imdbID := movie.IMDbID
-	var results []models.TorrentResult
+	var results []TorrentSearchResult
 
-	logger := zap.NewNop()
-	cache := imdb2torrent.NewInMemoryCache()
-
-	metaGetter := &movieMetaGetter{
-		movie: movie,
-	}
-
-	ytsGGOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsGGOptions.BaseURL = "https://yts.gg"
-	ytsGGClient := imdb2torrent.NewYTSclient(
-		ytsGGOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsLTOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsLTOptions.BaseURL = "https://yts.lt"
-	ytsLTClient := imdb2torrent.NewYTSclient(
-		ytsLTOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsAMOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsAMOptions.BaseURL = "https://yts.am"
-	ytsAMClient := imdb2torrent.NewYTSclient(
-		ytsAMOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsAGOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsAGOptions.BaseURL = "https://yts.ag"
-	ytsAGClient := imdb2torrent.NewYTSclient(
-		ytsAGOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ibitOptions := imdb2torrent.DefaultIbitClientOpts
-
-	ibitOptions.BaseURL = "https://ibit.unblockedproxy.biz"
-
-	ibitClient := imdb2torrent.NewIbitClient(
-		ibitOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	tpbClient, _ := imdb2torrent.NewTPBclient(
-		imdb2torrent.DefaultTPBclientOpts,
-		cache,
-		metaGetter,
-		logger,
-		false,
-	)
-
-	leetxClient := imdb2torrent.NewLeetxClient(
-		imdb2torrent.DefaultLeetxClientOpts,
-		cache,
-		metaGetter,
-		logger,
-		false,
-	)
-
-	rarbgClient := imdb2torrent.NewRARBGclient(
-		imdb2torrent.DefaultRARBGclientOpts, cache, logger, false)
-
-	siteClients := map[string]imdb2torrent.MagnetSearcher{
-		"YTS-GG": ytsGGClient,
-		"YTS-LT": ytsLTClient,
-		"YTS-AM": ytsAMClient,
-		"YTS-AG": ytsAGClient,
-		"ibit":   ibitClient,
-		"TPB":    tpbClient,
-		"1337x":  leetxClient,
-		"rarbg":  rarbgClient,
-	}
-
-	client := imdb2torrent.NewClient(
-		siteClients,
-		5*time.Minute,
-		logger,
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	torrents, err := client.FindMovie(ctx, imdbID)
+	req, err := http.NewRequest("GET", "https://torrentio.strem.fun/providers=yts,eztv,rarbg,thepiratebay%7Csort=qualitysize/stream/movie/"+imdbID+".json", nil)
 	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to find torrents for IMDb ID %s: %v", imdbID, err))
-		return nil, err
+		return nil, fmt.Errorf("failed to create request for IMDb ID %s: %v", imdbID, err)
 	}
 
-	Logger.Info(fmt.Sprintf("Found %d torrents for IMDb ID %s", len(torrents), imdbID))
-
-	if len(torrents) == 0 {
-		return results, nil
-	}
-
-	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = "/tmp/torrent-metadata"
-	cfg.NoDHT = false
-
-	torrentClient, err := torrent.NewClient(cfg)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	res, err := ms.client.Do(req)
 	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to create torrent client: %v", err))
-	}
-	defer func() {
-		if torrentClient != nil {
-			torrentClient.Close()
-		}
-	}()
-
-	type metadataResult struct {
-		index    int
-		size     string
-		seeders  int
-		leechers int
-	}
-	resultChan := make(chan metadataResult, len(torrents))
-	metaCtx, metaCancel := context.WithTimeout(context.Background(), metadataTimeout)
-	defer metaCancel()
-
-	for i, t := range torrents {
-		go func(idx int, torr imdb2torrent.Result) {
-			if torrentClient != nil {
-				sizeBytes, s, l, err := fetchTorrentMetadata(metaCtx, torrentClient, torr.MagnetURL)
-				if err == nil {
-					resultChan <- metadataResult{
-						index:    idx,
-						size:     formatBytes(sizeBytes),
-						seeders:  s,
-						leechers: l,
-					}
-				} else {
-					Logger.Error(fmt.Sprintf("Failed to fetch metadata for torrent %s: %v", torr.Title, err))
-				}
-			}
-		}(i, t)
+		return nil, fmt.Errorf("failed to find torrents for IMDb ID %s: %v", imdbID, err)
 	}
 
-	metadataMap := make(map[int]metadataResult)
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+	defer res.Body.Close()
 
-	var firstResultReceived bool
-
-collectLoop:
-	for {
-		select {
-		case result := <-resultChan:
-			metadataMap[result.index] = result
-
-			if !firstResultReceived {
-				firstResultReceived = true
-			}
-
-			if len(metadataMap) == len(torrents) {
-				break collectLoop
-			}
-		case <-ticker.C:
-		case <-metaCtx.Done():
-			if firstResultReceived {
-				break collectLoop
-			}
-		}
+	type Torrent struct {
+		Name          string `json:"name"`
+		Title         string `json:"title"`
+		InfoHash      string `json:"infoHash"`
+		FileIdx       int    `json:"fileIdx"`
+		BehaviorHints struct {
+			BingeGroup string `json:"bingeGroup"`
+			Filename   string `json:"filename"`
+		} `json:"behaviorHints"`
+		Sources []string `json:"sources"`
 	}
 
-	// Build results with metadata
-	for i, t := range torrents {
-		size := ""
-		seeders := 0
-		leechers := 0
-
-		if metadata, ok := metadataMap[i]; ok {
-			size = metadata.size
-			seeders = metadata.seeders
-			leechers = metadata.leechers
-		}
-
-		result := models.TorrentResult{
-			Name:     t.Title,
-			Magnet:   t.MagnetURL,
-			Size:     size,
-			Seeders:  seeders,
-			Leechers: leechers,
-			Quality:  t.Quality,
-		}
-
-		results = append(results, result)
+	var data struct {
+		Streams []Torrent `json:"streams"`
 	}
 
-	sortTorrentsByRatio(results)
+	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("failed to decode torrentio response for IMDb ID %s: %v", imdbID, err)
+	}
+
+	var torrents []Torrent = data.Streams
+
+	for _, t := range torrents {
+		results = append(results, TorrentSearchResult{InfoHash: t.InfoHash, Name: t.Title})
+	}
 
 	return results, nil
-}
-
-func fetchTorrentMetadata(ctx context.Context, client *torrent.Client, magnetURL string) (int64, int, int, error) {
-	t, err := client.AddMagnet(magnetURL)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to add magnet: %w", err)
-	}
-	defer t.Drop()
-
-	// Wait for metadata with timeout
-	select {
-	case <-t.GotInfo():
-		size := t.Length()
-
-		// Get peer stats
-		stats := t.Stats()
-		seeders := stats.ConnectedSeeders
-		leechers := stats.ActivePeers - stats.ConnectedSeeders
-
-		return size, seeders, leechers, nil
-	case <-ctx.Done():
-		return 0, 0, 0, fmt.Errorf("timeout fetching metadata")
-	}
-}
-
-// formatBytes converts bytes to human-readable format
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.2f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-func sortTorrentsByRatio(torrents []models.TorrentResult) {
-	sort.Slice(torrents, func(i, j int) bool {
-		if torrents[i].Seeders == 0 && torrents[i].Leechers == 0 {
-			return false
-		}
-		if torrents[j].Seeders == 0 && torrents[j].Leechers == 0 {
-			return true
-		}
-
-		ratioI := float64(torrents[i].Seeders) / float64(torrents[i].Leechers+1)
-		ratioJ := float64(torrents[j].Seeders) / float64(torrents[j].Leechers+1)
-
-		if ratioI == ratioJ {
-			return torrents[i].Seeders > torrents[j].Seeders
-		}
-
-		return ratioI > ratioJ
-	})
 }
 
 func (ms *MovieService) IsLastSegmentInVariantPlaylist(movieID int, segmentFilename string) bool {
