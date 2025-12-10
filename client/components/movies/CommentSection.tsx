@@ -121,7 +121,7 @@ export default function CommentSection({
       </CardHeader>
       <Divider />
       <CardBody className="px-6 py-6 gap-6">
-        {currentUser ? (
+        {currentUser && (
           <div className="flex gap-4">
             <Avatar
               src={currentUser.avatar}
@@ -154,10 +154,6 @@ export default function CommentSection({
                 </Button>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-4 text-default-500">
-            Please log in to leave a comment.
           </div>
         )}
 
