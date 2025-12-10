@@ -94,7 +94,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
             )}
 
             {/* watched badge */}
-            {isWatched && (
+            {(isWatched || watched) && (
               <div className="absolute top-3 left-14 bg-green-500 text-white rounded-full px-2.5 py-1 shadow-md z-40 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 fill-current" />
                 <span className="text-xs font-semibold">Watched</span>
