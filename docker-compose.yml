@@ -1,92 +1,93 @@
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: example
-    networks:
-      - hypertube
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "example", "-u", "user"]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d example"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
 
   server:
-    depends_on:
-      - postgres
     build:
       context: ./server
       dockerfile: Dockerfile
-    ports:
-      - 8080:8080
-    networks:
-      - hypertube
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - ./downloads:/app/downloads
       - ./hls_output:/app/hls_output
       - ./subtitles:/app/subtitles
     env_file:
       - .env
-    # command: go run ./main.go
     environment:
-      # CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
-      # UI_ADDRESS: http://localhost:4200
-      CORS_ORIGINS: "http://localhost:3000,http://localhost:4200,http://localhost:8080"
-      UI_ADDRESS: http://localhost:3000
-      MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
-      MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
-      MOVIE_APIS_SUBDL_API_KEY: "${SUBDL_API_KEY}"
-      MOVIE_APIS_WATCHMODE_API_KEY: "${WATCHMODE_API_KEY}"
+      # Ensure server points at the compose postgres service (overrides hypertube.yml if needed)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: example
+      DB_USER: user
+      DB_PASS: password
+
+      # Nginx is the public entrypoint (http://localhost)
+      CORS_ORIGINS: "http://localhost,http://127.0.0.1"
+      UI_ADDRESS: "http://localhost"
+
+      # OAuth callbacks should go through nginx (/api -> server)
+      OAUTH_GOOGLE_REDIRECT: "http://localhost/api/oauth2/google/callback"
+      OAUTH_FORTYTWO_REDIRECT: "http://localhost/api/oauth2/fortytwo/callback"
+      OAUTH_GITHUB_REDIRECT: "http://localhost/api/oauth2/github/callback"
+
+      # Volume-backed directories used by the streamer
       DOWNLOADS_DIRECTORY: "/app/downloads"
       STREAMING_DOWNLOAD_DIR: "/app/downloads"
       STREAMING_HLS_OUTPUT_DIR: "/app/hls_output"
       STREAMING_SUBTITLES_DIR: "/app/subtitles"
-      STREAMING_TMDB_API_KEY: "${TMDB_API_KEY}"
-      WAIT_HOSTS: "postgres:5432"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/healthcheck || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      # No curl in the image; use bash TCP check (base image is Debian-based)
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+      start_period: 20s
+    restart: unless-stopped
 
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "/api"
+    environment:
+      NODE_ENV: "production"
+      # Client uses NEXT_PUBLIC_API_URL (not NEXT_PUBLIC_API_BASE)
+      NEXT_PUBLIC_API_URL: "/api"
     expose:
       - "3000"
-    environment:
-      NEXT_PUBLIC_API_BASE: "/api"
-      NODE_ENV: "production"
-      WAIT_HOSTS: "server:8080"
-    networks:
-      - hypertube
     depends_on:
-      - server
+      server:
+        condition: service_healthy
+    restart: unless-stopped
 
   nginx:
     image: nginx:1.27-alpine
-    container_name: cine_thos_nginx
-    environment:
-      WAIT_HOSTS: "server:8080,client:3000"
     depends_on:
       - client
       - server
     ports:
       - "80:80"
-    networks:
-      - hypertube
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
 
-networks:
-  hypertube:
-    driver: bridge
+volumes:
+  postgres_data:
