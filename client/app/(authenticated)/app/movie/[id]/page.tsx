@@ -43,7 +43,7 @@ export default function MoviePage({ params }: MoviePageProps) {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const toggleWatched = () => {
-    console.log("toggle watched for movie:", movie?.id);
+    // TODO: Implement toggle watched functionality
   };
 
   const handleWatchClick = (e: React.MouseEvent) => {

@@ -13,6 +13,7 @@ interface HlsPlayerProps {
   token: string;
   movieTitle: string;
   movieId: string;
+  thumbnail?: string;
 }
 
 interface DownloadProgress {
@@ -25,17 +26,36 @@ interface DownloadProgress {
 }
 
 // Convert HTTP base URL to WebSocket URL
+// Valid WebSocket URI formats:
+// - ws://hostname:port/path (non-secure)
+// - wss://hostname:port/path (secure)
 function getWebSocketUrl(baseUrl: string, movieId: string): string {
-  let wsUrl = baseUrl.replace(/^http/, "ws");
-  
-  if (wsUrl.startsWith("//")) {
-    wsUrl = `ws:${wsUrl}`;
-  } else if (wsUrl.startsWith("/")) {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    wsUrl = `${protocol}//${window.location.host}${wsUrl}`;
+  // Handle absolute URLs (http:// or https://)
+  if (baseUrl.startsWith("http://")) {
+    const wsUrl = baseUrl.replace(/^http:\/\//, "");
+    return `ws://${wsUrl}/ws/${movieId}`;
   }
   
-  return `${wsUrl}/ws/${movieId}`;
+  if (baseUrl.startsWith("https://")) {
+    const wssUrl = baseUrl.replace(/^https:\/\//, "");
+    return `wss://${wssUrl}/ws/${movieId}`;
+  }
+  
+  // Handle protocol-relative URLs (//hostname)
+  if (baseUrl.startsWith("//")) {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}${baseUrl}/ws/${movieId}`;
+  }
+  
+  // Handle relative paths (/api)
+  if (baseUrl.startsWith("/")) {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}${baseUrl}/ws/${movieId}`;
+  }
+  
+  // Fallback: treat as hostname and use current protocol
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${baseUrl}/ws/${movieId}`;
 }
 
 // Get readable status label
@@ -65,7 +85,7 @@ function parseProgressMessage(data: any): DownloadProgress {
   };
 }
 
-export default function HlsPlayer({ src, token, movieTitle, movieId }: HlsPlayerProps) {
+export default function HlsPlayer({ src, token, movieTitle, movieId, thumbnail }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [levels, setLevels] = useState<{ index: number; label: string }[]>([]);
