@@ -19,22 +19,6 @@ func NewCommentController(db *gorm.DB) *CommentController {
 	}
 }
 
-// AddCommentRequest represents the payload to add a comment
-type AddCommentRequest struct {
-	MovieID  int    `json:"movie_id"`
-	Username string `json:"username"`
-	Content  string `json:"content"`
-}
-
-// CommentResponse represents a comment in responses
-type CommentResponse struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Avatar   string `json:"avatar"`
-	Date     string `json:"date"`
-	Content  string `json:"content"`
-}
-
 // AddComment godoc
 //
 //	@Summary      Add comment

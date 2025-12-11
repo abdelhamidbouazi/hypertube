@@ -20,25 +20,38 @@ var Server *echo.Echo
 var (
 	movieService        *services.MovieService
 	torrentService      *services.TorrentService
+	subtitleService     *services.SubtitleService
+	websocketService    *services.WebSocketService
 	movieController     *controllers.MovieController
 	commentController   *controllers.CommentController
 	websocketController *controllers.WebSocketController
 )
 
 func InitServices() {
-	movieService = services.NewMovieService(
-		services.Conf.MOVIE_APIS.TMDB.APIKey,
-		services.Conf.MOVIE_APIS.OMDB.APIKey,
-		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
-		services.PostgresDB(),
-	)
-
 	torrentService = services.NewTorrentService(
 		services.Conf.STREAMING.DownloadDir,
 		services.PostgresDB(),
 	)
 
-	websocketController = controllers.NewWebSocketController()
+	websocketService = services.NewWebSocketService()
+	subtitleService, err := services.NewSubtitleService(
+		services.Conf.MOVIE_APIS.SUBDL.APIKey,
+	)
+	if err != nil {
+		// log.Printf("Warning: Failed to initialize subtitle service: %v", err)
+	}
+
+	movieService = services.NewMovieService(
+		services.Conf.MOVIE_APIS.TMDB.APIKey,
+		services.Conf.MOVIE_APIS.OMDB.APIKey,
+		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
+		services.PostgresDB(),
+		websocketService,
+		subtitleService,
+		torrentService,
+	)
+
+	websocketController = controllers.NewWebSocketController(websocketService)
 
 	movieController = controllers.NewMovieController(
 		movieService,
