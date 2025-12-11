@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: example
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d example"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./downloads:/app/downloads
+      - ./hls_output:/app/hls_output
+      - ./subtitles:/app/subtitles
+    env_file:
+      - .env
+    environment:
+      # Ensure server points at the compose postgres service (overrides hypertube.yml if needed)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: example
+      DB_USER: user
+      DB_PASS: password
+
+      # Nginx is the public entrypoint (http://localhost)
+      CORS_ORIGINS: "http://localhost,http://127.0.0.1"
+      UI_ADDRESS: "http://localhost"
+
+      # OAuth callbacks should go through nginx (/api -> server)
+      OAUTH_GOOGLE_REDIRECT: "http://localhost/api/oauth2/google/callback"
+      OAUTH_FORTYTWO_REDIRECT: "http://localhost/api/oauth2/fortytwo/callback"
+      OAUTH_GITHUB_REDIRECT: "http://localhost/api/oauth2/github/callback"
+
+      # Volume-backed directories used by the streamer
+      DOWNLOADS_DIRECTORY: "/app/downloads"
+      STREAMING_DOWNLOAD_DIR: "/app/downloads"
+      STREAMING_HLS_OUTPUT_DIR: "/app/hls_output"
+      STREAMING_SUBTITLES_DIR: "/app/subtitles"
+    healthcheck:
+      # No curl in the image; use bash TCP check (base image is Debian-based)
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+      start_period: 20s
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "/api"
+    environment:
+      NODE_ENV: "production"
+      # Client uses NEXT_PUBLIC_API_URL (not NEXT_PUBLIC_API_BASE)
+      NEXT_PUBLIC_API_URL: "/api"
+    expose:
+      - "3000"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - client
+      - server
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
