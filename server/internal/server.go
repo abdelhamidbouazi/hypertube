@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"net/http"
 	"server/internal/controllers"
 	"server/internal/middlewares"
@@ -63,8 +62,6 @@ func Init(config string) {
 	services.LoadValidator()
 	InitServices()
 	LoadServer()
-
-	fmt.Println("mail=", services.Conf.SMTP.Gmail.Mail, " password=", services.Conf.SMTP.Gmail.Password)
 }
 
 func LoadServer() {
