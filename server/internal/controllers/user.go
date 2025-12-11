@@ -57,10 +57,10 @@ type UpdateUserRequest struct {
 //	@Description	update a user
 //	@Tags			users
 //	@Produce		json
-//	@Param		UpdateUserRequest body UpdateUserRequest true "update user info"
-//	@Success		200	{array}		models.User
-//	@Failure 400 {object} utils.HTTPError
-//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Param			UpdateUserRequest	body		UpdateUserRequest	true	"update user info"
+//	@Success		200					{array}		models.User
+//	@Failure		400					{object}	utils.HTTPError
+//	@Failure		401					{object}	utils.HTTPErrorUnauthorized
 //	@Security		JWT
 //	@Router			/users [patch]
 func UpdateUser(c echo.Context) error {
@@ -236,8 +236,8 @@ type WatchHistoryItemDoc struct {
 //	@Produce		json
 //	@Param			page	query		int	false	"Page number (default: 1)"
 //	@Param			limit	query		int	false	"Items per page (default: 20)"
-//	@Success		200	{object}	WatchHistoryResponseDoc
-//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Success		200		{object}	WatchHistoryResponseDoc
+//	@Failure		401		{object}	utils.HTTPErrorUnauthorized
 //	@Router			/users/watch-history [get]
 func GetUserWatchHistory(c echo.Context) error {
 	userModel := c.Get("model").(models.User)

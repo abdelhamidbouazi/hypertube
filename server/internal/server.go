@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"net/http"
 	"server/internal/controllers"
 	"server/internal/middlewares"
@@ -21,25 +20,38 @@ var Server *echo.Echo
 var (
 	movieService        *services.MovieService
 	torrentService      *services.TorrentService
+	websocketService    *services.WebSocketService
 	movieController     *controllers.MovieController
 	commentController   *controllers.CommentController
 	websocketController *controllers.WebSocketController
 )
 
 func InitServices() {
-	movieService = services.NewMovieService(
-		services.Conf.MOVIE_APIS.TMDB.APIKey,
-		services.Conf.MOVIE_APIS.OMDB.APIKey,
-		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
-		services.PostgresDB(),
-	)
-
 	torrentService = services.NewTorrentService(
 		services.Conf.STREAMING.DownloadDir,
 		services.PostgresDB(),
 	)
 
-	websocketController = controllers.NewWebSocketController()
+	websocketService = services.NewWebSocketService()
+	subtitleService, err := services.NewSubtitleService(
+		services.Conf.MOVIE_APIS.SUBDL.APIKey,
+		services.PostgresDB(),
+	)
+	if err != nil {
+		// log.Printf("Warning: Failed to initialize subtitle service: %v", err)
+	}
+
+	movieService = services.NewMovieService(
+		services.Conf.MOVIE_APIS.TMDB.APIKey,
+		services.Conf.MOVIE_APIS.OMDB.APIKey,
+		services.Conf.MOVIE_APIS.WATCHMODE.APIKey,
+		services.PostgresDB(),
+		websocketService,
+		subtitleService,
+		torrentService,
+	)
+
+	websocketController = controllers.NewWebSocketController(websocketService)
 
 	movieController = controllers.NewMovieController(
 		movieService,
@@ -63,10 +75,6 @@ func Init(config string) {
 	services.LoadValidator()
 	InitServices()
 	LoadServer()
-
-	fmt.Println("mail=", services.Conf.SMTP.Gmail.Mail, " password=", services.Conf.SMTP.Gmail.Password)
-
-	// seeds.AddUsersSeeds()
 }
 
 func LoadServer() {
@@ -77,7 +85,7 @@ func LoadServer() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "RefreshToken"},
 		AllowOrigins: services.Conf.CORS.Origins,
 	}))
-	Server.Use(middleware.Logger())
+	// Server.Use(middleware.Logger())
 	config := echojwt.Config{
 		SigningKey: []byte(services.Conf.JWT.SigningKey),
 	}

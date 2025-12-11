@@ -29,12 +29,12 @@ services:
     networks:
       - hypertube
     volumes:
-      - ./server/:/app
       - ./downloads:/app/downloads
       - ./hls_output:/app/hls_output
       - ./subtitles:/app/subtitles
     env_file:
       - .env
+    # command: go run ./main.go
     environment:
       # CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
       # UI_ADDRESS: http://localhost:4200

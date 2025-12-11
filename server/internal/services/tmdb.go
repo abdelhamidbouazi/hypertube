@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"server/internal/models"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -277,6 +278,18 @@ func (t *TMDB) refreshGenreCache() error {
 	}
 	t.genreCacheTime = time.Now()
 	return nil
+}
+
+func normalizeGenreName(name string) string {
+	// lower-case and trim spaces for matching
+	return strings.TrimSpace(strings.ToLower(name))
+}
+
+func joinCSV(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+	return strings.Join(items, ",")
 }
 
 func (t *TMDB) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, []int, error) {

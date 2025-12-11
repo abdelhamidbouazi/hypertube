@@ -9,14 +9,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"server/internal/models"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type SubtitleService struct {
 	apiKey     string
 	httpClient *http.Client
 	baseURL    string
+	dbService  *gorm.DB
 }
 
 type SubdlSearchResult struct {
@@ -43,7 +47,7 @@ type SubdlDownloadResponse struct {
 	URL    string `json:"url"`
 }
 
-func NewSubtitleService(apiKey string) (*SubtitleService, error) {
+func NewSubtitleService(apiKey string, dbService *gorm.DB) (*SubtitleService, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("subdl API key is required")
 	}
@@ -54,6 +58,7 @@ func NewSubtitleService(apiKey string) (*SubtitleService, error) {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		dbService: dbService,
 	}, nil
 }
 
@@ -124,8 +129,21 @@ func (s *SubtitleService) DownloadSubtitles(tmdbID int, outputDir string) int {
 
 		Logger.Debug(fmt.Sprintf("Downloading subtitle from: %s", downloadURL))
 
-		if err := s.downloadFile(downloadURL, outputDir, lang); err != nil {
+		outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.srt", lang))
+
+		if err := s.downloadFile(downloadURL, outputPath, lang); err != nil {
 			Logger.Error(fmt.Sprintf("Failed to download subtitle file for %s: %v", lang, err))
+			continue
+		}
+
+		record := models.Subtitle{
+			MovieID:  tmdbID,
+			Language: lang,
+			FilePath: outputPath,
+		}
+		err = s.dbService.Create(&record).Error
+		if err != nil {
+			Logger.Error(fmt.Sprintf("Failed to save subtitle record for %s: %v", lang, err))
 			continue
 		}
 
@@ -163,7 +181,7 @@ func ConvertSRTtoVTT(srtPath string, w io.Writer) {
 	}
 }
 
-func (s *SubtitleService) downloadFile(url, outputDir, language string) error {
+func (s *SubtitleService) downloadFile(url, outputPath, language string) error {
 	resp, err := s.httpClient.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to download file: %w", err)
@@ -193,7 +211,6 @@ func (s *SubtitleService) downloadFile(url, outputDir, language string) error {
 				continue
 			}
 
-			outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.srt", language))
 			outFile, err := os.Create(outputPath)
 			if err != nil {
 				rc.Close()
