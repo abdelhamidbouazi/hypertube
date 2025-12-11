@@ -21,18 +21,18 @@ func NewCommentController(db *gorm.DB) *CommentController {
 
 // AddComment godoc
 //
-//	@Summary      Add comment
-//	@Description  Add a new comment for a movie
-//	@Tags         comments
-//	@Accept       json
-//	@Produce      json
-//	@Security     JWT
-//	@Param        body  body      AddCommentRequest  true  "Comment body"
-//	@Success      200   {object}  controllers.CommentResponse
-//	@Failure      400   {object}  utils.HTTPError
-//	@Failure      401   {object}  utils.HTTPErrorUnauthorized
-//	@Failure      500   {object}  utils.HTTPError
-//	@Router       /comments/add [post]
+//	@Summary		Add comment
+//	@Description	Add a new comment for a movie
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Security		JWT
+//	@Param			body	body		AddCommentRequest	true	"Comment body"
+//	@Success		200		{object}	controllers.CommentResponse
+//	@Failure		400		{object}	utils.HTTPError
+//	@Failure		401		{object}	utils.HTTPErrorUnauthorized
+//	@Failure		500		{object}	utils.HTTPError
+//	@Router			/comments/add [post]
 func (c *CommentController) AddComment(ctx echo.Context) error {
 	var requestComment AddCommentRequest
 
@@ -68,15 +68,15 @@ func (c *CommentController) GetComments(ctx echo.Context) error {
 
 	// GetComments godoc
 	//
-	//  @Summary      List comments
-	//  @Description  Get all comments (latest first)
-	//  @Tags         comments
-	//  @Accept       json
-	//  @Produce      json
-	//  @Security     JWT
-	//  @Success      200  {array}   CommentResponse
-	//  @Failure      500  {object}  utils.HTTPError
-	//  @Router       /comments [get]
+	//	@Summary		List comments
+	//	@Description	Get all comments (latest first)
+	//	@Tags			comments
+	//	@Accept			json
+	//	@Produce		json
+	//	@Security		JWT
+	//	@Success		200	{array}		CommentResponse
+	//	@Failure		500	{object}	utils.HTTPError
+	//	@Router			/comments [get]
 	var response []CommentResponse
 	for _, comment := range comments {
 		response = append(response, CommentResponse{
@@ -93,19 +93,19 @@ func (c *CommentController) GetComments(ctx echo.Context) error {
 
 // GetCommentByID godoc
 //
-//	@Summary      Get comment
-//	@Description  Get a single comment by ID
-//	@Tags         comments
-//	@Accept       json
-//	@Produce      json
-//	@Security     JWT
-//	@Param        id   path      string  true  "Comment ID"
-//	@Success      200  {object}  CommentResponse
-//	@Failure      400  {object}  utils.HTTPError
-//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
-//	@Failure      404  {object}  utils.HTTPError
-//	@Failure      500  {object}  utils.HTTPError
-//	@Router       /comments/{id} [get]
+//	@Summary		Get comment
+//	@Description	Get a single comment by ID
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Security		JWT
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	CommentResponse
+//	@Failure		400	{object}	utils.HTTPError
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Failure		404	{object}	utils.HTTPError
+//	@Failure		500	{object}	utils.HTTPError
+//	@Router			/comments/{id} [get]
 func (c *CommentController) GetCommentByID(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
@@ -140,21 +140,21 @@ type UpdateCommentRequest struct {
 
 // UpdateComment godoc
 //
-//	@Summary      Update comment
-//	@Description  Update an existing comment (owner only)
-//	@Tags         comments
-//	@Accept       json
-//	@Produce      json
-//	@Security     JWT
-//	@Param        id    path      string                 true  "Comment ID"
-//	@Param        body  body      UpdateCommentRequest   true  "Update body"
-//	@Success      200   {object}  map[string]string
-//	@Failure      400   {object}  utils.HTTPError
-//	@Failure      401   {object}  utils.HTTPErrorUnauthorized
-//	@Failure      403   {object}  utils.HTTPError
-//	@Failure      404   {object}  utils.HTTPError
-//	@Failure      500   {object}  utils.HTTPError
-//	@Router       /comments/{id} [patch]
+//	@Summary		Update comment
+//	@Description	Update an existing comment (owner only)
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Security		JWT
+//	@Param			id		path		string					true	"Comment ID"
+//	@Param			body	body		UpdateCommentRequest	true	"Update body"
+//	@Success		200		{object}	map[string]string
+//	@Failure		400		{object}	utils.HTTPError
+//	@Failure		401		{object}	utils.HTTPErrorUnauthorized
+//	@Failure		403		{object}	utils.HTTPError
+//	@Failure		404		{object}	utils.HTTPError
+//	@Failure		500		{object}	utils.HTTPError
+//	@Router			/comments/{id} [patch]
 func (c *CommentController) UpdateComment(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)
@@ -189,20 +189,20 @@ func (c *CommentController) UpdateComment(ctx echo.Context) error {
 
 // DeleteComment godoc
 //
-//	@Summary      Delete comment
-//	@Description  Delete an existing comment (owner only)
-//	@Tags         comments
-//	@Accept       json
-//	@Produce      json
-//	@Security     JWT
-//	@Param        id   path      string  true  "Comment ID"
-//	@Success      200  {object}  map[string]string
-//	@Failure      400  {object}  utils.HTTPError
-//	@Failure      401  {object}  utils.HTTPErrorUnauthorized
-//	@Failure      403  {object}  utils.HTTPError
-//	@Failure      404  {object}  utils.HTTPError
-//	@Failure      500  {object}  utils.HTTPError
-//	@Router       /comments/{id} [delete]
+//	@Summary		Delete comment
+//	@Description	Delete an existing comment (owner only)
+//	@Tags			comments
+//	@Accept			json
+//	@Produce		json
+//	@Security		JWT
+//	@Param			id	path		string	true	"Comment ID"
+//	@Success		200	{object}	map[string]string
+//	@Failure		400	{object}	utils.HTTPError
+//	@Failure		401	{object}	utils.HTTPErrorUnauthorized
+//	@Failure		403	{object}	utils.HTTPError
+//	@Failure		404	{object}	utils.HTTPError
+//	@Failure		500	{object}	utils.HTTPError
+//	@Router			/comments/{id} [delete]
 func (c *CommentController) DeleteComment(ctx echo.Context) error {
 	id := ctx.Param("id")
 	commentID, err := strconv.ParseUint(id, 10, 32)

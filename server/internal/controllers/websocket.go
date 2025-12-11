@@ -28,14 +28,15 @@ func NewWebSocketController(ws *services.WebSocketService) *WebSocketController 
 }
 
 // HandleWebSocket handles WebSocket connections for a specific movie
-// @Summary WebSocket endpoint for movie streaming updates
-// @Description Establishes a WebSocket connection to receive real-time streaming updates for a specific movie
-// @Tags WebSocket
-// @Accept json
-// @Produce json
-// @Param movieId path int true "Movie ID"
-// @Success 101 {string} string "Switching Protocols"
-// @Router /ws/{movieId} [get]
+//
+//	@Summary		WebSocket endpoint for movie streaming updates
+//	@Description	Establishes a WebSocket connection to receive real-time streaming updates for a specific movie
+//	@Tags			WebSocket
+//	@Accept			json
+//	@Produce		json
+//	@Param			movieId	path		int		true	"Movie ID"
+//	@Success		101		{string}	string	"Switching Protocols"
+//	@Router			/ws/{movieId} [get]
 func (wc *WebSocketController) HandleWebSocket(c echo.Context) error {
 	movieIDStr := c.Param("movieId")
 	movieID, err := strconv.Atoi(movieIDStr)

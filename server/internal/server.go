@@ -20,7 +20,6 @@ var Server *echo.Echo
 var (
 	movieService        *services.MovieService
 	torrentService      *services.TorrentService
-	subtitleService     *services.SubtitleService
 	websocketService    *services.WebSocketService
 	movieController     *controllers.MovieController
 	commentController   *controllers.CommentController
@@ -36,6 +35,7 @@ func InitServices() {
 	websocketService = services.NewWebSocketService()
 	subtitleService, err := services.NewSubtitleService(
 		services.Conf.MOVIE_APIS.SUBDL.APIKey,
+		services.PostgresDB(),
 	)
 	if err != nil {
 		// log.Printf("Warning: Failed to initialize subtitle service: %v", err)

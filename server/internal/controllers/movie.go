@@ -32,18 +32,18 @@ func NewMovieController(ms *services.MovieService, ts *services.TorrentService, 
 
 // GetMovieDetails godoc
 //
-//	@Summary      Movie details
-//	@Description  Get detailed information for a movie by ID
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Param        Authorization header   string     false   "Bearer token"
-//	@Param        id       path   string  true   "Movie ID"
-//	@Param        source   query  string  false  "Source (default: tmdb)"
-//	@Success      200  {object} controllers.MovieDetailsDoc
-//	@Failure      401  {object} utils.HTTPErrorUnauthorized
-//	@Failure      404  {object} utils.HTTPError
-//	@Router       /movies/{id} [get]
+//	@Summary		Movie details
+//	@Description	Get detailed information for a movie by ID
+//	@Tags			movies
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	false	"Bearer token"
+//	@Param			id				path		string	true	"Movie ID"
+//	@Param			source			query		string	false	"Source (default: tmdb)"
+//	@Success		200				{object}	controllers.MovieDetailsDoc
+//	@Failure		401				{object}	utils.HTTPErrorUnauthorized
+//	@Failure		404				{object}	utils.HTTPError
+//	@Router			/movies/{id} [get]
 func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	movieID := ctx.Param("id")
 	source := ctx.QueryParam("source")
@@ -68,6 +68,7 @@ func (c *MovieController) GetMovieDetails(ctx echo.Context) error {
 	}
 
 	c.loadComments(details)
+	c.loadSubtitles(details)
 
 	var downloadedMovie models.DownloadedMovie
 	err = c.db.Where("movie_id = ?", details.ID).First(&downloadedMovie).Error
@@ -89,19 +90,32 @@ func (c *MovieController) loadComments(details *models.MovieDetails) {
 	details.Comments = comments
 }
 
+func (c *MovieController) loadSubtitles(details *models.MovieDetails) {
+	var subtitles []models.Subtitle
+	err := c.db.Where("movie_id = ?", details.ID).Find(&subtitles).Error
+	if err != nil {
+		return
+	}
+
+	details.Subtitles = make([]string, 0, len(subtitles))
+	for _, sub := range subtitles {
+		details.Subtitles = append(details.Subtitles, sub.Language)
+	}
+}
+
 // SearchMovies godoc
 //
-//	@Summary      Search movies
-//	@Description  Search movies by title with optional year filter
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Param        q     query    string  true   "Search query (title)"
-//	@Param        year  query    string  false  "Release year"
-//	@Success      200   {array}   models.Movie
-//	@Failure      400   {object}  utils.HTTPError
-//	@Failure      500   {object}  utils.HTTPError
-//	@Router       /movies/search [get]
+//	@Summary		Search movies
+//	@Description	Search movies by title with optional year filter
+//	@Tags			movies
+//	@Accept			json
+//	@Produce		json
+//	@Param			q		query		string	true	"Search query (title)"
+//	@Param			year	query		string	false	"Release year"
+//	@Success		200		{array}		models.Movie
+//	@Failure		400		{object}	utils.HTTPError
+//	@Failure		500		{object}	utils.HTTPError
+//	@Router			/movies/search [get]
 func (c *MovieController) SearchMovies(ctx echo.Context) error {
 	query := ctx.QueryParam("q")
 	year := ctx.QueryParam("year")
@@ -121,22 +135,22 @@ func (c *MovieController) SearchMovies(ctx echo.Context) error {
 
 // GetMovies godoc
 //
-//	@Summary      Movies
-//	@Description  Get movies. Defaults to popular when no filters provided. Supports filters via TMDB discover.
-//	@Tags         movies
-//	@Accept       json
-//	@Produce      json
-//	@Param        Authorization header   string     false   "Bearer token"
-//	@Param        source        query    string     false  "Source of Movie"
-//	@Param        page        query    int     false  "Page number (default 1)"
-//	@Param        genres      query    string  false  "Comma-separated genre names or IDs (e.g., Action,Drama or 28,18)"
-//	@Param        yearFrom    query    int     false  "Release year from (inclusive)"
-//	@Param        yearTo      query    int     false  "Release year to (inclusive)"
-//	@Param        minRating   query    number  false  "Minimum TMDB rating (0-10)"
-//	@Param        sort        query    string  false  "Sort by: year, year_asc, year_desc, rating (default popularity)"
-//	@Success      200  {array}   services.DiscoverMoviesResp
-//	@Failure      500  {object}  utils.HTTPError
-//	@Router       /movies/popular [get]
+//	@Summary		Movies
+//	@Description	Get movies. Defaults to popular when no filters provided. Supports filters via TMDB discover.
+//	@Tags			movies
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	false	"Bearer token"
+//	@Param			source			query		string	false	"Source of Movie"
+//	@Param			page			query		int		false	"Page number (default 1)"
+//	@Param			genres			query		string	false	"Comma-separated genre names or IDs (e.g., Action,Drama or 28,18)"
+//	@Param			yearFrom		query		int		false	"Release year from (inclusive)"
+//	@Param			yearTo			query		int		false	"Release year to (inclusive)"
+//	@Param			minRating		query		number	false	"Minimum TMDB rating (0-10)"
+//	@Param			sort			query		string	false	"Sort by: year, year_asc, year_desc, rating (default popularity)"
+//	@Success		200				{array}		services.DiscoverMoviesResp
+//	@Failure		500				{object}	utils.HTTPError
+//	@Router			/movies/popular [get]
 func (c *MovieController) GetMovies(ctx echo.Context) error {
 	source := ctx.QueryParam("source")
 	page := 1
@@ -225,18 +239,18 @@ func validateAndExtractMovieFilePath(path string) (int, error) {
 
 // serveHLSFile godoc
 //
-// @Summary      Serve HLS video or playlist file
-// @Description  Streams HLS (.m3u8 playlist or .ts segment) files for a given movie. Triggers transcoding if not already done.
-// @Tags         stream
-// @Produce      application/vnd.apple.mpegurl,video/MP2T
-// @Param        movieID  path      int     true  "Movie ID"
-// @Param        file     path      string  true  "HLS file path (e.g. master.m3u8, 720p/0.ts)"
-// @Success      200      {file}    binary  "HLS file"
-// @Failure      400      {object}  utils.HTTPError
-// @Failure      404      {object}  utils.HTTPError
-// @Failure      500      {object}  utils.HTTPError
-// @Security     ApiKeyAuth
-// @Router       /stream/{movieID}/{file} [get]
+//	@Summary		Serve HLS video or playlist file
+//	@Description	Streams HLS (.m3u8 playlist or .ts segment) files for a given movie. Triggers transcoding if not already done.
+//	@Tags			stream
+//	@Produce		application/vnd.apple.mpegurl,video/MP2T
+//	@Param			movieID	path		int		true	"Movie ID"
+//	@Param			file	path		string	true	"HLS file path (e.g. master.m3u8, 720p/0.ts)"
+//	@Success		200		{file}		binary	"HLS file"
+//	@Failure		400		{object}	utils.HTTPError
+//	@Failure		404		{object}	utils.HTTPError
+//	@Failure		500		{object}	utils.HTTPError
+//	@Security		ApiKeyAuth
+//	@Router			/stream/{movieID}/{file} [get]
 func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 	path := ctx.Request().URL.Path
 

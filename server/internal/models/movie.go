@@ -62,6 +62,7 @@ type MovieDetails struct {
 	Producer     []Person  `json:"producer"`
 	Genres       []Genre   `json:"genres"`
 	Comments     []Comment `json:"comments"`
+	Subtitles    []string  `json:"subtitles"`
 }
 
 type Cast struct {

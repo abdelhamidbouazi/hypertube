@@ -29,7 +29,6 @@ services:
     networks:
       - hypertube
     volumes:
-      - ./server/:/app
       - ./downloads:/app/downloads
       - ./hls_output:/app/hls_output
       - ./subtitles:/app/subtitles
