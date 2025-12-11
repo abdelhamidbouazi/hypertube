@@ -75,7 +75,7 @@ func LoadServer() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "RefreshToken"},
 		AllowOrigins: services.Conf.CORS.Origins,
 	}))
-	Server.Use(middleware.Logger())
+	// Server.Use(middleware.Logger())
 	config := echojwt.Config{
 		SigningKey: []byte(services.Conf.JWT.SigningKey),
 	}
