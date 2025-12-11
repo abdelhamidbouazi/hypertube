@@ -5,11 +5,13 @@ import { Textarea } from "@heroui/input";
 import { Avatar } from "@heroui/avatar";
 import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, LogIn } from "lucide-react";
 import { addComment } from "@/lib/hooks";
 import { formatDistanceToNow } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import PublicProfile from "@/components/PublicProfile";
+import { useAuthStore } from "@/lib/store";
+import LoginModal from "@/components/LoginModal";
 
 // Backend returns gorm.Model fields with PascalCase (ID, CreatedAt)
 // and custom fields with snake_case (movie_id, user_id, username, content, avatar)
@@ -49,19 +51,12 @@ export default function CommentSection({
   const [displayComments, setDisplayComments] = useState<Comment[]>(comments);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthStore();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  // Sync local state with props when they change
   React.useEffect(() => {
     setDisplayComments(comments);
   }, [comments]);
-
-  // Debug logging for user avatar
-  React.useEffect(() => {
-    if (currentUser) {
-      console.log("Current user data:", currentUser);
-      console.log("Avatar URL:", currentUser.avatar);
-    }
-  }, [currentUser]);
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !currentUser) return;
@@ -73,8 +68,6 @@ export default function CommentSection({
         `${currentUser.firstname}${currentUser.lastname ? " " + currentUser.lastname : ""}`.trim();
       const apiResponse = await addComment(movieId, newComment, username);
 
-      // Normalize API response to match Comment interface
-      // The backend returns ID (uppercase) and CreatedAt
       const normalizedComment: Comment = {
         ID: apiResponse.ID || apiResponse.id,
         username: apiResponse.username || username,
@@ -84,7 +77,6 @@ export default function CommentSection({
           apiResponse.CreatedAt || apiResponse.date || new Date().toISOString(),
       };
 
-      // Optimistically update local state
       setDisplayComments((prev) => [normalizedComment, ...prev]);
 
       setNewComment("");
@@ -129,8 +121,7 @@ export default function CommentSection({
       </CardHeader>
       <Divider />
       <CardBody className="px-6 py-6 gap-6">
-        {/* Comment Input */}
-        {currentUser ? (
+        {currentUser && (
           <div className="flex gap-4">
             <Avatar
               src={currentUser.avatar}
@@ -164,51 +155,61 @@ export default function CommentSection({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="text-center py-4 text-default-500">
-            Please log in to leave a comment.
-          </div>
         )}
 
-        {/* Comments List */}
-        <div className="space-y-6 mt-4">
-          {displayComments.length === 0 ? (
-            <div className="text-center text-default-500 py-8" key={movieId}>
-              No comments yet. Be the first to share your thoughts!
-            </div>
-          ) : (
-            displayComments.map((comment) => (
-              <div key={comment.ID} className="flex gap-4">
-                <Avatar
-                  src={comment.avatar}
-                  name={comment.username}
-                  className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                  size="sm"
-                  showFallback
-                  onClick={() => handleUserClick(comment.username)}
-                />
-                <div className="flex-grow">
-                  <div className="flex items-baseline gap-2">
-                    <span
-                      className="font-semibold text-small cursor-pointer hover:text-primary transition-colors"
-                      onClick={() => handleUserClick(comment.username)}
-                    >
-                      {comment.username}
-                    </span>
-                    <span className="text-tiny text-default-400">
-                      {formatDate(
-                        comment.date || comment.created_at || comment.CreatedAt
-                      )}
-                    </span>
-                  </div>
-                  <p className="text-small text-foreground-600 mt-1">
-                    {comment.content}
-                  </p>
-                </div>
+        {isAuthenticated ? (
+          <div className="space-y-6 mt-4">
+            {displayComments.length === 0 ? (
+              <div className="text-center text-default-500 py-8" key={movieId}>
+                No comments yet. Be the first to share your thoughts!
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              displayComments.map((comment) => (
+                <div key={comment.ID} className="flex gap-4">
+                  <Avatar
+                    src={comment.avatar}
+                    name={comment.username}
+                    className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    size="sm"
+                    showFallback
+                    onClick={() => handleUserClick(comment.username)}
+                  />
+                  <div className="flex-grow">
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="font-semibold text-small cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleUserClick(comment.username)}
+                      >
+                        {comment.username}
+                      </span>
+                      <span className="text-tiny text-default-400">
+                        {formatDate(
+                          comment.date || comment.created_at || comment.CreatedAt
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-small text-foreground-600 mt-1">
+                      {comment.content}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-4">
+            <p className="text-default-500">
+              Please log in to view and add comments
+            </p>
+            <Button
+              color="primary"
+              startContent={<LogIn size={16} />}
+              onPress={() => setIsLoginModalOpen(true)}
+            >
+              Log In
+            </Button>
+          </div>
+        )}
       </CardBody>
       <PublicProfile
         username={selectedUsername}
@@ -217,6 +218,10 @@ export default function CommentSection({
           setIsProfileModalOpen(false);
           setSelectedUsername(null);
         }}
+      />
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </Card>
   );

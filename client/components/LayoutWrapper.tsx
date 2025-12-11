@@ -13,7 +13,6 @@ interface LayoutWrapperProps {
 export const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Initialize automatic token refresh
   useEffect(() => {
     initAuthRefresh();
   }, []);
