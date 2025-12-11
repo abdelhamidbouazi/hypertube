@@ -1,4 +1,6 @@
 import axios from "axios";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -64,20 +66,19 @@ api.interceptors.response.use(
       typeof window === "undefined" ||
       window.location.pathname.includes("/auth/login");
 
-    if (error.response?.status === 401) {
-      console.log("[API] 401 Unauthorized error detected", {
-        url: originalRequest?.url,
-        skipRefresh,
-        alreadyRetried: originalRequest?._retry,
-      });
-    }
+    // 401 Unauthorized error handling
 
     if (skipRefresh) {
       return Promise.reject(error);
     }
 
     if (originalRequest._retry) {
-      console.error("[API] Request already retried, giving up. Logging out...");
+      addToast({
+        title: "Authentication failed",
+        description: "Session expired. Please log in again.",
+        severity: "danger",
+        timeout: 4000,
+      });
       localStorage.removeItem("token");
       document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       document.cookie =
@@ -87,12 +88,11 @@ api.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      console.log("[API] Already refreshing, queuing request...");
+      // Queue request while token is being refreshed
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       })
         .then(() => {
-          console.log("[API] Retrying queued request after refresh");
           return api(originalRequest);
         })
         .catch((err) => {
@@ -102,26 +102,32 @@ api.interceptors.response.use(
 
     originalRequest._retry = true;
     isRefreshing = true;
-    console.log("[API] Starting token refresh flow...");
 
     return new Promise((resolve, reject) => {
       import("./auth")
         .then((authModule) => authModule.refreshAccessToken())
         .then((success) => {
           if (success) {
-            console.log(
-              "[API] Token refresh successful, retrying original request"
-            );
             processQueue(null, null);
             resolve(api(originalRequest));
           } else {
-            console.error("[API] Token refresh failed");
+            addToast({
+              title: "Authentication failed",
+              description: "Token refresh failed. Please log in again.",
+              severity: "danger",
+              timeout: 4000,
+            });
             processQueue(error, null);
             reject(error);
           }
         })
         .catch((err) => {
-          console.error("[API] Error during refresh flow:", err);
+          addToast({
+            title: "Authentication error",
+            description: getErrorMessage(err),
+            severity: "danger",
+            timeout: 4000,
+          });
           processQueue(err, null);
           reject(err);
         })

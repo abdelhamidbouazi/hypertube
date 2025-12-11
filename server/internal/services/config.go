@@ -74,6 +74,9 @@ type AppConfig struct {
 		SUBDL struct {
 			APIKey string `mapstructure:"API_KEY"`
 		} `mapstructure:"SUBDL"`
+		WATCHMODE struct {
+			APIKey string `mapstructure:"API_KEY"`
+		} `mapstructure:"WATCHMODE"`
 	} `mapstructure:"MOVIE_APIS"`
 
 	DOWNLOADS struct {

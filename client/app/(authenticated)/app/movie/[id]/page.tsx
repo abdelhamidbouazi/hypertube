@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use } from "react";
+import React, { use, useState } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
@@ -26,6 +26,8 @@ import { useMovieDetails } from "@/components/movies/useMovieDetails";
 import { getErrorMessage } from "@/lib/error-utils";
 import CommentSection from "@/components/movies/CommentSection";
 import { useMe } from "@/lib/hooks";
+import { useAuthStore } from "@/lib/store";
+import LoginModal from "@/components/LoginModal";
 
 interface MoviePageProps {
   params: Promise<{
@@ -37,9 +39,18 @@ export default function MoviePage({ params }: MoviePageProps) {
   const { id } = use(params);
   const { movie, isLoading, error, refetch } = useMovieDetails(id);
   const { user } = useMe();
+  const { isAuthenticated } = useAuthStore();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const toggleWatched = () => {
-    console.log("toggle watched for movie:", movie?.id);
+    // TODO: Implement toggle watched functionality
+  };
+
+  const handleWatchClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setIsLoginModalOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -109,9 +120,7 @@ export default function MoviePage({ params }: MoviePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-content2">
       <div className="container mx-auto px-4 py-2">
-        {/* Movie Header */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Poster */}
           <div className="lg:col-span-1">
             <Card className="overflow-hidden">
               <CardBody className="p-0">
@@ -129,9 +138,7 @@ export default function MoviePage({ params }: MoviePageProps) {
             </Card>
           </div>
 
-          {/* Movie Info */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Title and Rating */}
             <div>
               <h1 className="text-4xl font-bold mb-2 text-foreground">
                 {movie.title}
@@ -154,9 +161,6 @@ export default function MoviePage({ params }: MoviePageProps) {
               </div>
             </div>
 
-            {/* ... */}
-
-            {/* Genres */}
             {movie.genres && movie.genres.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {movie.genres.map((genre: any) => (
@@ -176,33 +180,45 @@ export default function MoviePage({ params }: MoviePageProps) {
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex gap-3">
-              <Link href={`/app/movie/${movie.id}/watch`}>
+              {isAuthenticated ? (
+                <Link href={`/app/movie/${movie.id}/watch`}>
+                  <Button
+                    color="primary"
+                    size="lg"
+                    startContent={<Play size={20} />}
+                    className="flex-1 font-semibold"
+                  >
+                    Watch Now
+                  </Button>
+                </Link>
+              ) : (
                 <Button
                   color="primary"
                   size="lg"
                   startContent={<Play size={20} />}
                   className="flex-1 font-semibold"
+                  onPress={() => setIsLoginModalOpen(true)}
                 >
                   Watch Now
                 </Button>
-              </Link>
-              <Button
-                variant={movie.watched ? "solid" : "bordered"}
-                color={movie.watched ? "success" : "primary"}
-                size="lg"
-                startContent={
-                  movie.watched ? <EyeOff size={20} /> : <Eye size={20} />
-                }
-                onPress={toggleWatched}
-                className={movie.watched ? "font-semibold" : "font-medium"}
-              >
-                {movie.watched ? "Watched" : "Mark as Watched"}
-              </Button>
+              )}
+              {isAuthenticated && (
+                <Button
+                  variant={movie.watched ? "solid" : "bordered"}
+                  color={movie.watched ? "success" : "primary"}
+                  size="lg"
+                  startContent={
+                    movie.watched ? <EyeOff size={20} /> : <Eye size={20} />
+                  }
+                  onPress={toggleWatched}
+                  className={movie.watched ? "font-semibold" : "font-medium"}
+                >
+                  {movie.watched ? "Watched" : "Mark as Watched"}
+                </Button>
+              )}
             </div>
 
-            {/* Description */}
             {movie.overview && (
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground">
@@ -216,13 +232,11 @@ export default function MoviePage({ params }: MoviePageProps) {
           </div>
         </div>
 
-        {/* Movie Details */}
         <Card className="mb-8">
           <CardBody className="p-6">
             <h2 className="text-2xl font-bold mb-6">Movie Details</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Director */}
               {movie.director && movie.director.length > 0 && (
                 <div className="flex items-center gap-3">
                   <Film size={20} className="text-primary" />
@@ -235,7 +249,6 @@ export default function MoviePage({ params }: MoviePageProps) {
                 </div>
               )}
 
-              {/* Duration */}
               {movie.runtime && (
                 <div className="flex items-center gap-3">
                   <Clock size={20} className="text-primary" />
@@ -248,7 +261,6 @@ export default function MoviePage({ params }: MoviePageProps) {
                 </div>
               )}
 
-              {/* Release Date */}
               {movie.release_date && (
                 <div className="flex items-center gap-3">
                   <Calendar size={20} className="text-primary" />
@@ -261,7 +273,6 @@ export default function MoviePage({ params }: MoviePageProps) {
                 </div>
               )}
 
-              {/* Language */}
               {movie.original_language && (
                 <div className="flex items-center gap-3">
                   <Globe size={20} className="text-primary" />
@@ -277,7 +288,6 @@ export default function MoviePage({ params }: MoviePageProps) {
           </CardBody>
         </Card>
 
-        {/* Cast */}
         {movie.cast && movie.cast.length > 0 && (
           <Card className="mb-8">
             <CardBody className="p-6">
@@ -312,7 +322,6 @@ export default function MoviePage({ params }: MoviePageProps) {
           </Card>
         )}
 
-        {/* Comments Section */}
         <div className="mb-8">
           <CommentSection
             movieId={movie.id}
@@ -322,6 +331,10 @@ export default function MoviePage({ params }: MoviePageProps) {
           />
         </div>
       </div>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
     </div>
   );
 }

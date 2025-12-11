@@ -1,25 +1,22 @@
 package services
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"server/internal/models"
-	"sort"
-	"strconv"
+	"server/internal/utils"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/anacrolix/torrent"
-	"github.com/deflix-tv/imdb2torrent"
 	"github.com/grafov/m3u8"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -28,16 +25,20 @@ type MovieService struct {
 	omdbKey            string
 	client             *http.Client
 	torrentSources     []string
-	genreCache         sync.Map // map[string]int
 	genreCacheTime     time.Time
 	StreamStatus       sync.Map // map[int]map[string]interface{}
 	MasterPlaylists    sync.Map // map[int]*m3u8.MasterPlaylist - movieID -> master playlist
 	LastSegmentCache   sync.Map // map[int]string - movieID -> last segment filename
-	UserSegmentTrack   sync.Map // map[string]map[int]string - "userID:movieID" -> last segment visited
+	UserWatchedMovies  sync.Map // map[string]map[int]string - "userID:movieID" -> last segment visited
 	SegmentFormatParse string
+	SearchSources      map[string]Source
+	db                 *gorm.DB
+	websocketService   *WebSocketService
+	subtitleService    *SubtitleService
+	torrentService     *TorrentService
 }
 
-func NewMovieService(tmdbKey, omdbKey string) *MovieService {
+func NewMovieService(tmdbKey, omdbKey, watchModeKey string, db *gorm.DB, ws *WebSocketService, subtitleService *SubtitleService, torrentService *TorrentService) *MovieService {
 	ms := &MovieService{
 		apiKey:             tmdbKey,
 		omdbKey:            omdbKey,
@@ -47,6 +48,15 @@ func NewMovieService(tmdbKey, omdbKey string) *MovieService {
 			"1337x",
 			"yts",
 		},
+		db:               db,
+		websocketService: ws,
+		subtitleService:  subtitleService,
+		torrentService:   torrentService,
+	}
+
+	ms.SearchSources = map[string]Source{
+		"tmdb": NewTMDB(tmdbKey, omdbKey, ms.genreCacheTime, ms.client),
+		// "omdb": NewOMDB(omdbKey, ms.genreCacheTime, ms.client),
 	}
 
 	go ms.persistWatchHistoryWorker()
@@ -55,207 +65,75 @@ func NewMovieService(tmdbKey, omdbKey string) *MovieService {
 	return ms
 }
 
-// MovieDiscoverParams encapsulates supported filters for discovering movies
-type MovieDiscoverParams struct {
-	Genres    []string
-	YearFrom  *int
-	YearTo    *int
-	MinRating *float64
-	Sort      string
-	Page      int
+func (ms *MovieService) GetSource(key string) (Source, error) {
+	src, ok := ms.SearchSources[key]
+	if !ok {
+		return nil, fmt.Errorf("Source not found")
+	}
+	return src, nil
 }
 
 // DiscoverMovies calls TMDB discover endpoint with filters
-func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams) ([]models.Movie, error) {
-	if p.Page < 1 {
-		p.Page = 1
-	}
-
-	baseURL := "https://api.themoviedb.org/3/discover/movie"
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	params.Add("page", strconv.Itoa(p.Page))
-
-	// Sorting
-	sortBy := "popularity.desc"
-	switch p.Sort {
-	case "year", "year_desc":
-		sortBy = "primary_release_date.desc"
-	case "year_asc":
-		sortBy = "primary_release_date.asc"
-	case "rating":
-		sortBy = "vote_average.desc"
-	case "name":
-		sortBy = "original_title.asc"
-	}
-	params.Add("sort_by", sortBy)
-
-	// Year range via dates
-	if p.YearFrom != nil {
-		params.Add("primary_release_date.gte", fmt.Sprintf("%04d-01-01", *p.YearFrom))
-	}
-	if p.YearTo != nil {
-		params.Add("primary_release_date.lte", fmt.Sprintf("%04d-12-31", *p.YearTo))
-	}
-
-	// Min rating
-	if p.MinRating != nil {
-		params.Add("vote_average.gte", strconv.FormatFloat(*p.MinRating, 'f', -1, 64))
-	}
-
-	if len(p.Genres) > 0 {
-		ids, err := ms.getGenreIDs(p.Genres)
-		if err == nil && len(ids) > 0 {
-			params.Add("with_genres", ids)
-		}
-	}
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var tmdbResp struct {
-		Results []struct {
-			ID          int     `json:"id"`
-			Title       string  `json:"title"`
-			ReleaseDate string  `json:"release_date"`
-			PosterPath  string  `json:"poster_path"`
-			Overview    string  `json:"overview"`
-			VoteAverage float64 `json:"vote_average"`
-			GenreIDs    []int   `json:"genre_ids"`
-		} `json:"results"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
-	}
-
+func (ms *MovieService) DiscoverMovies(p MovieDiscoverParams, userID *uint, source string) ([]DiscoverMoviesResp, error) {
 	var movies []models.Movie
-	for _, result := range tmdbResp.Results {
-		movies = append(movies, models.Movie{
-			ID:          result.ID,
-			Title:       result.Title,
-			ReleaseDate: result.ReleaseDate,
-			PosterPath:  result.PosterPath,
-			Overview:    result.Overview,
-			VoteAverage: result.VoteAverage,
-			GenreIDs:    result.GenreIDs,
-		})
-	}
+	var movieIDs []int
+	var err error
 
-	return movies, nil
-}
-
-func (ms *MovieService) getGenreIDs(genres []string) (string, error) {
-	numeric := true
-	for _, g := range genres {
-		if _, err := strconv.Atoi(g); err != nil {
-			numeric = false
-			break
+	if source != "" {
+		src, err := ms.GetSource(source)
+		if err == nil {
+			movies, movieIDs, err = src.DiscoverMovies(p)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-	if numeric {
-		return joinCSV(genres), nil
-	}
-
-	// Check if we need to refresh the cache
-	// Note: We can't use len() on sync.Map, so we'll check cache time only
-	if time.Since(ms.genreCacheTime) > 24*time.Hour {
-		if err := ms.refreshGenreCache(); err != nil {
-			return "", err
-		}
-	}
-
-	ids := []string{}
-	for _, name := range genres {
-		key := normalizeGenreName(name)
-		if id, ok := ms.genreCache.Load(key); ok {
-			ids = append(ids, strconv.Itoa(id.(int)))
-		} else {
-			// log.Printf("unknown genre name: %s", name)
-		}
-	}
-	return joinCSV(ids), nil
-}
-
-func (ms *MovieService) refreshGenreCache() error {
-	baseURL := "https://api.themoviedb.org/3/genre/movie/list"
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var payload struct {
-		Genres []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		} `json:"genres"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return err
-	}
-
-	for _, g := range payload.Genres {
-		ms.genreCache.Store(normalizeGenreName(g.Name), g.ID)
-	}
-	ms.genreCacheTime = time.Now()
-	return nil
-}
-
-func normalizeGenreName(name string) string {
-	// lower-case and trim spaces for matching
-	return strings.TrimSpace(strings.ToLower(name))
-}
-
-func joinCSV(items []string) string {
-	if len(items) == 0 {
-		return ""
-	}
-	return strings.Join(items, ",")
-}
-
-func (ms *MovieService) GetMovieDetails(movieID string) (*models.MovieDetails, error) {
-	baseURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%s", movieID)
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	params.Add("append_to_response", "credits,external_ids")
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var tmdbResp map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
-	}
-
-	details := ms.parseTMDBResponse(tmdbResp)
-
-	if imdbID, ok := tmdbResp["imdb_id"].(string); ok && imdbID != "" {
-		details.IMDbID = imdbID
-		if omdbData := ms.getOMDBData(imdbID); omdbData != nil {
-			if rating, ok := omdbData["imdbRating"].(string); ok {
-				if r, err := strconv.ParseFloat(rating, 64); err == nil {
-					details.VoteAverage = r
-				}
+	} else {
+		for _, s := range ms.SearchSources {
+			movies, movieIDs, err = s.DiscoverMovies(p)
+			if err == nil && len(movies) > 0 {
+				break
 			}
 		}
 	}
 
-	return details, nil
+	if err != nil {
+		return nil, err
+	}
+	var result []DiscoverMoviesResp
+	var watchHistory []models.WatchHistory
+	watchHistoryMap := make(map[int]bool)
+
+	if userID != nil {
+		err = ms.db.Model(&models.WatchHistory{}).
+			Where("user_id = ?", userID).
+			Where("movie_id IN ?", movieIDs).
+			// Where("watch_count > ?", 0).
+			Find(&watchHistory).Error
+
+		for _, wh := range watchHistory {
+			watchHistoryMap[wh.MovieID] = true
+		}
+	}
+
+	for _, m := range movies {
+		isWatched := false
+		if userID != nil {
+			isWatched = watchHistoryMap[m.ID]
+		}
+		result = append(result, DiscoverMoviesResp{
+			ID:          m.ID,
+			Title:       m.Title,
+			ReleaseDate: m.ReleaseDate,
+			PosterPath:  m.PosterPath,
+			Overview:    m.Overview,
+			Language:    m.Language,
+			VoteAverage: m.VoteAverage,
+			GenreIDs:    m.GenreIDs,
+			IsWatched:   isWatched,
+		})
+	}
+
+	return result, err
 }
 
 func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie, error) {
@@ -307,619 +185,39 @@ func (ms *MovieService) SearchMovies(query string, year string) ([]models.Movie,
 	return movies, nil
 }
 
-// GetMovies returns a default list of movies (popular page 1)
-func (ms *MovieService) GetMovies() ([]models.Movie, error) {
-	return ms.GetPopularMovies(1)
-}
-
-// GetPopularMovies fetches a paginated list of popular movies from TMDB
-func (ms *MovieService) GetPopularMovies(page int) ([]models.Movie, error) {
-	if page < 1 {
-		page = 1
-	}
-	baseURL := "https://api.themoviedb.org/3/movie/popular"
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	params.Add("page", strconv.Itoa(page))
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var tmdbResp struct {
-		Results []struct {
-			ID          int     `json:"id"`
-			Title       string  `json:"title"`
-			ReleaseDate string  `json:"release_date"`
-			PosterPath  string  `json:"poster_path"`
-			Overview    string  `json:"overview"`
-			VoteAverage float64 `json:"vote_average"`
-			GenreIDs    []int   `json:"genre_ids"`
-		} `json:"results"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
-	}
-
-	var movies []models.Movie
-	for _, result := range tmdbResp.Results {
-		movies = append(movies, models.Movie{
-			ID:          result.ID,
-			Title:       result.Title,
-			ReleaseDate: result.ReleaseDate,
-			PosterPath:  result.PosterPath,
-			Overview:    result.Overview,
-			VoteAverage: result.VoteAverage,
-			GenreIDs:    result.GenreIDs,
-		})
-	}
-
-	return movies, nil
-}
-
-// GetRandomMovies fetches a page from TMDB discover endpoint and returns a shuffled subset
-func (ms *MovieService) GetRandomMovies(page int, pageSize int) ([]models.Movie, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize <= 0 {
-		pageSize = 20
-	}
-	baseURL := "https://api.themoviedb.org/3/discover/movie"
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-	params.Add("sort_by", "popularity.desc")
-	params.Add("page", strconv.Itoa(page))
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var tmdbResp struct {
-		Results []struct {
-			ID          int     `json:"id"`
-			Title       string  `json:"title"`
-			ReleaseDate string  `json:"release_date"`
-			PosterPath  string  `json:"poster_path"`
-			Overview    string  `json:"overview"`
-			VoteAverage float64 `json:"vote_average"`
-			GenreIDs    []int   `json:"genre_ids"`
-		} `json:"results"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&tmdbResp); err != nil {
-		return nil, err
-	}
-
-	var movies []models.Movie
-	for _, result := range tmdbResp.Results {
-		movies = append(movies, models.Movie{
-			ID:          result.ID,
-			Title:       result.Title,
-			ReleaseDate: result.ReleaseDate,
-			PosterPath:  result.PosterPath,
-			Overview:    result.Overview,
-			VoteAverage: result.VoteAverage,
-			GenreIDs:    result.GenreIDs,
-		})
-	}
-
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(movies), func(i, j int) { movies[i], movies[j] = movies[j], movies[i] })
-	if pageSize < len(movies) {
-		movies = movies[:pageSize]
-	}
-	return movies, nil
-}
-
-// movieMetaGetter implements imdb2torrent.MetaGetter
-type movieMetaGetter struct {
-	movie models.MovieDetails
-}
-
-// GetMovieSimple implements imdb2torrent.MetaGetter
-func (m *movieMetaGetter) GetMovieSimple(ctx context.Context, imdbID string) (imdb2torrent.Meta, error) {
-	year := 0
-	if len(m.movie.ReleaseDate) >= 4 {
-		y, err := strconv.Atoi(m.movie.ReleaseDate[:4])
-		if err == nil {
-			year = y
-		}
-	}
-
-	Logger.Info(fmt.Sprintf("MetaGetter: Title='%s', Year=%d for IMDb ID %s", m.movie.Title, year, imdbID))
-
-	return imdb2torrent.Meta{
-		Title: m.movie.Title,
-		Year:  year,
-	}, nil
-}
-
-// GetTVShowSimple implements imdb2torrent.MetaGetter
-func (m *movieMetaGetter) GetTVShowSimple(ctx context.Context, imdbID string, season int, episode int) (imdb2torrent.Meta, error) {
-	return imdb2torrent.Meta{}, nil
-}
-
-func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadataTimeout time.Duration) ([]models.TorrentResult, error) {
+func (ms *MovieService) searchTorrentsByIMDb(movie models.MovieDetails, metadataTimeout time.Duration) ([]TorrentSearchResult, error) {
 	imdbID := movie.IMDbID
-	var results []models.TorrentResult
+	var results []TorrentSearchResult
 
-	logger := zap.NewNop()
-	cache := imdb2torrent.NewInMemoryCache()
-
-	metaGetter := &movieMetaGetter{
-		movie: movie,
-	}
-
-	ytsGGOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsGGOptions.BaseURL = "https://yts.gg"
-	ytsGGClient := imdb2torrent.NewYTSclient(
-		ytsGGOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsLTOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsLTOptions.BaseURL = "https://yts.lt"
-	ytsLTClient := imdb2torrent.NewYTSclient(
-		ytsLTOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsAMOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsAMOptions.BaseURL = "https://yts.am"
-	ytsAMClient := imdb2torrent.NewYTSclient(
-		ytsAMOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ytsAGOptions := imdb2torrent.DefaultYTSclientOpts
-	ytsAGOptions.BaseURL = "https://yts.ag"
-	ytsAGClient := imdb2torrent.NewYTSclient(
-		ytsAGOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	ibitOptions := imdb2torrent.DefaultIbitClientOpts
-
-	ibitOptions.BaseURL = "https://ibit.unblockedproxy.biz"
-
-	ibitClient := imdb2torrent.NewIbitClient(
-		ibitOptions,
-		cache,
-		logger,
-		false,
-	)
-
-	tpbClient, _ := imdb2torrent.NewTPBclient(
-		imdb2torrent.DefaultTPBclientOpts,
-		cache,
-		metaGetter,
-		logger,
-		false,
-	)
-
-	leetxClient := imdb2torrent.NewLeetxClient(
-		imdb2torrent.DefaultLeetxClientOpts,
-		cache,
-		metaGetter,
-		logger,
-		false,
-	)
-
-	rarbgClient := imdb2torrent.NewRARBGclient(
-		imdb2torrent.DefaultRARBGclientOpts, cache, logger, false)
-
-	siteClients := map[string]imdb2torrent.MagnetSearcher{
-		"YTS-GG": ytsGGClient,
-		"YTS-LT": ytsLTClient,
-		"YTS-AM": ytsAMClient,
-		"YTS-AG": ytsAGClient,
-		"ibit":   ibitClient,
-		"TPB":    tpbClient,
-		"1337x":  leetxClient,
-		"rarbg":  rarbgClient,
-	}
-
-	client := imdb2torrent.NewClient(
-		siteClients,
-		5*time.Minute,
-		logger,
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	torrents, err := client.FindMovie(ctx, imdbID)
+	req, err := http.NewRequest("GET", "https://torrentio.strem.fun/sort=seeders%7Cqualityfilter=brremux,hdrall,dolbyvision,4k,2160p,other,scr,cam,unknown/stream/movie/"+imdbID+".json", nil)
 	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to find torrents for IMDb ID %s: %v", imdbID, err))
-		return nil, err
+		return nil, fmt.Errorf("failed to create request for IMDb ID %s: %v", imdbID, err)
 	}
 
-	Logger.Info(fmt.Sprintf("Found %d torrents for IMDb ID %s", len(torrents), imdbID))
-
-	if len(torrents) == 0 {
-		return results, nil
-	}
-
-	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = "/tmp/torrent-metadata"
-	cfg.NoDHT = false
-
-	torrentClient, err := torrent.NewClient(cfg)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	res, err := ms.client.Do(req)
 	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to create torrent client: %v", err))
-	}
-	defer func() {
-		if torrentClient != nil {
-			torrentClient.Close()
-		}
-	}()
-
-	type metadataResult struct {
-		index    int
-		size     string
-		seeders  int
-		leechers int
-	}
-	resultChan := make(chan metadataResult, len(torrents))
-	metaCtx, metaCancel := context.WithTimeout(context.Background(), metadataTimeout)
-	defer metaCancel()
-
-	for i, t := range torrents {
-		go func(idx int, torr imdb2torrent.Result) {
-			if torrentClient != nil {
-				sizeBytes, s, l, err := fetchTorrentMetadata(metaCtx, torrentClient, torr.MagnetURL)
-				if err == nil {
-					resultChan <- metadataResult{
-						index:    idx,
-						size:     formatBytes(sizeBytes),
-						seeders:  s,
-						leechers: l,
-					}
-				} else {
-					Logger.Error(fmt.Sprintf("Failed to fetch metadata for torrent %s: %v", torr.Title, err))
-				}
-			}
-		}(i, t)
+		return nil, fmt.Errorf("failed to find torrents for IMDb ID %s: %v", imdbID, err)
 	}
 
-	metadataMap := make(map[int]metadataResult)
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+	defer res.Body.Close()
 
-	var firstResultReceived bool
+	var data TorrentionResponse
 
-collectLoop:
-	for {
-		select {
-		case result := <-resultChan:
-			metadataMap[result.index] = result
-
-			if !firstResultReceived {
-				firstResultReceived = true
-			}
-
-			if len(metadataMap) == len(torrents) {
-				break collectLoop
-			}
-		case <-ticker.C:
-		case <-metaCtx.Done():
-			if firstResultReceived {
-				break collectLoop
-			}
-		}
+	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("failed to decode torrentio response for IMDb ID %s: %v", imdbID, err)
 	}
 
-	// Build results with metadata
-	for i, t := range torrents {
-		size := ""
-		seeders := 0
-		leechers := 0
-
-		if metadata, ok := metadataMap[i]; ok {
-			size = metadata.size
-			seeders = metadata.seeders
-			leechers = metadata.leechers
-		}
-
-		result := models.TorrentResult{
-			Name:     t.Title,
-			Magnet:   t.MagnetURL,
-			Size:     size,
-			Seeders:  seeders,
-			Leechers: leechers,
-			Quality:  t.Quality,
-		}
-
-		results = append(results, result)
+	for _, t := range data.Streams {
+		results = append(results, TorrentSearchResult{InfoHash: t.InfoHash, Name: t.Title})
 	}
-
-	sortTorrentsByRatio(results)
 
 	return results, nil
 }
 
-func fetchTorrentMetadata(ctx context.Context, client *torrent.Client, magnetURL string) (int64, int, int, error) {
-	t, err := client.AddMagnet(magnetURL)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to add magnet: %w", err)
-	}
-	defer t.Drop()
-
-	// Wait for metadata with timeout
-	select {
-	case <-t.GotInfo():
-		size := t.Length()
-
-		// Get peer stats
-		stats := t.Stats()
-		seeders := stats.ConnectedSeeders
-		leechers := stats.ActivePeers - stats.ConnectedSeeders
-
-		return size, seeders, leechers, nil
-	case <-ctx.Done():
-		return 0, 0, 0, fmt.Errorf("timeout fetching metadata")
-	}
-}
-
-// formatBytes converts bytes to human-readable format
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.2f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-func sortTorrentsByRatio(torrents []models.TorrentResult) {
-	sort.Slice(torrents, func(i, j int) bool {
-		if torrents[i].Seeders == 0 && torrents[i].Leechers == 0 {
-			return false
-		}
-		if torrents[j].Seeders == 0 && torrents[j].Leechers == 0 {
-			return true
-		}
-
-		ratioI := float64(torrents[i].Seeders) / float64(torrents[i].Leechers+1)
-		ratioJ := float64(torrents[j].Seeders) / float64(torrents[j].Leechers+1)
-
-		if ratioI == ratioJ {
-			return torrents[i].Seeders > torrents[j].Seeders
-		}
-
-		return ratioI > ratioJ
-	})
-}
-
-func (ms *MovieService) GetIMDbIDFromTMDb(movieID int) (*models.MovieDetails, error) {
-	Logger.Info(fmt.Sprintf("Fetching IMDb ID for TMDB movie %d", movieID))
-	movieIDStr := strconv.Itoa(movieID)
-
-	details, err := ms.GetMovieDetails(movieIDStr)
-	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to get movie details for TMDB movie %d: %v", movieID, err))
-		return nil, fmt.Errorf("failed to get movie details: %w", err)
-	}
-
-	if details.IMDbID != "" {
-		Logger.Info(fmt.Sprintf("Found IMDb ID %s for TMDB movie %d", details.IMDbID, movieID))
-		return details, nil
-	}
-
-	Logger.Info(fmt.Sprintf("Fetching external IDs for TMDB movie %d", movieID))
-	baseURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%d/external_ids", movieID)
-	params := url.Values{}
-	params.Add("api_key", ms.apiKey)
-
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-
-	resp, err := ms.client.Get(fullURL)
-	if err != nil {
-		Logger.Error(fmt.Sprintf("Failed to fetch external IDs for TMDB movie %d: %v", movieID, err))
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	Logger.Info(fmt.Sprintf("Decoding external IDs for TMDB movie %d", movieID))
-	var externalIDs struct {
-		IMDbID string `json:"imdb_id"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&externalIDs); err != nil {
-		Logger.Error(fmt.Sprintf("Failed to decode external IDs for TMDB movie %d: %v", movieID, err))
-		return nil, err
-	}
-
-	if externalIDs.IMDbID == "" {
-		Logger.Error(fmt.Sprintf("No IMDb ID found for TMDB movie %d", movieID))
-		return nil, fmt.Errorf("no IMDb ID found for TMDB movie %d", movieID)
-	}
-
-	Logger.Info(fmt.Sprintf("Setting IMDb ID %s for TMDB movie %d", externalIDs.IMDbID, movieID))
-	details.IMDbID = externalIDs.IMDbID
-
-	return details, nil
-}
-
-func (ms *MovieService) parseTMDBResponse(data map[string]interface{}) *models.MovieDetails {
-	details := &models.MovieDetails{}
-
-	if v, ok := data["id"].(float64); ok {
-		details.ID = int(v)
-	}
-	if v, ok := data["title"].(string); ok {
-		details.Title = v
-	}
-	if v, ok := data["overview"].(string); ok {
-		details.Overview = v
-	}
-	if v, ok := data["release_date"].(string); ok {
-		details.ReleaseDate = v
-	}
-	if v, ok := data["runtime"].(float64); ok {
-		details.Runtime = int(v)
-	}
-	if v, ok := data["poster_path"].(string); ok {
-		details.PosterPath = v
-	}
-	if v, ok := data["backdrop_path"].(string); ok {
-		details.BackdropPath = v
-	}
-	if v, ok := data["vote_average"].(float64); ok {
-		details.VoteAverage = v
-	}
-
-	// Parse credits
-	if credits, ok := data["credits"].(map[string]interface{}); ok {
-		// Cast
-		if cast, ok := credits["cast"].([]interface{}); ok {
-			for i, c := range cast {
-				if i >= 10 {
-					break
-				}
-				if actor, ok := c.(map[string]interface{}); ok {
-					castMember := models.Cast{}
-					if v, ok := actor["id"].(float64); ok {
-						castMember.ID = int(v)
-					}
-					if v, ok := actor["name"].(string); ok {
-						castMember.Name = v
-					}
-					if v, ok := actor["character"].(string); ok {
-						castMember.Character = v
-					}
-					if v, ok := actor["profile_path"].(string); ok {
-						castMember.ProfilePath = v
-					}
-					details.Cast = append(details.Cast, castMember)
-				}
-			}
-		}
-
-		if crew, ok := credits["crew"].([]interface{}); ok {
-			for _, c := range crew {
-				if member, ok := c.(map[string]interface{}); ok {
-					job, _ := member["job"].(string)
-					name, _ := member["name"].(string)
-					id, _ := member["id"].(float64)
-
-					person := models.Person{ID: int(id), Name: name}
-
-					if job == "Director" {
-						details.Director = append(details.Director, person)
-					} else if job == "Producer" || job == "Executive Producer" {
-						details.Producer = append(details.Producer, person)
-					}
-				}
-			}
-		}
-	}
-
-	if genres, ok := data["genres"].([]interface{}); ok {
-		for _, g := range genres {
-			if genre, ok := g.(map[string]interface{}); ok {
-				genreItem := models.Genre{}
-				if v, ok := genre["id"].(float64); ok {
-					genreItem.ID = int(v)
-				}
-				if v, ok := genre["name"].(string); ok {
-					genreItem.Name = v
-				}
-				details.Genres = append(details.Genres, genreItem)
-			}
-		}
-	}
-
-	return details
-}
-
-func (ms *MovieService) getOMDBData(imdbID string) map[string]interface{} {
-	url := fmt.Sprintf("http://www.omdbapi.com/?i=%s&apikey=%s", imdbID, ms.omdbKey)
-
-	resp, err := ms.client.Get(url)
-	if err != nil {
-		return nil
-	}
-	defer resp.Body.Close()
-
-	var data map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&data)
-	return data
-}
-
-func (ms *MovieService) IsLastSegmentInVariantPlaylist(movieID int, segmentFilename string) bool {
-	if cachedLastSegment, ok := ms.LastSegmentCache.Load(movieID); ok {
-		return cachedLastSegment.(string) == segmentFilename
-	}
-
-	db := PostgresDB()
-	if db == nil {
-		return false
-	}
-
-	var downloadedMovie models.DownloadedMovie
-	if err := db.Where("movie_id = ? AND transcoded = ?", movieID, true).First(&downloadedMovie).Error; err == nil {
-		if downloadedMovie.LastSegment != "" {
-			ms.LastSegmentCache.Store(movieID, downloadedMovie.LastSegment)
-			return downloadedMovie.LastSegment == segmentFilename
-		}
-	}
-
-	return false
-}
-
-func (ms *MovieService) GetLastSegmentFromPlaylist(playlistPath string) string {
-	file, err := os.Open(playlistPath)
-	if err != nil {
-		return ""
-	}
-	defer file.Close()
-
-	playlist, listType, err := m3u8.DecodeFrom(file, true)
-	if err != nil || listType != m3u8.MEDIA {
-		return ""
-	}
-
-	mediaPlaylist, ok := playlist.(*m3u8.MediaPlaylist)
-	if !ok {
-		return ""
-	}
-
-	var lastSegmentURI string
-	for _, segment := range mediaPlaylist.Segments {
-		if segment != nil && segment.URI != "" {
-			lastSegmentURI = segment.URI
-		}
-	}
-
-	return lastSegmentURI
-}
-
-func (ms *MovieService) TrackUserSegment(userID uint, movieID int, segmentFilename string) {
+func (ms *MovieService) TrackUserSegment(userID uint, movieID int) {
 	key := fmt.Sprintf("%d:%d", userID, movieID)
-	ms.UserSegmentTrack.Store(key, segmentFilename)
+	ms.UserWatchedMovies.Store(key, true)
 }
 
 func (ms *MovieService) persistWatchHistoryWorker() {
@@ -927,56 +225,28 @@ func (ms *MovieService) persistWatchHistoryWorker() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		ms.UserSegmentTrack.Range(func(key, value interface{}) bool {
+		ms.UserWatchedMovies.Range(func(key, value interface{}) bool {
 			keyStr := key.(string)
-			segmentFilename := value.(string)
 
 			var userID uint
 			var movieID int
+
 			if _, err := fmt.Sscanf(keyStr, "%d:%d", &userID, &movieID); err != nil {
 				return true
 			}
 
-			isLastSegment := ms.IsLastSegmentInVariantPlaylist(movieID, segmentFilename)
-			lastSegmentFilename := ms.getLastSegmentFilename(movieID)
-
-			progress := ms.calculateWatchProgress(movieID, segmentFilename, lastSegmentFilename, isLastSegment)
-
-			db := PostgresDB()
-			if db == nil {
-				return true
-			}
-
 			var watchHistory models.WatchHistory
-			result := db.Where("user_id = ? AND movie_id = ?", userID, movieID).First(&watchHistory)
+			result := ms.db.Where("user_id = ? AND movie_id = ?", userID, movieID).First(&watchHistory)
 
 			if result.Error == gorm.ErrRecordNotFound {
 				watchHistory = models.WatchHistory{
-					UserID:        userID,
-					MovieID:       movieID,
-					LastSegment:   segmentFilename,
-					WatchProgress: progress,
-					WatchCount:    0,
-					WatchedAt:     time.Now(),
+					UserID:     userID,
+					MovieID:    movieID,
+					WatchCount: 0,
+					WatchedAt:  time.Now(),
 				}
 
-				if isLastSegment {
-					watchHistory.WatchCount = 1
-				}
-
-				db.Create(&watchHistory)
-			} else if result.Error == nil {
-				updates := map[string]interface{}{
-					"last_segment":   segmentFilename,
-					"watch_progress": progress,
-					"watched_at":     time.Now(),
-				}
-
-				if isLastSegment && watchHistory.LastSegment != segmentFilename {
-					updates["watch_count"] = gorm.Expr("watch_count + 1")
-				}
-
-				db.Model(&watchHistory).Updates(updates)
+				ms.db.Create(&watchHistory)
 			}
 
 			return true
@@ -988,109 +258,567 @@ func (ms *MovieService) cleanupOldHLSFilesWorker(hlsDir string) {
 	ticker := time.NewTicker(4 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		ms.cleanupOldHLSFiles(hlsDir)
-		<-ticker.C
-	}
-}
-
-func (ms *MovieService) cleanupOldHLSFiles(hlsDir string) {
-	db := PostgresDB()
-	if db == nil {
-		// log.Println("Database not available for HLS cleanup")
-		return
-	}
-
 	type MovieLastWatched struct {
 		MovieID   int
 		WatchedAt time.Time
 	}
 
-	var oldMovies []MovieLastWatched
-	oneMonthAgo := time.Now().AddDate(0, -1, 0)
+	for {
+		var oldMovies []MovieLastWatched
+		oneMonthAgo := time.Now().AddDate(0, -1, 0)
 
-	err := db.Model(&models.WatchHistory{}).
-		Select("movie_id, MAX(watched_at) as watched_at").
-		Group("movie_id").
-		Having("MAX(watched_at) < ?", oneMonthAgo).
-		Find(&oldMovies).Error
+		err := ms.db.Model(&models.WatchHistory{}).
+			Select("movie_id, MAX(watched_at) as watched_at").
+			Group("movie_id").
+			Having("MAX(watched_at) < ?", oneMonthAgo).
+			Find(&oldMovies).Error
 
-	if err != nil {
-		// log.Printf("Error fetching old watched movies: %v", err)
-		return
-	}
-
-	if len(oldMovies) == 0 {
-		// log.Println("No old HLS files to cleanup")
-		return
-	}
-
-	// log.Printf("Found %d movies not watched in over a month, cleaning up HLS files", len(oldMovies))
-
-	for _, movie := range oldMovies {
-		movieHLSDir := filepath.Join(hlsDir, fmt.Sprintf("%d", movie.MovieID))
-
-		if _, err := os.Stat(movieHLSDir); err == nil {
-			// log.Printf("Removing HLS directory for movie %d (last watched: %s)", movie.MovieID, movie.WatchedAt.Format("2006-01-02"))
-			if err := os.RemoveAll(movieHLSDir); err != nil {
-				// log.Printf("Error removing HLS directory %s: %v", movieHLSDir, err)
-			} else {
-				// log.Printf("Successfully removed HLS directory for movie %d", movie.MovieID)
-			}
-		} else {
-			// log.Printf("HLS directory not found for movie %d: %s", movie.MovieID, hlsDir)
+		if err != nil || len(oldMovies) == 0 {
+			return
 		}
+
+		for _, movie := range oldMovies {
+			movieHLSDir := filepath.Join(hlsDir, fmt.Sprintf("%d", movie.MovieID))
+			if _, err := os.Stat(movieHLSDir); err == nil {
+				os.RemoveAll(movieHLSDir)
+			}
+		}
+
+		<-ticker.C
 	}
 }
 
-func (ms *MovieService) getLastSegmentFilename(movieID int) string {
-	if cachedLastSegment, ok := ms.LastSegmentCache.Load(movieID); ok {
-		lastSegment := cachedLastSegment.(string)
-		return lastSegment
-	}
-
-	db := PostgresDB()
-	if db == nil {
-		return ""
-	}
-
+func (ms *MovieService) EnsureMovieIsPartiallyDownloadedAndStartedTranscoding(movieID int, outputDir string) error {
 	var downloadedMovie models.DownloadedMovie
-	if err := db.Where("movie_id = ? AND transcoded = ?", movieID, true).First(&downloadedMovie).Error; err != nil {
-		return ""
+	err := ms.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error
+	if err == nil && downloadedMovie.Transcoded {
+		Logger.Info(fmt.Sprintf("Movie %d is already transcoded", movieID))
+		return nil
 	}
-
-	if downloadedMovie.LastSegment == "" {
-		return ""
+	if err != nil {
+		Logger.Info(fmt.Sprintf("Movie %d is not downloaded", movieID))
 	}
-
-	ms.LastSegmentCache.Store(movieID, downloadedMovie.LastSegment)
-
-	return downloadedMovie.LastSegment
+	Logger.Info(fmt.Sprintf("Checking if transcoding already started for movie %d", movieID))
+	initialStatus := map[string]interface{}{
+		"movieID": movieID,
+		"stage":   "initializing",
+		"message": "Stream initialization starting",
+	}
+	if _, loaded := ms.StreamStatus.LoadOrStore(movieID, initialStatus); !loaded {
+		Logger.Info(fmt.Sprintf("Starting transcoding for movie %d", movieID))
+		go ms.startMovieStream(movieID, outputDir)
+	}
+	Logger.Info(fmt.Sprintf("Transcoding check completed for movie %d", movieID))
+	Logger.Info(fmt.Sprintf("Transcoding process initiated for movie %d", movieID))
+	return nil
 }
 
-func (ms *MovieService) calculateWatchProgress(movieID int, segmentFilename string, lastSegmentFilename string, isLastSegment bool) float64 {
-	if isLastSegment {
-		return 100.0
+func (ms *MovieService) updateStreamStatus(movieID int, stage string, message string, additionalData map[string]interface{}) {
+	status := map[string]interface{}{
+		"movieID": movieID,
+		"stage":   stage,
+		"message": message,
 	}
 
-	if lastSegmentFilename != "" {
-		segmentNum := 0
-		if _, err := fmt.Sscanf(filepath.Base(segmentFilename), ms.SegmentFormatParse, &segmentNum); err != nil {
-			return 0.0
+	for key, value := range additionalData {
+		status[key] = value
+	}
+
+	ms.StreamStatus.Store(movieID, status)
+
+	if ms.websocketService != nil {
+		ms.websocketService.UpdateStreamState(movieID, status)
+	}
+}
+
+func (ms *MovieService) startMovieStream(movieID int, outputDir string) {
+	ms.updateStreamStatus(movieID, "initializing", "Starting movie stream", nil)
+	movieIDStr := fmt.Sprintf("%d", movieID)
+	hlsBaseDir := VideoTranscoderConf.Output.Directory
+	if Conf.STREAMING.HLSOutputDir != "" {
+		hlsBaseDir = Conf.STREAMING.HLSOutputDir
+	}
+	hlsOutputDir := filepath.Join(hlsBaseDir, movieIDStr)
+
+	srtFiles := ms.downloadMovieSubtitles(movieID)
+
+	ms.updateStreamStatus(movieID, "downloading", "Finding and downloading movie", nil)
+	activeDownload, err := ms.findAndDownloadMovie(movieID)
+	if err != nil {
+		ms.updateStreamStatus(movieID, "error", "Failed to download movie: "+err.Error(), nil)
+		return
+	}
+
+	if err := os.MkdirAll(hlsOutputDir, 0755); err != nil {
+		ms.updateStreamStatus(movieID, "error", "Failed to create HLS output directory: "+err.Error(), nil)
+		return
+	}
+
+	filePath, videoFile, status, progress := ms.getTorrentMovieDetails(activeDownload)
+	ms.updateStreamStatus(movieID, "downloading", fmt.Sprintf("Downloading: %.1f%% complete", progress), map[string]interface{}{
+		"downloadProgress": progress,
+		"downloadStatus":   status,
+	})
+	ms.waitUntilVideoFileIsReady(activeDownload, filePath, videoFile, status)
+
+	if err := ms.convertSubtitlesToHLS(srtFiles, hlsOutputDir); err != nil {
+		ms.updateStreamStatus(movieID, "error", "Failed to convert subtitles to HLS: "+err.Error(), nil)
+		return
+	}
+
+	masterPlaylist, err := ms.createMasterPlaylist(hlsOutputDir, srtFiles)
+	if err != nil {
+		ms.updateStreamStatus(movieID, "error", "Failed to create master playlist: "+err.Error(), nil)
+		return
+	}
+
+	ms.updateStreamStatus(movieID, "transcoding", "Converting video to HLS format", map[string]interface{}{
+		"transcodingStatus": "in_progress",
+	})
+	ms.tryFFmpegTranscodingWithPlaylist(activeDownload, movieID, hlsOutputDir, masterPlaylist)
+}
+
+func (ms *MovieService) downloadMovieSubtitles(movieID int) []string {
+	if ms.subtitleService == nil {
+		Logger.Warn("Subtitle service not initialized, skipping subtitle download")
+		return []string{}
+	}
+
+	baseDir := Conf.STREAMING.SubtitlesDir
+	if baseDir == "" {
+		baseDir = "subtitles"
+	}
+
+	dirPath, err := ms.subtitleService.CreateSubtitlesDirectory(movieID, baseDir)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("Failed to create subtitles directory for movie %d: %v", movieID, err))
+		return []string{}
+	}
+
+	Logger.Info(fmt.Sprintf("Downloading subtitles for movie %d from subdl.com", movieID))
+	downloadedCount := ms.subtitleService.DownloadSubtitles(movieID, dirPath)
+	Logger.Info(fmt.Sprintf("Downloaded %d subtitle(s) for movie %d", downloadedCount, movieID))
+
+	srtFiles, err := FindFilesWithExtension(dirPath, "srt")
+	if err != nil {
+		Logger.Error(fmt.Sprintf("Error finding downloaded SRT files: %v", err))
+		return []string{}
+	}
+
+	return srtFiles
+}
+
+func (ms *MovieService) findAndDownloadMovie(movieID int) (*models.TorrentDownload, error) {
+	ms.updateStreamStatus(movieID, "searching", "Fetching movie information", map[string]interface{}{
+		"step": "fetch_details",
+	})
+
+	s, _ := ms.GetSource("tmdb")
+
+	details, err := s.GetIMDbID(movieID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch movie details: %w", err)
+	}
+
+	ms.updateStreamStatus(movieID, "searching", "Searching torrent sources", map[string]interface{}{
+		"step":         "search_torrents",
+		"imdb_id":      details.IMDbID,
+		"title":        details.Title,
+		"release_date": details.ReleaseDate,
+	})
+
+	torrents, err := ms.searchTorrentsByIMDb(*details, 30*time.Second)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("Error searching torrents: %v", err))
+		return nil, fmt.Errorf("failed to search torrents: %w", err)
+	}
+
+	ms.updateStreamStatus(movieID, "searching", fmt.Sprintf("Found %d torrent(s)", len(torrents)), map[string]interface{}{
+		"step":          "torrents_found",
+		"torrent_count": len(torrents),
+	})
+
+	if len(torrents) == 0 {
+		return nil, fmt.Errorf("no suitable torrent found")
+	}
+
+	bestTorrent := &torrents[0]
+
+	ms.updateStreamStatus(movieID, "searching", "Selected best torrent", map[string]interface{}{
+		"step": "torrent_selected",
+		"name": bestTorrent.Name,
+	})
+
+	download, err := ms.torrentService.GetOrStartDownload(movieID, bestTorrent.InfoHash)
+	if err != nil {
+		ms.updateStreamStatus(movieID, "error", "Failed to start download: "+err.Error(), nil)
+		return nil, fmt.Errorf("failed to start download: %w", err)
+	}
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	waitCount := 0
+	lastProgress := 0.0
+
+	for {
+		download.Mu.RLock()
+		ready := download.StreamingReady
+		filePath := download.FilePath
+		status := download.Status
+		progress := download.Progress
+		download.Mu.RUnlock()
+
+		if ready && filePath != "" {
+			ms.updateStreamStatus(movieID, "downloading", "Download ready for streaming", map[string]interface{}{
+				"step":             "download_ready",
+				"downloadProgress": progress,
+				"fileName":         filepath.Base(filePath),
+			})
+			return download, nil
 		}
 
-		lastSegmentNum := 0
-		if _, err := fmt.Sscanf(filepath.Base(lastSegmentFilename), ms.SegmentFormatParse, &lastSegmentNum); err != nil {
-			return 0.0
-		}
-
-		if lastSegmentNum > 0 {
-			progress := (float64(segmentNum) / float64(lastSegmentNum)) * 100.0
-			if progress > 100.0 {
-				progress = 100.0
+		progressChanged := progress-lastProgress >= 1.0
+		if progressChanged || waitCount%5 == 0 {
+			if progressChanged && progress > 0 {
+				ms.updateStreamStatus(movieID, "downloading", fmt.Sprintf("Downloading: %.1f%% complete", progress), map[string]interface{}{
+					"step":             "downloading",
+					"downloadProgress": progress,
+					"downloadStatus":   status,
+				})
+				lastProgress = progress
 			}
-			return progress
+		}
+
+		waitCount++
+		<-ticker.C
+	}
+}
+
+func (ms *MovieService) getTorrentMovieDetails(activeDownload *models.TorrentDownload) (string, *torrent.File, string, float64) {
+	activeDownload.Mu.RLock()
+	filePath := activeDownload.FilePath
+	videoFile := activeDownload.VideoFile
+	status := activeDownload.Status
+	progress := activeDownload.Progress
+	activeDownload.Mu.RUnlock()
+
+	return filePath, videoFile, status, progress
+}
+
+func (ms *MovieService) waitUntilVideoFileIsReady(
+	activeDownload *models.TorrentDownload, filePath string,
+	videoFile *torrent.File,
+	status string,
+) {
+	if !(status == "completed" && filePath != "" && videoFile == nil) {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+	waitLoop:
+		for {
+			_, videoFile, _, _ = ms.getTorrentMovieDetails(activeDownload)
+
+			if videoFile != nil {
+				break waitLoop
+			}
+
+			<-ticker.C
 		}
 	}
-	return 0.0
+}
+
+func (ms *MovieService) convertSubtitlesToHLS(srtFiles []string, hlsOutputDir string) error {
+	if len(srtFiles) == 0 {
+		return nil
+	}
+
+	vttTempDir := filepath.Join(hlsOutputDir, "subs_vtt_temp")
+	if err := os.MkdirAll(vttTempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create VTT temp directory: %w", err)
+	}
+	defer os.RemoveAll(vttTempDir)
+
+	for _, srtFile := range srtFiles {
+		baseName := filepath.Base(srtFile)
+		lang := strings.TrimSuffix(baseName, filepath.Ext(baseName))
+
+		langSubsDir := filepath.Join(hlsOutputDir, "subs", lang)
+		if err := os.MkdirAll(langSubsDir, 0755); err != nil {
+			Logger.Error(fmt.Sprintf("Failed to create subtitle directory for %s: %v", lang, err))
+			continue
+		}
+
+		vttFile := filepath.Join(vttTempDir, fmt.Sprintf("%s.vtt", lang))
+		vttFileHandle, err := os.Create(vttFile)
+		if err != nil {
+			Logger.Error(fmt.Sprintf("Failed to create VTT file for %s: %v", lang, err))
+			continue
+		}
+
+		ConvertSRTtoVTT(srtFile, vttFileHandle)
+		vttFileHandle.Close()
+
+		if _, err := os.Stat(vttFile); os.IsNotExist(err) {
+			Logger.Error(fmt.Sprintf("VTT file was not created for %s", lang))
+			continue
+		}
+
+		destVttFile := filepath.Join(langSubsDir, "subtitle.vtt")
+		if err := utils.CopyFile(vttFile, destVttFile); err != nil {
+			Logger.Error(fmt.Sprintf("Failed to copy VTT file for %s: %v", lang, err))
+			continue
+		}
+
+		playlistPath := filepath.Join(langSubsDir, "playlist.m3u8")
+		mediaPlaylist, err := m3u8.NewMediaPlaylist(1, 1)
+		if err != nil {
+			Logger.Error(fmt.Sprintf("Failed to create media playlist for %s: %v", lang, err))
+			continue
+		}
+
+		mediaPlaylist.MediaType = m3u8.VOD
+		mediaPlaylist.SetVersion(3)
+
+		if err := mediaPlaylist.Append("subtitle.vtt", 0.0, ""); err != nil {
+			Logger.Error(fmt.Sprintf("Failed to append segment to playlist for %s: %v", lang, err))
+			continue
+		}
+		mediaPlaylist.Close()
+
+		playlistFile, err := os.Create(playlistPath)
+		if err != nil {
+			Logger.Error(fmt.Sprintf("Failed to create playlist file for %s: %v", lang, err))
+			continue
+		}
+		playlistFile.WriteString(mediaPlaylist.String())
+		playlistFile.Close()
+
+		Logger.Info(fmt.Sprintf("Successfully converted subtitles for language: %s", lang))
+	}
+
+	return nil
+}
+
+func (ms *MovieService) createMasterPlaylist(hlsOutputDir string, srtFiles []string) (*m3u8.MasterPlaylist, error) {
+	masterPlaylistPath := filepath.Join(hlsOutputDir, "master.m3u8")
+
+	masterPlaylist := m3u8.NewMasterPlaylist()
+	masterPlaylist.SetVersion(3)
+
+	var subtitleAlternatives []*m3u8.Alternative
+	subsDir := filepath.Join(hlsOutputDir, "subs")
+	if entries, err := os.ReadDir(subsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				lang := entry.Name()
+				playlistPath := filepath.Join(subsDir, lang, "playlist.m3u8")
+				if _, err := os.Stat(playlistPath); err == nil {
+					vttPlaylist := fmt.Sprintf("subs/%s/playlist.m3u8", lang)
+					isDefault := lang == "en"
+					subtitleAlt := &m3u8.Alternative{
+						GroupId:    "subs",
+						Type:       "SUBTITLES",
+						Name:       utils.GetLanguageLabel(lang),
+						Language:   lang,
+						Default:    isDefault,
+						Autoselect: "NO",
+						URI:        vttPlaylist,
+					}
+					subtitleAlternatives = append(subtitleAlternatives, subtitleAlt)
+				}
+			}
+		}
+	}
+
+	for _, quality := range VideoTranscoderConf.Qualities {
+		if !quality.Enabled {
+			continue
+		}
+
+		uri := fmt.Sprintf("%s/playlist.m3u8", quality.Name)
+		params := m3u8.VariantParams{
+			Bandwidth:    utils.ParseBandwidth(quality.VideoBitrate),
+			Resolution:   quality.Resolution,
+			Codecs:       "avc1.640028,mp4a.40.2",
+			Alternatives: subtitleAlternatives,
+		}
+
+		if len(subtitleAlternatives) > 0 {
+			params.Subtitles = "subs"
+		}
+
+		masterPlaylist.Append(uri, nil, params)
+	}
+
+	masterFile, err := os.Create(masterPlaylistPath)
+	if err != nil {
+		return nil, err
+	}
+	defer masterFile.Close()
+
+	_, err = masterFile.Write(masterPlaylist.Encode().Bytes())
+	return masterPlaylist, err
+}
+
+func (ms *MovieService) tryFFmpegTranscodingWithPlaylist(
+	activeDownload *models.TorrentDownload,
+	movieID int,
+	hlsOutputDir string,
+	masterPlaylist *m3u8.MasterPlaylist,
+) {
+	retryDelay := 10 * time.Second
+	attempt := 0
+
+	for {
+		attempt++
+
+		_, videoFile, _, _ := ms.getTorrentMovieDetails(activeDownload)
+
+		if videoFile == nil {
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		reader := videoFile.NewReader()
+		reader.SetResponsive()                // Blocks until pieces are complete
+		reader.SetReadahead(10 * 1024 * 1024) // 10MB read-ahead
+
+		err := ms.runFFmpegTranscoding(reader, hlsOutputDir)
+		reader.Close()
+
+		if err == nil {
+			var downloadedMovie models.DownloadedMovie
+			if err := ms.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error; err == nil {
+
+				outputDir := activeDownload.RootDir
+				// log.Printf("Cleaning up torrent files for movie %d dir %s", movieID, outputDir)
+				err := ms.torrentService.RemoveTorrentFiles(movieID, downloadedMovie.Quality, outputDir)
+				if err != nil {
+					// log.Printf("Error cleaning up torrent files for movie %d: %v", movieID, err)
+				}
+			}
+
+			ms.MasterPlaylists.Store(movieID, masterPlaylist)
+
+			ms.updateStreamStatus(movieID, "ready", "Stream is ready to play", map[string]interface{}{
+				"transcodingStatus": "ready",
+				"masterPlaylist":    masterPlaylist,
+			})
+			break
+		}
+
+		ms.updateStreamStatus(movieID, "transcoding", fmt.Sprintf("Transcoding attempt %d failed, retrying...", attempt), map[string]interface{}{
+			"transcodingStatus": "retrying",
+			"attempt":           attempt,
+			"error":             err.Error(),
+		})
+
+		_, _, status, progress := ms.getTorrentMovieDetails(activeDownload)
+		if status == "completed" || progress >= 100.0 {
+			ms.updateStreamStatus(movieID, "error", "Transcoding failed after download completed", map[string]interface{}{
+				"transcodingStatus": "failed",
+				"lastError":         err.Error(),
+			})
+			break
+		}
+
+		time.Sleep(retryDelay)
+	}
+}
+
+func (ms *MovieService) runFFmpegTranscoding(reader io.Reader, hlsOutputDir string) error {
+	var args []string
+
+	args = append(args,
+		"-fflags", "+genpts+igndts+discardcorrupt",
+		"-err_detect", "ignore_err",
+		"-i", "pipe:0")
+
+	args = append(args,
+		"-c:v", "libx264",
+		"-preset", VideoTranscoderConf.Encoding.Preset,
+		"-crf", fmt.Sprintf("%d", VideoTranscoderConf.Encoding.CRF),
+		"-g", fmt.Sprintf("%d", VideoTranscoderConf.Encoding.GOPSize),
+		"-keyint_min", fmt.Sprintf("%d", VideoTranscoderConf.Encoding.KeyintMin),
+		"-sc_threshold", fmt.Sprintf("%d", VideoTranscoderConf.Encoding.SCThreshold),
+	)
+
+	variantIndex := 0
+	for _, quality := range VideoTranscoderConf.Qualities {
+		if !quality.Enabled {
+			continue
+		}
+
+		qualityDir := filepath.Join(hlsOutputDir, quality.Name)
+		if err := os.MkdirAll(qualityDir, 0755); err != nil {
+			return err
+		}
+
+		args = append(args,
+			"-map", "0:v:0",
+			"-map", "0:a:0",
+		)
+
+		args = append(args,
+			fmt.Sprintf("-s:v:%d", variantIndex), quality.Resolution,
+			fmt.Sprintf("-b:v:%d", variantIndex), quality.VideoBitrate,
+			fmt.Sprintf("-maxrate:%d", variantIndex), quality.MaxRate,
+			fmt.Sprintf("-bufsize:%d", variantIndex), quality.BufSize,
+		)
+
+		args = append(args,
+			fmt.Sprintf("-c:a:%d", variantIndex), "aac",
+			fmt.Sprintf("-b:a:%d", variantIndex), VideoTranscoderConf.Encoding.AudioBitrate,
+			fmt.Sprintf("-ar:%d", variantIndex), fmt.Sprintf("%d", VideoTranscoderConf.Encoding.AudioSampleRate),
+		)
+
+		if VideoTranscoderConf.Encoding.AudioChannels > 0 {
+			args = append(args,
+				fmt.Sprintf("-ac:%d", variantIndex), fmt.Sprintf("%d", VideoTranscoderConf.Encoding.AudioChannels),
+			)
+		}
+
+		variantIndex++
+	}
+
+	args = append(args,
+		"-f", "hls",
+		"-hls_time", fmt.Sprintf("%d", VideoTranscoderConf.Output.SegmentTime),
+		"-hls_playlist_type", "event",
+		"-hls_flags", "temp_file+independent_segments+omit_endlist",
+		"-hls_list_size", "0",
+	)
+
+	var varStreamMap strings.Builder
+	idx := 0
+	for _, quality := range VideoTranscoderConf.Qualities {
+		if !quality.Enabled {
+			continue
+		}
+		if idx > 0 {
+			varStreamMap.WriteString(" ")
+		}
+		varStreamMap.WriteString(fmt.Sprintf("v:%d,a:%d,name:%s", idx, idx, quality.Name))
+		idx++
+	}
+
+	args = append(args,
+		"-var_stream_map", varStreamMap.String(),
+		"-hls_segment_filename", filepath.Join(hlsOutputDir, "%v", "segment%03d.ts"),
+	)
+
+	outputPattern := filepath.Join(hlsOutputDir, "%v", "playlist.m3u8")
+	args = append(args, outputPattern)
+
+	cmd := exec.Command("ffmpeg", args...)
+	cmd.Stdin = reader
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	return nil
 }

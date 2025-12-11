@@ -1,4 +1,6 @@
 import useSWR from "swr";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 import api from "./api";
 
@@ -9,8 +11,14 @@ const fetcher = (url: string) => {
       return res.data;
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error("SWR Error:", url, err);
+      if (err?.response?.status !== 401) {
+        addToast({
+          title: "Failed to load data",
+          description: getErrorMessage(err),
+          severity: "danger",
+          timeout: 4000,
+        });
+      }
       throw err;
     });
 };

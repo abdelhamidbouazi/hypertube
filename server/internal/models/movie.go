@@ -55,12 +55,14 @@ type MovieDetails struct {
 	IMDbID       string    `json:"imdb_id"`
 	Language     string    `json:"original_language,omitempty"`
 	IsAvailable  bool      `json:"is_available"`
+	IsWatched    bool      `json:"is_watched"`
 	StreamURL    string    `json:"stream_url"`
 	Cast         []Cast    `json:"cast"`
 	Director     []Person  `json:"director"`
 	Producer     []Person  `json:"producer"`
 	Genres       []Genre   `json:"genres"`
 	Comments     []Comment `json:"comments"`
+	Subtitles    []string  `json:"subtitles"`
 }
 
 type Cast struct {

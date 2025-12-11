@@ -1,9 +1,9 @@
 package users
 
 import (
-	"time"
 	"server/internal/models"
 	"server/internal/services"
+	"time"
 )
 
 // WatchHistoryItem represents a single watch history entry for Swagger
@@ -42,7 +42,7 @@ func GetUserWatchHistory(userID uint, page int, limit int) (WatchHistoryResponse
 		Limit(limit).
 		Offset(offset).
 		Find(&response.History).Error
-	
+
 	if err != nil {
 		return response, err
 	}

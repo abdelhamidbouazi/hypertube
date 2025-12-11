@@ -6,10 +6,10 @@ import (
 )
 
 type UserStats struct {
-	TotalWatched    int64 `json:"total_watched"`
-	TotalComments   int64 `json:"total_comments"`
-	TotalWatchTime  int   `json:"total_watch_time"`
-	FavoriteGenres  []GenreStats `json:"favorite_genres"`
+	TotalWatched   int64        `json:"total_watched"`
+	TotalComments  int64        `json:"total_comments"`
+	TotalWatchTime int          `json:"total_watch_time"`
+	FavoriteGenres []GenreStats `json:"favorite_genres"`
 }
 
 type GenreStats struct {
@@ -44,7 +44,7 @@ func GetUserStats(userID uint) (UserStats, error) {
 		return stats, err
 	}
 	stats.TotalWatchTime = totalDuration
-	
+
 	stats.FavoriteGenres = []GenreStats{}
 
 	return stats, nil

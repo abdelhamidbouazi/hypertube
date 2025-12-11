@@ -7,7 +7,7 @@ import { Tooltip } from "@heroui/tooltip";
 import Link from "next/link";
 import { useWatchlistStore } from "@/lib/store";
 import { useMovieDetailsReq } from "@/lib/hooks";
-import { Bookmark, BookmarkCheck } from "lucide-react";
+import { Bookmark, BookmarkCheck, CheckCircle2 } from "lucide-react";
 
 export type Movie = {
   id: number;
@@ -17,25 +17,24 @@ export type Movie = {
   overview?: string;
   original_language?: string;
   watched?: boolean;
+  isWatched?: boolean;
   vote_average?: number;
 };
 
 export default function MovieCard({ movie }: { movie: Movie }) {
-  const { id, title, release_date, poster_path, watched, vote_average } = movie;
+  const { id, title, release_date, poster_path, watched, isWatched, vote_average } = movie;
   const { isInWatchlist, toggleWatchlist } = useWatchlistStore();
   const [shouldFetchDetails, setShouldFetchDetails] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement | null>(null);
   const { movie: details } = useMovieDetailsReq(shouldFetchDetails ? String(id) : "");
   const year = release_date ? new Date(release_date).getFullYear() : undefined;
 
-  // use existing rating or fetch from details
   const ratingSource = vote_average ?? details?.vote_average;
   const formattedRating = ratingSource !== undefined && ratingSource !== null
     ? Number(ratingSource).toFixed(1)
     : null;
   const inWatchlist = isInWatchlist(id);
 
-  // lazy load movie details when card becomes visible
   React.useEffect(() => {
     if (!cardRef.current || shouldFetchDetails) return;
     const observer = new IntersectionObserver((entries) => {
@@ -89,6 +88,14 @@ export default function MovieCard({ movie }: { movie: Movie }) {
                   </svg>
                   <span className="text-xs font-bold">{formattedRating}</span>
                 </div>
+              </div>
+            )}
+
+            {/* watched badge */}
+            {(isWatched || watched) && (
+              <div className="absolute top-3 left-14 bg-green-500 text-white rounded-full px-2.5 py-1 shadow-md z-40 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 fill-current" />
+                <span className="text-xs font-semibold">Watched</span>
               </div>
             )}
 

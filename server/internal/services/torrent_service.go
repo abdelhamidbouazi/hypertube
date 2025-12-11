@@ -1,9 +1,9 @@
 package services
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"server/internal/models"
@@ -11,8 +11,10 @@ import (
 	"sync"
 	"time"
 
+	anacrolixlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/storage"
+	"github.com/anacrolix/torrent/types/infohash"
 	"gorm.io/gorm"
 )
 
@@ -34,9 +36,15 @@ func NewTorrentService(downloadDir string, db *gorm.DB) *TorrentService {
 	cfg.Debug = false
 	cfg.ListenPort = 0
 
+	// Disable IPv6 to prevent "network unreachable" errors
+	cfg.DisableIPv6 = true
 	cfg.DisableUTP = false
 	cfg.NoDHT = false
 	cfg.DisablePEX = false
+	cfg.NoDefaultPortForwarding = true // Disable UPnP/NAT-PMP port forwarding
+
+	// Configure torrent library to only log Critical level (effectively disabling most logs)
+	cfg.Logger = anacrolixlog.Default.FilterLevel(anacrolixlog.Disabled)
 
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -52,21 +60,17 @@ func NewTorrentService(downloadDir string, db *gorm.DB) *TorrentService {
 	return ts
 }
 
-func (ts *TorrentService) GetOrStartDownload(movieID int, magnet string, quality string) (*models.TorrentDownload, error) {
-	downloadKey := fmt.Sprintf("%d-%s", movieID, quality)
-
-	// log.Printf("Starting download for movie %d with quality %s", movieID, quality)
+func (ts *TorrentService) GetOrStartDownload(movieID int, infoHash string) (*models.TorrentDownload, error) {
+	downloadKey := fmt.Sprintf("%d", movieID)
 
 	var downloadedMovie models.DownloadedMovie
-	err := ts.db.Where("movie_id = ? AND quality = ?", movieID, quality).First(&downloadedMovie).Error
+	err := ts.db.Where("movie_id = ?", movieID).First(&downloadedMovie).Error
 	if err == nil && downloadedMovie.FilePath != "" {
 		if _, err := os.Stat(downloadedMovie.FilePath); err == nil {
-			// log.Printf("Movie %d with quality %s already downloaded", movieID, quality)
 			ts.db.Model(&downloadedMovie).Update("last_watched", time.Now())
 
 			return &models.TorrentDownload{
 				MovieID:        movieID,
-				Quality:        quality,
 				Progress:       100,
 				Status:         "completed",
 				StreamReady:    true,
@@ -75,40 +79,54 @@ func (ts *TorrentService) GetOrStartDownload(movieID int, magnet string, quality
 				CompletedAt:    &[]time.Time{time.Now()}[0],
 			}, nil
 		} else {
-			// log.Printf("Movie %d with quality %s marked as downloaded but file missing, deleting database record", movieID, quality)
+			// log.Printf("Movie %d marked as downloaded but file missing, deleting database record", movieID)
 			ts.db.Delete(&downloadedMovie)
 		}
 	}
-
-	magnet = ts.addTrackersToMagnet(magnet)
 
 	movieDownloadDir := filepath.Join(ts.downloadDir, fmt.Sprintf("%d", movieID))
 	if err := os.MkdirAll(movieDownloadDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	spec, err := torrent.TorrentSpecFromMagnetUri(magnet)
+	hashBytes, err := hex.DecodeString(infoHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse magnet: %w", err)
+		return nil, fmt.Errorf("invalid infohash format: %w", err)
 	}
-	spec.Storage = storage.NewFile(movieDownloadDir)
 
-	t, _, err := ts.client.AddTorrentSpec(spec)
+	var ih infohash.T
+	copy(ih[:], hashBytes)
+
+	// log.Printf("Starting download for movie %d with infohash: %s", movieID, infoHash)
+
+	ops := torrent.AddTorrentOpts{
+		InfoHash: ih,
+		Storage:  storage.NewFile(movieDownloadDir),
+	}
+
+	t, _ := ts.client.AddTorrentOpt(ops)
+
+	ts.addTrackersToTorrent(t)
+
+	<-t.GotInfo()
+
+	mi := t.Metainfo()
+
+	magnet, err := mi.MagnetV2()
 	if err != nil {
-		return nil, fmt.Errorf("failed to add torrent: %w", err)
+		return nil, fmt.Errorf("failed to get magnet link: %w", err)
 	}
 
 	dl := &models.TorrentDownload{
 		Torrent:   t,
 		MovieID:   movieID,
-		Quality:   quality,
 		Status:    "initializing",
 		StartedAt: time.Now(),
 	}
 
 	ts.Downloads.Store(downloadKey, dl)
 
-	go ts.monitorDownload(dl, downloadKey, magnet, movieDownloadDir)
+	go ts.monitorDownload(dl, downloadKey, magnet.String(), movieDownloadDir)
 
 	return dl, nil
 }
@@ -266,25 +284,20 @@ func (ts *TorrentService) handleDownloadError(dl *models.TorrentDownload, downlo
 	// log.Printf("Download error for %s: %s", downloadKey, reason)
 }
 
-func (ts *TorrentService) addTrackersToMagnet(magnet string) string {
-	trackers := []string{
-		"udp://tracker.openbittorrent.com:6969",
-		"udp://tracker.opentrackr.org:1337",
-		"udp://9.rarbg.to:2710",
-		"udp://exodus.desync.com:6969",
-		"udp://tracker.cyberia.is:6969",
-		"udp://tracker.torrent.eu.org:451",
-		"udp://tracker.dler.org:6969",
-		"udp://opentracker.i2p.rocks:6969",
+func (ts *TorrentService) addTrackersToTorrent(t *torrent.Torrent) {
+	// Use reliable UDP trackers only to avoid decode errors and IPv6 issues
+	trackers := [][]string{
+		{"udp://tracker.opentrackr.org:1337/announce"},
+		{"udp://open.stealth.si:80/announce"},
+		{"udp://tracker.openbittorrent.com:6969/announce"},
+		{"udp://opentracker.i2p.rocks:6969/announce"},
+		{"udp://tracker.internetwarriors.net:1337/announce"},
+		{"udp://tracker.leechers-paradise.org:6969/announce"},
+		{"udp://coppersurfer.tk:6969/announce"},
+		{"udp://tracker.zer0day.to:1337/announce"},
 	}
 
-	for _, tracker := range trackers {
-		if !strings.Contains(magnet, tracker) {
-			magnet += "&tr=" + url.QueryEscape(tracker)
-		}
-	}
-
-	return magnet
+	t.AddTrackers(trackers)
 }
 
 func (ts *TorrentService) saveDownloadedMovie(dl *models.TorrentDownload, magnet string) {

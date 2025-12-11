@@ -1,7 +1,6 @@
 package oauth2
 
 import (
-	"fmt"
 	"server/internal/services"
 	"sync"
 
@@ -18,7 +17,6 @@ func LoadFortyTwoConfig() {
 	secret := viper.GetString("OAUTH_FORTYTWO_SECRET")
 	redirect := services.Conf.OAUTH.FortyTwo.Redirect
 	if uid != "" && secret != "" && redirect != "" {
-		fmt.Println("uid=", uid, "secret=", secret, "redirect=", redirect)
 		providers.Store("42", &oauth2.Config{
 			ClientID:     uid,
 			ClientSecret: secret,

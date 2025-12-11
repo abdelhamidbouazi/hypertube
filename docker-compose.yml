@@ -29,12 +29,12 @@ services:
     networks:
       - hypertube
     volumes:
-      - ./server/:/app
       - ./downloads:/app/downloads
       - ./hls_output:/app/hls_output
       - ./subtitles:/app/subtitles
     env_file:
       - .env
+    # command: go run ./main.go
     environment:
       # CORS_ORIGINS: "http://localhost:4200,http://localhost:8080"
       # UI_ADDRESS: http://localhost:4200
@@ -43,6 +43,7 @@ services:
       MOVIE_APIS_TMDB_API_KEY: "${TMDB_API_KEY}"
       MOVIE_APIS_OMDB_API_KEY: "${OMDB_API_KEY}"
       MOVIE_APIS_SUBDL_API_KEY: "${SUBDL_API_KEY}"
+      MOVIE_APIS_WATCHMODE_API_KEY: "${WATCHMODE_API_KEY}"
       DOWNLOADS_DIRECTORY: "/app/downloads"
       STREAMING_DOWNLOAD_DIR: "/app/downloads"
       STREAMING_HLS_OUTPUT_DIR: "/app/hls_output"

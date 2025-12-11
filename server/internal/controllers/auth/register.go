@@ -23,11 +23,16 @@ type RegisterUserType struct {
 //	@Summary		Register
 //	@Description	Register new user
 //	@Tags			auth
-//	@Accept			json
+//	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			RegisterUserType	body		RegisterUserType	true	"register credentials to send"
-//	@Success		200					{string}	string				"success message"
-//	@Failure		400					{object}	utils.HTTPError
+//	@Param			firstname	formData	string	true	"First Name"
+//	@Param			lastname	formData	string	true	"Last Name"
+//	@Param			email		formData	string	true	"Email"
+//	@Param			password	formData	string	true	"Password"
+//	@Param			username	formData	string	true	"Username"
+//	@Param			picture		formData	file	false	"Profile Picture"
+//	@Success		200			{string}	string	"success message"
+//	@Failure		400			{object}	utils.HTTPError
 //	@Router			/auth/register [post]
 func Register(c echo.Context) error {
 	var newUser RegisterUserType

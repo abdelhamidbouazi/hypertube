@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,4 +80,83 @@ func ParseDuration(s string) (time.Duration, error) {
 	}
 
 	return time.Second * time.Duration(dur), nil
+}
+
+func CheckFileExits(filePath string) error {
+	_, err := os.Stat(filePath)
+	return err
+}
+
+func WaitForFile(filePath string) error {
+	for {
+		if err := CheckFileExits(filePath); err == nil {
+			time.Sleep(100 * time.Millisecond)
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func GetLanguageLabel(code string) string {
+	languageLabels := map[string]string{
+		"en": "English",
+		"fr": "French",
+		"es": "Spanish",
+		"ar": "Arabic",
+		"de": "German",
+		"it": "Italian",
+		"pt": "Portuguese",
+		"ru": "Russian",
+		"ja": "Japanese",
+		"ko": "Korean",
+		"zh": "Chinese",
+		"hi": "Hindi",
+		"nl": "Dutch",
+		"pl": "Polish",
+		"tr": "Turkish",
+	}
+	if label, ok := languageLabels[code]; ok {
+		return label
+	}
+	return code
+}
+
+func CopyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
+}
+
+func ParseBandwidth(bitrate string) uint32 {
+	bitrate = strings.TrimSpace(bitrate)
+	bitrate = strings.ToLower(bitrate)
+
+	if strings.HasSuffix(bitrate, "k") {
+		value := strings.TrimSuffix(bitrate, "k")
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return uint32(v * 1000)
+		}
+	} else if strings.HasSuffix(bitrate, "m") {
+		value := strings.TrimSuffix(bitrate, "m")
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return uint32(v * 1000000)
+		}
+	} else {
+		if v, err := strconv.ParseFloat(bitrate, 64); err == nil {
+			return uint32(v)
+		}
+	}
+
+	return 0
 }

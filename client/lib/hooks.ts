@@ -5,6 +5,8 @@ import api from "./api";
 import fetcher from "./swr";
 import { MovieFilters, useAuthStore } from "./store";
 import { ContinueWatchingMovie } from "@/types";
+import { addToast } from "@heroui/toast";
+import { getErrorMessage } from "./error-utils";
 
 export const useSearchMovies = (query: string) => {
   const url = query.trim()
@@ -39,7 +41,7 @@ export const useMovies = (filters?: MovieFilters) => {
     const hasFilters =
       (filters?.selectedGenres && filters.selectedGenres.length > 0) ||
       (filters?.minRating && filters.minRating > 0) ||
-      (filters?.sort && filters.sort !== "name") ||
+      (filters?.sort && filters.sort !== "popularity") ||
       (filters?.yearRange &&
         (filters.yearRange[0] !== 2000 ||
           filters.yearRange[1] !== new Date().getFullYear()));
@@ -50,7 +52,6 @@ export const useMovies = (filters?: MovieFilters) => {
     }
 
     const params = new URLSearchParams();
-
     params.set("page", (pageIndex + 1).toString());
 
     if (filters) {
@@ -58,7 +59,8 @@ export const useMovies = (filters?: MovieFilters) => {
         params.set("genres", filters.selectedGenres.join(","));
       if (filters.minRating > 0)
         params.set("minRating", filters.minRating.toString());
-      if (filters.sort) params.set("sort", filters.sort);
+      if (filters.sort && filters.sort !== "popularity")
+        params.set("sort", filters.sort);
       if (filters.yearRange) {
         params.set("yearFrom", filters.yearRange[0].toString());
         params.set("yearTo", filters.yearRange[1].toString());
@@ -108,7 +110,18 @@ export const useMovieDetailsReq = (movieId: string) => {
 };
 
 export const useAuth = () => {
-  const { data, error, isLoading } = useApi("/users/me");
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      setHasToken(!!token);
+    }
+  }, []);
+
+  const { data, error, isLoading } = useApi(
+    hasToken ? "/users/me" : null
+  );
 
   return {
     user: data,
@@ -118,7 +131,18 @@ export const useAuth = () => {
 };
 
 export const useMe = () => {
-  const { data, error, isLoading, mutate } = useApi("/users/me");
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      setHasToken(!!token);
+    }
+  }, []);
+
+  const { data, error, isLoading, mutate } = useApi(
+    hasToken ? "/users/me" : null
+  );
 
   return { user: data, isLoading, error, refetch: mutate };
 };
@@ -186,13 +210,19 @@ type WatchHistoryResponse = {
 
 export const useWatchHistory = () => {
   const [mounted, setMounted] = useState(false);
-  const { data, error, isLoading, mutate } = useApi(
-    mounted ? "/users/watch-history" : null
-  );
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      setHasToken(!!token);
+    }
   }, []);
+
+  const { data, error, isLoading, mutate } = useApi(
+    mounted && hasToken ? "/users/watch-history" : null
+  );
 
   const apiResponse = data as WatchHistoryResponse | undefined;
   const history = apiResponse?.history || [];
@@ -239,7 +269,7 @@ export const useWatchHistory = () => {
   return {
     watchHistory: history,
     continueWatching,
-    isLoading: !mounted || isLoading,
+    isLoading: !mounted || hasToken === null || isLoading,
     error,
     refetch: mutate,
   };
@@ -249,7 +279,12 @@ export const logoutUser = async () => {
   try {
     await api.post("/auth/logout");
   } catch (error) {
-    console.error("logout error:", error);
+    addToast({
+      title: "Logout error",
+      description: getErrorMessage(error),
+      severity: "warning",
+      timeout: 3000,
+    });
   } finally {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");
@@ -322,7 +357,6 @@ export const uploadAvatar = async (file: File) => {
   return response.data;
 };
 
-// get user public info by username
 export const getUserPublicInfo = async (username: string) => {
   const response = await api.get(`/users/${encodeURIComponent(username)}`);
   return response.data;
