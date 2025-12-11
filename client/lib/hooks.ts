@@ -133,14 +133,24 @@ export const registerUser = async (
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
+  avatar?: File
 ) => {
-  const response = await api.post("/auth/register", {
-    username,
-    email,
-    password,
-    FirstName: firstName,
-    LastName: lastName,
+  const formData = new FormData();
+  formData.append("username", username);
+  formData.append("email", email);
+  formData.append("password", password);
+  formData.append("firstname", firstName);
+  formData.append("lastname", lastName);
+
+  if (avatar) {
+    formData.append("picture", avatar);
+  }
+
+  const response = await api.post("/auth/register", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
   return response.data;
 };
