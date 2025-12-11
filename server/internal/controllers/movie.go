@@ -338,7 +338,7 @@ func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 			return err
 		}
 
-		if err := c.checkFileExits(filePath); err != nil {
+		if err := c.waitForFile(filePath); err != nil {
 			return ctx.JSON(http.StatusAccepted, echo.Map{})
 		}
 	}

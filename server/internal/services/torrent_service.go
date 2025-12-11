@@ -41,9 +41,10 @@ func NewTorrentService(downloadDir string, db *gorm.DB) *TorrentService {
 	cfg.DisableUTP = false
 	cfg.NoDHT = false
 	cfg.DisablePEX = false
+	cfg.NoDefaultPortForwarding = true // Disable UPnP/NAT-PMP port forwarding
 
 	// Configure torrent library to only log Critical level (effectively disabling most logs)
-	cfg.Logger = anacrolixlog.Default.FilterLevel(anacrolixlog.Never)
+	cfg.Logger = anacrolixlog.Default.FilterLevel(anacrolixlog.Disabled)
 
 	client, err := torrent.NewClient(cfg)
 	if err != nil {
