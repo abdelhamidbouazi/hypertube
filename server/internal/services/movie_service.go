@@ -24,7 +24,7 @@ type MovieService struct {
 	StreamStatus       sync.Map // map[int]map[string]interface{}
 	MasterPlaylists    sync.Map // map[int]*m3u8.MasterPlaylist - movieID -> master playlist
 	LastSegmentCache   sync.Map // map[int]string - movieID -> last segment filename
-	UserSegmentTrack   sync.Map // map[string]map[int]string - "userID:movieID" -> last segment visited
+	UserWatchedMovies   sync.Map // map[string]map[int]string - "userID:movieID" -> last segment visited
 	SegmentFormatParse string
 	SearchSources      map[string]Source
 	db                 *gorm.DB
@@ -249,9 +249,9 @@ func (ms *MovieService) SearchTorrentsByIMDb(movie models.MovieDetails, metadata
 	return results, nil
 }
 
-func (ms *MovieService) TrackUserSegment(userID uint, movieID int, segmentFilename string) {
+func (ms *MovieService) TrackUserSegment(userID uint, movieID int) {
 	key := fmt.Sprintf("%d:%d", userID, movieID)
-	ms.UserSegmentTrack.Store(key, segmentFilename)
+	ms.UserWatchedMovies.Store(key, true)
 }
 
 func (ms *MovieService) persistWatchHistoryWorker() {
@@ -259,7 +259,7 @@ func (ms *MovieService) persistWatchHistoryWorker() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		ms.UserSegmentTrack.Range(func(key, value interface{}) bool {
+		ms.UserWatchedMovies.Range(func(key, value interface{}) bool {
 			keyStr := key.(string)
 
 			var userID uint
@@ -285,12 +285,6 @@ func (ms *MovieService) persistWatchHistoryWorker() {
 				}
 
 				db.Create(&watchHistory)
-			} else if result.Error == nil {
-				updates := map[string]interface{}{
-					"watched_at": time.Now(),
-				}
-
-				db.Model(&watchHistory).Updates(updates)
 			}
 
 			return true

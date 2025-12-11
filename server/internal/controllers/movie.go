@@ -346,9 +346,7 @@ func (c *MovieController) ServeHLSFile(ctx echo.Context) error {
 	if strings.HasSuffix(filePath, ".ts") {
 		if userModel := ctx.Get("model"); userModel != nil {
 			user := userModel.(models.User)
-			segmentFilename := filepath.Base(filePath)
-
-			c.movieService.TrackUserSegment(user.ID, movieID, segmentFilename)
+			c.movieService.TrackUserSegment(user.ID, movieID)
 		}
 	}
 
