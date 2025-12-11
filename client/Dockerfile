@@ -8,6 +8,9 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NODE_ENV=production
+# Force the public API base during build so Next doesn't bake values from .env.local
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

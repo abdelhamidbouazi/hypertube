@@ -78,16 +78,8 @@ export function getRefreshToken(): string | null {
 }
 
 export async function refreshAccessToken(): Promise<boolean> {
-  console.log("[AUTH] refreshAccessToken called");
   const access = getAccessToken();
   const refresh = getRefreshToken();
-
-  console.log("[AUTH] Tokens check:", {
-    hasAccess: !!access,
-    hasRefresh: !!refresh,
-    accessPreview: access?.substring(0, 20) + "...",
-    refreshPreview: refresh?.substring(0, 20) + "...",
-  });
 
   if (!access || !refresh) {
     addToast({
@@ -99,14 +91,12 @@ export async function refreshAccessToken(): Promise<boolean> {
     return false;
   }
   try {
-    console.log("[AUTH] Calling /auth/refreshToken endpoint...");
     const res = await api.post("/auth/refreshToken", {}, {
       headers: { RefreshToken: refresh },
       skipAuthRedirect: true as any,
     } as any);
     const data: RevokeTokenRes = res.data;
 
-    console.log("[AUTH] Refresh successful! New tokens received");
     setTokens(data);
     return true;
   } catch (error) {
@@ -118,7 +108,6 @@ export async function refreshAccessToken(): Promise<boolean> {
     });
     clearTokens();
     if (typeof window !== "undefined") {
-      console.log("[AUTH] Redirecting to login...");
       window.location.href = "/auth/login";
     }
 
@@ -136,65 +125,38 @@ export function scheduleAutoRefresh(expUnixSeconds?: number) {
   const expSec = expUnixSeconds ?? Number(getCookie("token_exp") || 0);
 
   if (!expSec || Number.isNaN(expSec)) {
-    console.warn(
-      "[AUTH] Cannot schedule refresh: invalid expiration time",
-      expSec
-    );
     return;
   }
 
   const msUntilRefresh = Math.max(expSec * 1000 - now - 60_000, 5_000);
-  const refreshInMinutes = Math.round(msUntilRefresh / 60000);
-  const expiresAt = new Date(expSec * 1000).toLocaleTimeString();
-
-  console.log(
-    `[AUTH] Token refresh scheduled in ${refreshInMinutes} minutes (token expires at ${expiresAt})`
-  );
 
   refreshTimer = setTimeout(() => {
-    console.log("[AUTH] Auto-refresh timer triggered");
     refreshAccessToken();
   }, msUntilRefresh);
 }
 
 export function initAuthRefresh() {
-  console.log("[AUTH] 🚀 Initializing auth refresh system");
   const exp = Number(getCookie("token_exp") || 0);
 
   if (exp) {
-    const now = Date.now();
-    const timeLeft = exp * 1000 - now;
-    const minutesLeft = Math.round(timeLeft / 60000);
-    console.log(`[AUTH] Token expires in ${minutesLeft} minutes`);
     scheduleAutoRefresh(exp);
-  } else {
-    console.warn("[AUTH] No token expiration found, cannot schedule refresh");
   }
 
   if (typeof document !== "undefined") {
     const handler = () => {
       if (document.visibilityState === "visible") {
-        console.log("[AUTH] Tab became visible, checking token status...");
         const exp = Number(getCookie("token_exp") || 0);
         const now = Date.now();
         const timeLeft = exp * 1000 - now;
-        const minutesLeft = Math.round(timeLeft / 60000);
-
-        console.log(`[AUTH] Token expires in ${minutesLeft} minutes`);
 
         if (exp && timeLeft < 90_000) {
-          console.log("[AUTH] Token expiring soon (< 90s), refreshing now");
           refreshAccessToken();
         } else if (exp) {
-          console.log("[AUTH] Token still valid, rescheduling auto-refresh");
           scheduleAutoRefresh(exp);
-        } else {
-          console.warn("[AUTH] No valid token found");
         }
       }
     };
 
     document.addEventListener("visibilitychange", handler);
-    console.log("[AUTH] ✅ Visibility change listener registered");
   }
 }
