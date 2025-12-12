@@ -131,7 +131,7 @@ export default function HlsPlayer({ src, token, movieTitle, movieId }: HlsPlayer
           
           if (preferredLanguage) {
             // Try to find the user's preferred language
-            const preferredHlsIndex = hlsSubtitleTracks.findIndex((sub: { lang: string }) => 
+            const preferredHlsIndex = hlsSubtitleTracks.findIndex((sub: { lang: string }) =>
               sub.lang?.toLowerCase() === preferredLanguage.toLowerCase()
             );
             if (preferredHlsIndex >= 0) {
@@ -144,7 +144,7 @@ export default function HlsPlayer({ src, token, movieTitle, movieId }: HlsPlayer
           
           // If preferred language not found, default to English
           if (hlsSubtitleIndex === -1) {
-            const englishIndex = hlsSubtitleTracks.findIndex((sub: { lang: string }) => 
+            const englishIndex = hlsSubtitleTracks.findIndex((sub: { lang: string }) =>
               sub.lang?.toLowerCase() === "en"
             );
             if (englishIndex >= 0) {

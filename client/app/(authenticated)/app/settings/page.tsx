@@ -11,10 +11,12 @@ import { addToast } from "@heroui/toast";
 import { useMe, updateUser, uploadAvatar } from "@/lib/hooks";
 import { getErrorMessage } from "@/lib/error-utils";
 import { Eye, EyeOff, Save, User, Lock, Camera, Edit2 } from "lucide-react";
+import { useAuthStore } from "@/lib/store";
 
 export default function SettingsPage() {
   const { user, isLoading: isUserLoading, refetch } = useMe();
   const [isLoading, setIsLoading] = useState(false);
+  const setAuthUser = useAuthStore((s) => s.setUser);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -41,13 +43,18 @@ export default function SettingsPage() {
     setIsLoading(true);
 
     try {
-      await updateUser({
+      const updatedUser = await updateUser({
         firstname: firstName,
         lastname: lastName,
         username: username,
         email: email,
         preferred_language: language,
       });
+
+      // Apply immediately so pages like /watch read the updated preferred_language.
+      if (updatedUser) {
+        setAuthUser(updatedUser);
+      }
 
       addToast({
         title: "Profile updated",

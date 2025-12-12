@@ -123,6 +123,13 @@ export const useAuth = () => {
     hasToken ? "/users/me" : null
   );
 
+  
+  useEffect(() => {
+    if (data) {
+      useAuthStore.getState().setUser(data);
+    }
+  }, [data]);
+
   return {
     user: data,
     isLoading,
@@ -143,6 +150,13 @@ export const useMe = () => {
   const { data, error, isLoading, mutate } = useApi(
     hasToken ? "/users/me" : null
   );
+
+  // Keep the global auth store user in sync with /users/me
+  useEffect(() => {
+    if (data) {
+      useAuthStore.getState().setUser(data);
+    }
+  }, [data]);
 
   return { user: data, isLoading, error, refetch: mutate };
 };
