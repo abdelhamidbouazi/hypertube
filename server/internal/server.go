@@ -88,6 +88,7 @@ func LoadServer() {
 	// Server.Use(middleware.Logger())
 	config := echojwt.Config{
 		SigningKey: []byte(services.Conf.JWT.SigningKey),
+		TokenLookup: "header:Authorization:Bearer ,query:token",
 	}
 
 	refreshTokenConfig := echojwt.Config{

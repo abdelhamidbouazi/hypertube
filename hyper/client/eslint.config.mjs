@@ -1,2 +1,0 @@
-// ESLint disabled
-export default [];

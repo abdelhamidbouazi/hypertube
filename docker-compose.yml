@@ -46,6 +46,7 @@ services:
       OAUTH_GOOGLE_REDIRECT: "http://localhost/api/oauth2/google/callback"
       OAUTH_FORTYTWO_REDIRECT: "http://localhost/api/oauth2/fortytwo/callback"
       OAUTH_GITHUB_REDIRECT: "http://localhost/api/oauth2/github/callback"
+      MOVIE_APIS_SUBDL_API_KEY: "${SUBDL_API_KEY}"
 
       # Volume-backed directories used by the streamer
       DOWNLOADS_DIRECTORY: "/app/downloads"

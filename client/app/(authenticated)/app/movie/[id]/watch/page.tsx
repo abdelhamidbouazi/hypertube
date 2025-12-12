@@ -53,9 +53,6 @@ export default function WatchPage({ params }: WatchPageProps) {
         token={localStorage.getItem("token") || ""}
         movieTitle={movie.title}
         movieId={id}
-        thumbnail={
-          `https://image.tmdb.org/t/p/w500${movie.poster_path}` || ""
-        }
       />
     </div>
   );

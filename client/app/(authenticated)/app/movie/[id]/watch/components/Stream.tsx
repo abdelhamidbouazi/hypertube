@@ -13,7 +13,6 @@ interface HlsPlayerProps {
   token: string;
   movieTitle: string;
   movieId: string;
-  thumbnail?: string;
 }
 
 interface DownloadProgress {
@@ -26,36 +25,22 @@ interface DownloadProgress {
 }
 
 // Convert HTTP base URL to WebSocket URL
-// Valid WebSocket URI formats:
-// - ws://hostname:port/path (non-secure)
-// - wss://hostname:port/path (secure)
-function getWebSocketUrl(baseUrl: string, movieId: string): string {
-  // Handle absolute URLs (http:// or https://)
-  if (baseUrl.startsWith("http://")) {
-    const wsUrl = baseUrl.replace(/^http:\/\//, "");
-    return `ws://${wsUrl}/ws/${movieId}`;
-  }
+function getWebSocketUrl(baseUrl: string, movieId: string, token?: string): string {
+  let wsUrl = baseUrl.replace(/^http/, "ws");
   
-  if (baseUrl.startsWith("https://")) {
-    const wssUrl = baseUrl.replace(/^https:\/\//, "");
-    return `wss://${wssUrl}/ws/${movieId}`;
-  }
-  
-  // Handle protocol-relative URLs (//hostname)
-  if (baseUrl.startsWith("//")) {
+  if (wsUrl.startsWith("//")) {
+    wsUrl = `ws:${wsUrl}`;
+  } else if (wsUrl.startsWith("/")) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}${baseUrl}/ws/${movieId}`;
+    wsUrl = `${protocol}//${window.location.host}${wsUrl}`;
   }
   
-  // Handle relative paths (/api)
-  if (baseUrl.startsWith("/")) {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${window.location.host}${baseUrl}/ws/${movieId}`;
+  let url = `${wsUrl}/ws/${movieId}`;
+  if (token) {
+    url += `?token=${encodeURIComponent(token)}`;
   }
   
-  // Fallback: treat as hostname and use current protocol
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${baseUrl}/ws/${movieId}`;
+  return url;
 }
 
 // Get readable status label
@@ -85,7 +70,7 @@ function parseProgressMessage(data: any): DownloadProgress {
   };
 }
 
-export default function HlsPlayer({ src, token, movieTitle, movieId, thumbnail }: HlsPlayerProps) {
+export default function HlsPlayer({ src, token, movieTitle, movieId }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [levels, setLevels] = useState<{ index: number; label: string }[]>([]);
@@ -153,6 +138,9 @@ export default function HlsPlayer({ src, token, movieTitle, movieId, thumbnail }
               hlsSubtitleIndex = preferredHlsIndex;
             }
           }
+          else {
+            hlsSubtitleIndex = 0;
+          }
           
           // If preferred language not found, default to English
           if (hlsSubtitleIndex === -1) {
@@ -218,11 +206,12 @@ export default function HlsPlayer({ src, token, movieTitle, movieId, thumbnail }
     }
   }, [downloadProgress?.status, src]);
 
+  
   // WebSocket connection for download/transcoding progress
   useEffect(() => {
     if (!movieId) return;
 
-    const ws = new WebSocket(getWebSocketUrl(BASE_URL, movieId));
+    const ws = new WebSocket(getWebSocketUrl(BASE_URL, movieId, token));
 
     ws.onmessage = (event) => {
       try {
@@ -248,7 +237,7 @@ export default function HlsPlayer({ src, token, movieTitle, movieId, thumbnail }
     };
 
     return () => ws.close();
-  }, [movieId]);
+  }, [movieId, token]);
 
   const handleQualityChange = (level: number) => {
     if (hlsRef.current) {

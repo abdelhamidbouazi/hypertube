@@ -75,7 +75,7 @@ func (s *SubtitleService) CreateSubtitlesDirectory(movieID int, baseDir string) 
 }
 
 func (s *SubtitleService) DownloadSubtitles(tmdbID int, outputDir string) int {
-	languages := []string{"en", "fr", "es", "de", "it", "pt", "ar", "ru"}
+	languages := []string{"en", "fr", "es"}
 
 	downloadedCount := 0
 
