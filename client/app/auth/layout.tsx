@@ -9,7 +9,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative h-screen w-full overflow-hidden">
+    <div className="relative min-h-screen w-full overflow-y-auto">
       <div className="absolute inset-0 z-0">
         <Image
           src="/movies-bg.jpg"
@@ -22,7 +22,7 @@ export default function AuthLayout({
 
       <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/65 via-black/50 to-black/70" />
 
-      <section className="absolute inset-0 z-20 grid place-items-center px-4">
+      <section className="relative z-20 flex items-center justify-center min-h-screen px-4 py-8">
         <div className="w-[90%] max-w-md dark text-foreground">{children}</div>
       </section>
 
