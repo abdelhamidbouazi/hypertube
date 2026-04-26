@@ -5,6 +5,66 @@ The platform supports real-time torrent-based video streaming using **HLS**, sec
 
 ---
 
+## 🎥 Demo
+
+<a href="https://www.youtube.com/watch?v=L0X-5HPQMko" target="_blank">
+  <img src="https://img.shields.io/badge/Watch%20Full%20Demo-YouTube-red?logo=youtube&style=for-the-badge"/>
+</a>
+
+---
+
+### HLS Transcoding & Streaming
+
+> Torrent is resolved, converted to HLS segments on the fly, and streamed before the full download completes.
+
+<!-- <video src="assets/demos/01_hls_transcoding.mp4" autoplay loop muted playsinline width="720"></video> -->
+
+
+https://github.com/user-attachments/assets/138dbe96-f288-4ec5-a676-cedc5eb0a4ef
+
+
+---
+
+### Video Player — Quality Selection & Subtitles
+
+> Switch between Auto / 480p / 720p / 1080p mid-playback. Subtitles are auto-loaded per language preference.
+
+
+
+https://github.com/user-attachments/assets/29cd64f5-b613-4c69-a5aa-15d3466c9f4e
+
+<!-- <video src="assets/demos/02_video_playback.mp4" autoplay loop muted playsinline width="720"></video> -->
+
+---
+
+### Discover & Search
+
+> Browse the hero carousel, scroll the movie grid, or use live search with instant dropdown results.
+
+<!-- <video src="assets/demos/06_discover_page.mp4" autoplay loop muted playsinline width="720"></video> -->
+<!-- <video src="assets/demos/07_search.mp4" autoplay loop muted playsinline width="720"></video> -->
+
+
+
+
+https://github.com/user-attachments/assets/3bef4598-8115-4ea7-b495-db1b10d0e650
+
+https://github.com/user-attachments/assets/3983878e-9946-47cf-9148-c28c0ec24275
+
+
+---
+
+### Settings — Profile & Preferences
+
+> Update personal info, swap avatar, change preferred language, and reset password.
+
+<!-- <video src="assets/demos/04_settings_profile.mp4" autoplay loop muted playsinline width="720"></video> -->
+
+https://github.com/user-attachments/assets/86a7ec32-02b6-4777-96a6-a4eaf1f53bac
+
+
+---
+
 ## 🧱 Tech Stack
 
 ### Frontend
